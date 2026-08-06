@@ -1,8 +1,26 @@
 ![Nosflare](images/nosflare.png)
 
-# Nosflare
+# Nosflare — Nostr Relay Platform
 
-Nosflare is a serverless [Nostr](https://github.com/fiatjaf/nostr) relay purpose-built for [Cloudflare Workers](https://workers.cloudflare.com/) and a [Cloudflare D1](https://developers.cloudflare.com/d1/) database. You can use a live, paid version of this relay implementation by adding it to your relay list: `wss://relay.nosflare.com`
+> Based on [Nosflare](https://github.com/Spl0itable/nosflare) v7.9.45 (MIT License)
+
+A secure, modular, Cloudflare-native Nostr relay platform designed as a foundation
+for domain-specific Nostr protocols. Runs on Cloudflare Workers, D1, and Durable Objects.
+
+**This fork** adds:
+- Multi-dimensional rate limiting with identity awareness
+- Cache classification (PUBLIC / AUTH_SCOPED / PRIVATE_NO_CACHE)
+- NIP-42 hardening (single-use challenges, 60s expiry)
+- Gift-wrap (NIP-59) privacy protections
+- Query complexity protection
+- Extension registry for domain protocols
+- Comprehensive test suite (82 tests)
+- Free-tier-aware configuration
+- Database migration system
+
+---
+
+Nosflare is a serverless [Nostr](https://github.com/fiatjaf/nostr) relay purpose-built for [Cloudflare Workers](https://workers.cloudflare.com/) and a [Cloudflare D1](https://developers.cloudflare.com/d1/) database.
 
 Most applicable NIPs are supported along with support for "pay to relay", allowlisting or blocklisting pubkeys and event kinds and tags, throttle number of events from a single pubkey through rate limiting, block specific words and/or phrases, and support of [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) for `username@your-domain.com` verified Nostr addresses.
 

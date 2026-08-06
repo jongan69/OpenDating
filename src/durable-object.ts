@@ -1110,6 +1110,9 @@ export class RelayWebSocket implements DurableObject {
       // All checks passed - add pubkey to authenticated list
       session.authenticatedPubkeys.add(authEvent.pubkey);
 
+      // NIP-42: Challenge is single-use — clear and replace after successful auth
+      session.challenge = this.generateAuthChallenge();
+
       // Check payment status at auth time so we don't hit D1 on every EVENT
       if (PAY_TO_RELAY_ENABLED) {
         const paid = await hasPaidForRelay(authEvent.pubkey, this.env);

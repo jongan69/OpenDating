@@ -8,12 +8,12 @@ import { RelayInfo } from './types';
 
 // Pay to relay
 export const relayNpub = "npub16jdfqgazrkapk0yrqm9rdxlnys7ck39c7zmdzxtxqlmmpxg04r0sd733sv"; // Use your own npub
-export const PAY_TO_RELAY_ENABLED = true; // Set to false to disable pay to relay
+export const PAY_TO_RELAY_ENABLED = false; // Set to true to enable pay to relay (disabled by default for free relay access)
 export const RELAY_ACCESS_PRICE_SATS = 212121; // Price in SATS for relay access
 
 // NIP-42 Authentication
 export const AUTH_REQUIRED = true; // Set to false to disable NIP-42 authentication requirement
-export const AUTH_TIMEOUT_MS = 600000; // 10 minutes - how long the challenge is valid
+export const AUTH_TIMEOUT_MS = 60000; // 60 seconds - how long the challenge is valid (NIP-42 best practice)
 
 // Relay info
 export const relayInfo: RelayInfo = {
@@ -21,7 +21,8 @@ export const relayInfo: RelayInfo = {
   description: "A serverless Nostr relay through Cloudflare Worker and D1 database",
   pubkey: "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df",
   contact: "lux@fed.wtf",
-  supported_nips: [1, 2, 4, 5, 9, 11, 12, 13, 15, 16, 17, 20, 22, 25, 28, 33, 40, 42, 57],
+  // Only NIPs verified as implemented (see docs/BASELINE.md)
+  supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 20, 33, 42],
   software: "https://github.com/Spl0itable/nosflare",
   version: "7.9.45",
   icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
@@ -155,16 +156,15 @@ export const allowedTags = new Set<string>([
 // Rate limit thresholds
 export const PUBKEY_RATE_LIMIT = { rate: 10 / 60000, capacity: 10 }; // 10 EVENT messages per min
 export const REQ_RATE_LIMIT = { rate: 50 / 60000, capacity: 50 }; // 50 REQ messages per min
-export const excludedRateLimitKinds = new Set<number>([
-  1059
-  // ... kinds to exclude from EVENT rate limiting Ex: 1, 2, 3
-]);
+// Gift wraps (kind 1059) are rate-limited based on NIP-42 authenticated identity,
+// not the ephemeral wrapper pubkey. No event kinds are blanket-excluded from rate limiting.
+export const excludedRateLimitKinds = new Set<number>([]);
 
-// Database pruning settings (D1 has a 10GB limit)
+// Database pruning settings (D1 free tier: 5GB limit)
 export const DB_PRUNING_ENABLED = true; // Set to false to disable automatic pruning
-export const DB_SIZE_THRESHOLD_GB = 9; // Start pruning when database exceeds this size (in GB)
+export const DB_SIZE_THRESHOLD_GB = 4.0; // Start pruning when database exceeds this size (in GB) - free-tier safe
 export const DB_PRUNE_BATCH_SIZE = 1000; // Number of events to delete per batch
-export const DB_PRUNE_TARGET_GB = 8; // Target size to prune down to (in GB)
+export const DB_PRUNE_TARGET_GB = 3.5; // Target size to prune down to (in GB) - free-tier safe
 
 // Event kinds to preserve during pruning (replaceable events critical for user identity)
 // Kind 0: Profile metadata, Kind 3: Contact list, Kind 10002: Relay list

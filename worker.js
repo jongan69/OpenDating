@@ -69,16 +69,17 @@ __export(config_exports, {
   relayNpub: () => relayNpub
 });
 var relayNpub = "npub16jdfqgazrkapk0yrqm9rdxlnys7ck39c7zmdzxtxqlmmpxg04r0sd733sv";
-var PAY_TO_RELAY_ENABLED = true;
+var PAY_TO_RELAY_ENABLED = false;
 var RELAY_ACCESS_PRICE_SATS = 212121;
 var AUTH_REQUIRED = true;
-var AUTH_TIMEOUT_MS = 6e5;
+var AUTH_TIMEOUT_MS = 6e4;
 var relayInfo = {
   name: "Nosflare",
   description: "A serverless Nostr relay through Cloudflare Worker and D1 database",
   pubkey: "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df",
   contact: "lux@fed.wtf",
-  supported_nips: [1, 2, 4, 5, 9, 11, 12, 13, 15, 16, 17, 20, 22, 25, 28, 33, 40, 42, 57],
+  // Only NIPs verified as implemented (see docs/BASELINE.md)
+  supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 20, 33, 42],
   software: "https://github.com/Spl0itable/nosflare",
   version: "7.9.45",
   icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
@@ -298,14 +299,11 @@ var allowedTags = /* @__PURE__ */ new Set([
 ]);
 var PUBKEY_RATE_LIMIT = { rate: 10 / 6e4, capacity: 10 };
 var REQ_RATE_LIMIT = { rate: 50 / 6e4, capacity: 50 };
-var excludedRateLimitKinds = /* @__PURE__ */ new Set([
-  1059
-  // ... kinds to exclude from EVENT rate limiting Ex: 1, 2, 3
-]);
+var excludedRateLimitKinds = /* @__PURE__ */ new Set([]);
 var DB_PRUNING_ENABLED = true;
-var DB_SIZE_THRESHOLD_GB = 9;
+var DB_SIZE_THRESHOLD_GB = 4;
 var DB_PRUNE_BATCH_SIZE = 1e3;
-var DB_PRUNE_TARGET_GB = 8;
+var DB_PRUNE_TARGET_GB = 3.5;
 var pruneProtectedKinds = /* @__PURE__ */ new Set([
   0,
   // Profile metadata
@@ -5978,6 +5976,7 @@ var _RelayWebSocket = class _RelayWebSocket {
         return;
       }
       session.authenticatedPubkeys.add(authEvent.pubkey);
+      session.challenge = this.generateAuthChallenge();
       if (PAY_TO_RELAY_ENABLED) {
         const paid = await hasPaidForRelay(authEvent.pubkey, this.env);
         if (paid !== null) {

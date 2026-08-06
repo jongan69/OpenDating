@@ -1,13 +1,23 @@
 {
   "name": "nosflare",
   "version": "7.9.45",
+  "description": "A serverless Nostr relay for Cloudflare Workers",
   "main": "worker.js",
   "type": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --outfile=worker.js --platform=neutral --target=es2020 --format=esm --minify=false --keep-names --external:node:*",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --dir tests/unit",
+    "test:integration": "vitest run --dir tests/integration",
+    "test:security": "vitest run --dir tests/security",
+    "test:protocol": "vitest run --dir tests/protocol",
+    "db:migrate:local": "wrangler d1 execute nostr-relay --local --file=migrations/run-all.sql",
+    "db:migrate:remote": "wrangler d1 execute nostr-relay --remote --file=migrations/run-all.sql",
+    "ci": "npm run typecheck && npm run build && npm test"
   },
   "dependencies": {
     "@noble/curves": "^1.6.0"
@@ -15,6 +25,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",
     "esbuild": "^0.19.12",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
     "wrangler": "^3.0.0"
   }
 }
