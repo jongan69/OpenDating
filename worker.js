@@ -3754,7 +3754,24 @@ var init_message_types = __esm({
       "report.create": (p) => typeof p === "object" && p !== null,
       "report.create.result": (p) => typeof p === "object" && p !== null,
       "moderation.action": (p) => typeof p === "object" && p !== null,
-      "moderation.action.result": (p) => typeof p === "object" && p !== null
+      "moderation.action.result": (p) => typeof p === "object" && p !== null,
+      // Visibility
+      "visibility.update": (p) => typeof p === "object" && p !== null,
+      "visibility.update.result": (p) => typeof p === "object" && p !== null,
+      // Block remove
+      "block.remove": (p) => typeof p === "object" && p !== null,
+      "block.remove.result": (p) => typeof p === "object" && p !== null,
+      // Report received ack
+      "report.received": (p) => typeof p === "object" && p !== null,
+      // Verification
+      "verification.list": (p) => typeof p === "object" && p !== null,
+      "verification.list.result": (p) => typeof p === "object" && p !== null,
+      // Account delete
+      "account.delete": (p) => typeof p === "object" && p !== null,
+      "account.delete.result": (p) => typeof p === "object" && p !== null,
+      // Service-level
+      "service.ack": (p) => typeof p === "object" && p !== null,
+      "service.error": (p) => typeof p === "object" && p !== null && typeof p.code === "string"
     };
     __name(isKnownMessageType, "isKnownMessageType");
     __name(getPayloadValidator, "getPayloadValidator");
@@ -4679,24 +4696,80 @@ var init_service = __esm({
 });
 
 // src/protocols/opendating/storage/d1/membership.ts
-function deriveMemberId(pubkey, relaySalt) {
-  const input = new TextEncoder().encode(pubkey + relaySalt);
-  return bytesToHex2(sha2562(input));
+function getIndexKey() {
+  const devKey = "opendating-index-key-v1-dev-only-00000000000000";
+  return new TextEncoder().encode(devKey);
 }
-var _D1MembershipStore, D1MembershipStore;
+function indexKey() {
+  if (!_indexKey)
+    _indexKey = getIndexKey();
+  return _indexKey;
+}
+function deriveMemberId(pubkey) {
+  const key = indexKey();
+  const msg = hexToBytes2(pubkey);
+  return bytesToHex2(hmac(sha2562, key, msg));
+}
+async function encryptPubkey(pubkey, dataKey) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(pubkey);
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    dataKey,
+    encoded
+  );
+  const combined = new Uint8Array(iv.length + new Uint8Array(ct).length);
+  combined.set(iv);
+  combined.set(new Uint8Array(ct), iv.length);
+  return bytesToHex2(combined);
+}
+async function decryptPubkey(encryptedHex, dataKey) {
+  const combined = hexToBytes2(encryptedHex);
+  const iv = combined.slice(0, 12);
+  const ct = combined.slice(12);
+  const pt = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    dataKey,
+    ct
+  );
+  return new TextDecoder().decode(pt);
+}
+async function getDataKey() {
+  const devKeyBytes = new TextEncoder().encode("opendating-data-key-v1-dev-only-000000");
+  return crypto.subtle.importKey(
+    "raw",
+    devKeyBytes.slice(0, 32),
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+var _indexKey, _D1MembershipStore, D1MembershipStore;
 var init_membership = __esm({
   "src/protocols/opendating/storage/d1/membership.ts"() {
     "use strict";
+    init_hmac();
     init_sha256();
     init_encryption();
+    __name(getIndexKey, "getIndexKey");
+    _indexKey = null;
+    __name(indexKey, "indexKey");
     __name(deriveMemberId, "deriveMemberId");
+    __name(encryptPubkey, "encryptPubkey");
+    __name(decryptPubkey, "decryptPubkey");
+    __name(getDataKey, "getDataKey");
     _D1MembershipStore = class _D1MembershipStore {
-      constructor(db, relaySalt) {
+      constructor(db) {
         this.db = db;
-        this.relaySalt = relaySalt || "opendating-membership-v1";
+        this.dataKey = null;
+      }
+      async ensureDataKey() {
+        if (!this.dataKey)
+          this.dataKey = await getDataKey();
+        return this.dataKey;
       }
       getMemberId(pubkey) {
-        return deriveMemberId(pubkey, this.relaySalt);
+        return deriveMemberId(pubkey);
       }
       // -----------------------------------------------------------------------
       // Member lifecycle
@@ -4709,10 +4782,15 @@ var init_membership = __esm({
         ).bind(memberId).first();
         if (!row)
           return null;
+        const dk = await this.ensureDataKey();
+        const pubkeyDecrypted = await decryptPubkey(row.encrypted_pubkey, dk);
         return {
           memberId: row.member_id,
-          pubkey: row.pubkey,
-          state: row.state,
+          pubkey: pubkeyDecrypted,
+          status: row.status,
+          trustTier: row.trust_tier || 0,
+          lastActiveBucket: row.last_active_bucket,
+          protocolVersion: row.protocol_version,
           createdAt: row.created_at,
           updatedAt: row.updated_at
         };
@@ -4721,18 +4799,32 @@ var init_membership = __esm({
         const memberId = this.getMemberId(pubkey);
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
+        const dk = await this.ensureDataKey();
+        const encryptedPubkey = await encryptPubkey(pubkey, dk);
         await session.prepare(
-          `INSERT OR IGNORE INTO od_members (member_id, pubkey, state, created_at, updated_at)
-       VALUES (?, ?, 'active', ?, ?)`
-        ).bind(memberId, pubkey, now, now).run();
-        await session.prepare(
-          `INSERT OR IGNORE INTO od_profiles (member_id, visibility, created_at, updated_at)
-       VALUES (?, 'discoverable', ?, ?)`
-        ).bind(memberId, now, now).run();
+          `INSERT OR IGNORE INTO od_members
+       (member_id, encrypted_pubkey, status, trust_tier, protocol_version, created_at, updated_at)
+       VALUES (?, ?, 'active', 0, '0.1', ?, ?)`
+        ).bind(memberId, encryptedPubkey, now, now).run();
+        await session.batch([
+          session.prepare(
+            `INSERT OR IGNORE INTO od_profiles
+         (member_id, profile_version, visibility_state, completeness, created_at, updated_at)
+         VALUES (?, 1, 'discoverable', 0, ?, ?)`
+          ).bind(memberId, now, now),
+          session.prepare(
+            `INSERT OR IGNORE INTO od_discovery_index
+         (member_id, visible, updated_at)
+         VALUES (?, 0, ?)`
+          ).bind(memberId, now)
+        ]);
         return {
           memberId,
           pubkey,
-          state: "active",
+          status: "active",
+          trustTier: 0,
+          lastActiveBucket: null,
+          protocolVersion: "0.1",
           createdAt: now,
           updatedAt: now
         };
@@ -4740,24 +4832,30 @@ var init_membership = __esm({
       async ensureMember(pubkey) {
         const existing = await this.getMember(pubkey);
         if (existing) {
-          if (existing.state === "deleted") {
+          if (existing.status === "deleted")
             throw new Error("Member has been deleted");
-          }
+          if (existing.status === "banned")
+            throw new Error("Member is banned");
           return existing;
         }
         return this.createMember(pubkey);
+      }
+      async updateStatus(pubkey, status) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          "UPDATE od_members SET status = ?, updated_at = ? WHERE member_id = ?"
+        ).bind(status, now, memberId).run();
       }
       async pauseMember(pubkey) {
         const memberId = this.getMemberId(pubkey);
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
         await session.batch([
-          session.prepare(
-            `UPDATE od_members SET state = 'paused', updated_at = ? WHERE member_id = ?`
-          ).bind(now, memberId),
-          session.prepare(
-            `UPDATE od_profiles SET visibility = 'paused', paused_at = ?, updated_at = ? WHERE member_id = ?`
-          ).bind(now, now, memberId)
+          session.prepare("UPDATE od_members SET status = ?, updated_at = ? WHERE member_id = ?").bind("paused", now, memberId),
+          session.prepare("UPDATE od_profiles SET visibility_state = ?, updated_at = ? WHERE member_id = ?").bind("paused", now, memberId),
+          session.prepare("UPDATE od_discovery_index SET visible = 0, updated_at = ? WHERE member_id = ?").bind(now, memberId)
         ]);
       }
       async resumeMember(pubkey) {
@@ -4765,12 +4863,9 @@ var init_membership = __esm({
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
         await session.batch([
-          session.prepare(
-            `UPDATE od_members SET state = 'active', updated_at = ? WHERE member_id = ?`
-          ).bind(now, memberId),
-          session.prepare(
-            `UPDATE od_profiles SET visibility = 'discoverable', paused_at = NULL, updated_at = ? WHERE member_id = ?`
-          ).bind(now, memberId)
+          session.prepare("UPDATE od_members SET status = ?, updated_at = ? WHERE member_id = ?").bind("active", now, memberId),
+          session.prepare("UPDATE od_profiles SET visibility_state = ?, updated_at = ? WHERE member_id = ?").bind("discoverable", now, memberId),
+          session.prepare("UPDATE od_discovery_index SET visible = 1, updated_at = ? WHERE member_id = ?").bind(now, memberId)
         ]);
       }
       async deleteMember(pubkey) {
@@ -4778,19 +4873,14 @@ var init_membership = __esm({
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
         await session.batch([
-          session.prepare(
-            `UPDATE od_members SET state = 'deleted', updated_at = ? WHERE member_id = ?`
-          ).bind(now, memberId),
-          session.prepare(
-            `UPDATE od_profiles SET visibility = 'hidden', updated_at = ? WHERE member_id = ?`
-          ).bind(now, memberId),
-          session.prepare(
-            `DELETE FROM od_profile_media WHERE member_id = ?`
-          ).bind(memberId)
+          session.prepare("UPDATE od_members SET status = ?, updated_at = ? WHERE member_id = ?").bind("deleted", now, memberId),
+          session.prepare("UPDATE od_profiles SET visibility_state = ?, updated_at = ? WHERE member_id = ?").bind("hidden", now, memberId),
+          session.prepare("UPDATE od_discovery_index SET visible = 0, updated_at = ? WHERE member_id = ?").bind(now, memberId),
+          session.prepare("DELETE FROM od_profile_media WHERE member_id = ?").bind(memberId)
         ]);
       }
       // -----------------------------------------------------------------------
-      // Profile
+      // Profile (PRD §72)
       // -----------------------------------------------------------------------
       async getProfile(pubkey) {
         const memberId = this.getMemberId(pubkey);
@@ -4802,10 +4892,12 @@ var init_membership = __esm({
           return null;
         return {
           memberId: row.member_id,
-          profileEventId: row.profile_event_id,
-          displayNameHash: row.display_name_hash,
-          visibility: row.visibility,
-          pausedAt: row.paused_at,
+          profileVersion: row.profile_version,
+          age: row.age,
+          genderCategory: row.gender_category,
+          relationshipIntent: row.relationship_intent,
+          visibilityState: row.visibility_state,
+          completeness: row.completeness,
           createdAt: row.created_at,
           updatedAt: row.updated_at
         };
@@ -4815,21 +4907,23 @@ var init_membership = __esm({
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
         await session.prepare(
-          `UPDATE od_profiles SET profile_event_id = ?, updated_at = ? WHERE member_id = ?`
-        ).bind(eventId, now, memberId).run();
+          "UPDATE od_profiles SET updated_at = ? WHERE member_id = ?"
+        ).bind(now, memberId).run();
       }
       async setVisibility(pubkey, visibility) {
         const memberId = this.getMemberId(pubkey);
         const now = Math.floor(Date.now() / 1e3);
+        const visible = visibility === "discoverable" ? 1 : 0;
         const session = this.db.withSession("first-primary");
-        await session.prepare(
-          `UPDATE od_profiles SET visibility = ?, updated_at = ? WHERE member_id = ?`
-        ).bind(visibility, now, memberId).run();
+        await session.batch([
+          session.prepare(
+            "UPDATE od_profiles SET visibility_state = ?, updated_at = ? WHERE member_id = ?"
+          ).bind(visibility, now, memberId),
+          session.prepare(
+            "UPDATE od_discovery_index SET visible = ?, updated_at = ? WHERE member_id = ?"
+          ).bind(visible, now, memberId)
+        ]);
       }
-      // -----------------------------------------------------------------------
-      // Anti-enumeration: no list/getAll methods
-      // Profiles can only be accessed by their owner or via discovery (Phase 2)
-      // -----------------------------------------------------------------------
     };
     __name(_D1MembershipStore, "D1MembershipStore");
     D1MembershipStore = _D1MembershipStore;
@@ -4837,20 +4931,12 @@ var init_membership = __esm({
 });
 
 // src/protocols/opendating/services/profile/service.ts
-var SUPPORTED_TYPES2, _ProfileService, ProfileService;
+var _ProfileService, ProfileService;
 var init_service2 = __esm({
   "src/protocols/opendating/services/profile/service.ts"() {
     "use strict";
     init_envelope();
     init_membership();
-    SUPPORTED_TYPES2 = /* @__PURE__ */ new Set([
-      "profile.create",
-      "profile.update",
-      "profile.get",
-      "profile.pause",
-      "profile.resume",
-      "profile.delete"
-    ]);
     _ProfileService = class _ProfileService {
       constructor(role, pubkey, db) {
         this.role = role;
@@ -4858,7 +4944,15 @@ var init_service2 = __esm({
         this.membership = new D1MembershipStore(db);
       }
       supports(type) {
-        return SUPPORTED_TYPES2.has(type);
+        return [
+          "profile.create",
+          "profile.update",
+          "profile.get",
+          "profile.pause",
+          "profile.resume",
+          "profile.delete",
+          "visibility.update"
+        ].includes(type);
       }
       async handle(request, context) {
         switch (request.type) {
@@ -4874,76 +4968,57 @@ var init_service2 = __esm({
             return this.handleResume(request, context);
           case "profile.delete":
             return this.handleDelete(request, context);
+          case "visibility.update":
+            return this.handleVisibilityUpdate(request, context);
           default:
-            throw new Error(`Profile service does not support: ${request.type}`);
+            throw new Error(`Profile service: unsupported type ${request.type}`);
         }
       }
-      async handleCreate(request, context) {
-        const member = await this.membership.ensureMember(context.senderPubkey);
-        return {
-          response: createEnvelope("profile.create.result", request.request_id, {
-            member_id: member.memberId,
-            state: member.state,
-            created_at: member.createdAt
-          })
-        };
+      async handleCreate(request, ctx) {
+        const member = await this.membership.ensureMember(ctx.senderPubkey);
+        return { response: createEnvelope("profile.create.result", request.request_id, {
+          member_id: member.memberId,
+          status: member.status,
+          created_at: member.createdAt
+        }) };
       }
-      async handleUpdate(request, context) {
-        await this.membership.ensureMember(context.senderPubkey);
+      async handleUpdate(request, ctx) {
+        await this.membership.ensureMember(ctx.senderPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        return { response: createEnvelope("profile.update.result", request.request_id, { updated_at: now }) };
+      }
+      async handleGet(request, ctx) {
+        const member = await this.membership.getMember(ctx.senderPubkey);
+        if (!member)
+          return { response: createErrorEnvelope(request.request_id, "unauthorized", "No membership") };
+        const profile = await this.membership.getProfile(ctx.senderPubkey);
+        return { response: createEnvelope("profile.get.result", request.request_id, {
+          member_id: member.memberId,
+          status: member.status,
+          trust_tier: member.trustTier,
+          visibility: profile?.visibilityState || "hidden",
+          completeness: profile?.completeness || 0,
+          created_at: member.createdAt,
+          updated_at: member.updatedAt
+        }) };
+      }
+      async handlePause(request, ctx) {
+        await this.membership.pauseMember(ctx.senderPubkey);
+        return { response: createEnvelope("profile.pause.result", request.request_id, { paused_at: Math.floor(Date.now() / 1e3) }) };
+      }
+      async handleResume(request, ctx) {
+        await this.membership.resumeMember(ctx.senderPubkey);
+        return { response: createEnvelope("profile.resume.result", request.request_id, { resumed_at: Math.floor(Date.now() / 1e3) }) };
+      }
+      async handleDelete(request, ctx) {
+        await this.membership.deleteMember(ctx.senderPubkey);
+        return { response: createEnvelope("profile.delete.result", request.request_id, { deleted_at: Math.floor(Date.now() / 1e3) }) };
+      }
+      async handleVisibilityUpdate(request, ctx) {
         const payload = request.payload;
-        const profileEventId = payload.profile_event_id;
-        if (profileEventId) {
-          await this.membership.updateProfileEventId(context.senderPubkey, profileEventId);
-        }
-        return {
-          response: createEnvelope("profile.update.result", request.request_id, {
-            updated_at: Math.floor(Date.now() / 1e3)
-          })
-        };
-      }
-      async handleGet(request, context) {
-        const member = await this.membership.getMember(context.senderPubkey);
-        if (!member) {
-          return {
-            response: createErrorEnvelope(request.request_id, "unauthorized", "No membership found")
-          };
-        }
-        const profile = await this.membership.getProfile(context.senderPubkey);
-        return {
-          response: createEnvelope("profile.get.result", request.request_id, {
-            member_id: member.memberId,
-            state: member.state,
-            visibility: profile?.visibility || "hidden",
-            profile_event_id: profile?.profileEventId || null,
-            paused_at: profile?.pausedAt || null,
-            created_at: member.createdAt,
-            updated_at: member.updatedAt
-          })
-        };
-      }
-      async handlePause(request, context) {
-        await this.membership.pauseMember(context.senderPubkey);
-        return {
-          response: createEnvelope("profile.pause.result", request.request_id, {
-            paused_at: Math.floor(Date.now() / 1e3)
-          })
-        };
-      }
-      async handleResume(request, context) {
-        await this.membership.resumeMember(context.senderPubkey);
-        return {
-          response: createEnvelope("profile.resume.result", request.request_id, {
-            resumed_at: Math.floor(Date.now() / 1e3)
-          })
-        };
-      }
-      async handleDelete(request, context) {
-        await this.membership.deleteMember(context.senderPubkey);
-        return {
-          response: createEnvelope("profile.delete.result", request.request_id, {
-            deleted_at: Math.floor(Date.now() / 1e3)
-          })
-        };
+        const vis = payload.visibility;
+        await this.membership.setVisibility(ctx.senderPubkey, vis);
+        return { response: createEnvelope("visibility.update.result", request.request_id, { updated_at: Math.floor(Date.now() / 1e3) }) };
       }
     };
     __name(_ProfileService, "ProfileService");
@@ -5402,6 +5477,61 @@ var init_service6 = __esm({
   }
 });
 
+// src/protocols/opendating/services/deletion/service.ts
+var _DeletionService, DeletionService;
+var init_service7 = __esm({
+  "src/protocols/opendating/services/deletion/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    init_encryption();
+    init_sha256();
+    _DeletionService = class _DeletionService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.db = db;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return type === "account.delete";
+      }
+      async handle(request, ctx) {
+        const memberId = this.membership.getMemberId(ctx.senderPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await this.membership.deleteMember(ctx.senderPubkey);
+        await session.prepare(
+          `UPDATE od_intents SET state = 'revoked', revoked_at = ? WHERE from_member_id = ?`
+        ).bind(now, memberId).run();
+        await session.prepare(
+          `UPDATE od_matches SET state = 'unmatched_a', updated_at = ?
+       WHERE (member_a = ? OR member_b = ?) AND state = 'active'`
+        ).bind(now, memberId, memberId).run();
+        await session.prepare(
+          `DELETE FROM od_blocks WHERE blocker_member_id = ? OR blocked_member_id = ?`
+        ).bind(memberId, memberId).run();
+        await session.prepare(
+          `DELETE FROM od_candidate_grants WHERE viewer_id = ? OR candidate_id = ?`
+        ).bind(memberId, memberId).run();
+        const requestHash = bytesToHex2(sha2562(new TextEncoder().encode(
+          ctx.senderPubkey + String(now)
+        )));
+        await session.prepare(
+          `INSERT OR REPLACE INTO od_vanish_tombstones (member_id, cutoff_timestamp, request_hash, created_at)
+       VALUES (?, ?, ?, ?)`
+        ).bind(memberId, now, requestHash, now).run();
+        return { response: createEnvelope("account.delete.result", request.request_id, {
+          deleted_at: now,
+          tombstone_hash: requestHash
+        }) };
+      }
+    };
+    __name(_DeletionService, "DeletionService");
+    DeletionService = _DeletionService;
+  }
+});
+
 // src/protocols/opendating/index.ts
 function initOpenDating(env, db) {
   console.log("[OpenDating] Initializing protocol core...");
@@ -5417,7 +5547,8 @@ function initOpenDating(env, db) {
     discovery: (pk) => odServiceRegistry.register(new DiscoveryService("discovery", pk, db)),
     matcher: (pk) => odServiceRegistry.register(new MatcherService("matcher", pk, db)),
     dm_policy: (pk) => odServiceRegistry.register(new BlockService("dm_policy", pk, db)),
-    moderation: (pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db))
+    moderation: (pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db)),
+    deletion: (pk) => odServiceRegistry.register(new DeletionService("deletion", pk, db))
   };
   for (const signer of signers) {
     const factory = factories[signer.role];
@@ -5445,6 +5576,7 @@ var init_opendating = __esm({
     init_service4();
     init_service5();
     init_service6();
+    init_service7();
     init_registry2();
     init_capabilities();
     init_constants();
@@ -8067,31 +8199,31 @@ var init_durable_object = __esm({
         for (const filter of filters) {
           if (filter.kinds) {
             for (const kind of filter.kinds) {
-              const indexKey = `kind:${kind}`;
-              if (!this.queryCacheIndex.has(indexKey)) {
-                this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+              const indexKey2 = `kind:${kind}`;
+              if (!this.queryCacheIndex.has(indexKey2)) {
+                this.queryCacheIndex.set(indexKey2, /* @__PURE__ */ new Set());
               }
-              this.queryCacheIndex.get(indexKey).add(cacheKey);
+              this.queryCacheIndex.get(indexKey2).add(cacheKey);
             }
           }
           if (filter.authors) {
             for (const author of filter.authors) {
-              const indexKey = `author:${author}`;
-              if (!this.queryCacheIndex.has(indexKey)) {
-                this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+              const indexKey2 = `author:${author}`;
+              if (!this.queryCacheIndex.has(indexKey2)) {
+                this.queryCacheIndex.set(indexKey2, /* @__PURE__ */ new Set());
               }
-              this.queryCacheIndex.get(indexKey).add(cacheKey);
+              this.queryCacheIndex.get(indexKey2).add(cacheKey);
             }
           }
           for (const [key, values] of Object.entries(filter)) {
             if (key.startsWith("#") && Array.isArray(values)) {
               const tagName = key.substring(1);
               for (const value of values) {
-                const indexKey = `tag:${tagName}:${value}`;
-                if (!this.queryCacheIndex.has(indexKey)) {
-                  this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+                const indexKey2 = `tag:${tagName}:${value}`;
+                if (!this.queryCacheIndex.has(indexKey2)) {
+                  this.queryCacheIndex.set(indexKey2, /* @__PURE__ */ new Set());
                 }
-                this.queryCacheIndex.get(indexKey).add(cacheKey);
+                this.queryCacheIndex.get(indexKey2).add(cacheKey);
               }
             }
           }
@@ -8099,10 +8231,10 @@ var init_durable_object = __esm({
       }
       // Remove cache entry from index
       removeFromCacheIndex(cacheKey) {
-        for (const [indexKey, cacheKeys] of this.queryCacheIndex.entries()) {
+        for (const [indexKey2, cacheKeys] of this.queryCacheIndex.entries()) {
           cacheKeys.delete(cacheKey);
           if (cacheKeys.size === 0) {
-            this.queryCacheIndex.delete(indexKey);
+            this.queryCacheIndex.delete(indexKey2);
           }
         }
       }

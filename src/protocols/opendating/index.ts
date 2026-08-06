@@ -10,6 +10,7 @@ import { DiscoveryService } from './services/discovery/service.js';
 import { MatcherService } from './services/matcher/service.js';
 import { BlockService } from './services/block/service.js';
 import { ModerationService } from './services/moderation/service.js';
+import { DeletionService } from './services/deletion/service.js';
 import { odServiceRegistry } from './services/registry.js';
 import { buildNip11Advertisement } from './protocol/capabilities.js';
 
@@ -30,8 +31,9 @@ export function initOpenDating(env: Record<string, any>, db: D1Database): void {
     profile: (pk) => odServiceRegistry.register(new ProfileService('profile', pk, db)),
     discovery: (pk) => odServiceRegistry.register(new DiscoveryService('discovery', pk, db)),
     matcher: (pk) => odServiceRegistry.register(new MatcherService('matcher', pk, db)),
-    dm_policy: (pk) => odServiceRegistry.register(new BlockService('dm_policy', pk, db)),
-    moderation: (pk) => odServiceRegistry.register(new ModerationService('moderation', pk, db)),
+    dm_policy: (pk) => odServiceRegistry.register(new BlockService("dm_policy", pk, db)),
+    moderation: (pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db)),
+    deletion: (pk) => odServiceRegistry.register(new DeletionService("deletion", pk, db)),
   };
 
   for (const signer of signers) {

@@ -22,9 +22,7 @@ export class DiscoveryService implements OpenDatingService {
     public readonly role: string,
     public readonly pubkey: string,
     private db: D1Database,
-  ) {
-    this.membership = new D1MembershipStore(db);
-  }
+  ) { this.membership = new D1MembershipStore(db); }
 
   supports(type: string): boolean {
     return type === 'discovery.update_location' || type === 'discovery.get_candidates' ||

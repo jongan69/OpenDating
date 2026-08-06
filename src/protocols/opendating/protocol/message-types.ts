@@ -115,6 +115,24 @@ export const MESSAGE_VALIDATORS: Record<string, PayloadValidator> = {
   'report.create.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
   'moderation.action': (p: unknown): boolean => typeof p === 'object' && p !== null,
   'moderation.action.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Visibility
+  'visibility.update': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  'visibility.update.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Block remove
+  'block.remove': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  'block.remove.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Report received ack
+  'report.received': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Verification
+  'verification.list': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  'verification.list.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Account delete
+  'account.delete': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  'account.delete.result': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  // Service-level
+  'service.ack': (p: unknown): boolean => typeof p === 'object' && p !== null,
+  'service.error': (p: unknown): boolean =>
+    typeof p === 'object' && p !== null && typeof (p as Record<string, unknown>).code === 'string',
 };
 
 export function isKnownMessageType(type: string): boolean {
