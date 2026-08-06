@@ -17,9 +17,13 @@
     "test:protocol": "vitest run --dir tests/protocol",
     "db:migrate:local": "wrangler d1 execute nostr-relay --local --file=migrations/run-all.sql",
     "db:migrate:remote": "wrangler d1 execute nostr-relay --remote --file=migrations/run-all.sql",
-    "ci": "npm run typecheck && npm run build && npm test"
+    "ci": "npm run typecheck && npm run build && npm test",
+    "opendating:test": "vitest run --dir tests/opendating",
+    "opendating:test:conformance": "vitest run --dir tests/opendating/conformance",
+    "opendating:keys:generate": "npx tsx scripts/opendating-keys-generate.ts"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.2.0",
     "@noble/curves": "^1.6.0"
   },
   "devDependencies": {

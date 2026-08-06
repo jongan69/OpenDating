@@ -12,6 +12,7 @@ import {
   excludedRateLimitKinds
 } from './config';
 import { verifyEventSignature, hasPaidForRelay, processEvent, queryEvents } from './relay-worker';
+import { extensionRegistry } from './relay/services/registry.js';
 
 // Session attachment data structure (minimal - auth state stored in session)
 interface SessionAttachment {
@@ -866,6 +867,27 @@ export class RelayWebSocket implements DurableObject {
         if (!isTagAllowed(tag[0])) {
           console.error(`Event denied. Tag '${tag[0]}' is not allowed.`);
           this.sendOK(session.webSocket, event.id, false, `blocked: tag '${tag[0]}' not allowed`);
+          return;
+        }
+      }
+
+
+      // Check if any protocol extension claims this event
+      const relayCtx = {
+        sessionId: session.id,
+        authenticatedPubkey: session.authenticatedPubkeys.size > 0
+          ? Array.from(session.authenticatedPubkeys)[0]
+          : undefined,
+        relayUrl: `wss://${session.host}`,
+        connection: { userAgent: "websocket" },
+        _env: this.env,
+      };
+      const extension = extensionRegistry.findHandler(event, relayCtx);
+
+      if (extension && extension.handleEvent) {
+        const extResult = await extension.handleEvent(event, relayCtx);
+        if (extResult.handled && extResult.storeNormally === false) {
+          this.sendOK(session.webSocket, event.id, true, extResult.message || "");
           return;
         }
       }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendating.org/schemas/0.1/system-capabilities.schema.json",
+  "title": "System Capabilities Request",
+  "description": "Request service capabilities. EXPERIMENTAL 0.1.",
+  "allOf": [
+    { "$ref": "./envelope.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "system.capabilities" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

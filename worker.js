@@ -1,36 +1,46 @@
 var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
 // src/types.ts
-var _RateLimiter = class _RateLimiter {
-  constructor(rate, capacity) {
-    this.tokens = capacity;
-    this.lastRefillTime = Date.now();
-    this.capacity = capacity;
-    this.fillRate = rate;
+var _RateLimiter, RateLimiter;
+var init_types = __esm({
+  "src/types.ts"() {
+    "use strict";
+    _RateLimiter = class _RateLimiter {
+      constructor(rate, capacity) {
+        this.tokens = capacity;
+        this.lastRefillTime = Date.now();
+        this.capacity = capacity;
+        this.fillRate = rate;
+      }
+      removeToken() {
+        this.refill();
+        if (this.tokens < 1) {
+          return false;
+        }
+        this.tokens -= 1;
+        return true;
+      }
+      refill() {
+        const now = Date.now();
+        const elapsedTime = now - this.lastRefillTime;
+        const tokensToAdd = Math.floor(elapsedTime * this.fillRate);
+        this.tokens = Math.min(this.capacity, this.tokens + tokensToAdd);
+        this.lastRefillTime = now;
+      }
+    };
+    __name(_RateLimiter, "RateLimiter");
+    RateLimiter = _RateLimiter;
   }
-  removeToken() {
-    this.refill();
-    if (this.tokens < 1) {
-      return false;
-    }
-    this.tokens -= 1;
-    return true;
-  }
-  refill() {
-    const now = Date.now();
-    const elapsedTime = now - this.lastRefillTime;
-    const tokensToAdd = Math.floor(elapsedTime * this.fillRate);
-    this.tokens = Math.min(this.capacity, this.tokens + tokensToAdd);
-    this.lastRefillTime = now;
-  }
-};
-__name(_RateLimiter, "RateLimiter");
-var RateLimiter = _RateLimiter;
+});
 
 // src/config.ts
 var config_exports = {};
@@ -68,264 +78,18 @@ __export(config_exports, {
   relayInfo: () => relayInfo,
   relayNpub: () => relayNpub
 });
-var relayNpub = "npub16jdfqgazrkapk0yrqm9rdxlnys7ck39c7zmdzxtxqlmmpxg04r0sd733sv";
-var PAY_TO_RELAY_ENABLED = false;
-var RELAY_ACCESS_PRICE_SATS = 212121;
-var AUTH_REQUIRED = true;
-var AUTH_TIMEOUT_MS = 6e4;
-var relayInfo = {
-  name: "Nosflare",
-  description: "A serverless Nostr relay through Cloudflare Worker and D1 database",
-  pubkey: "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df",
-  contact: "lux@fed.wtf",
-  // Only NIPs verified as implemented (see docs/BASELINE.md)
-  supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 20, 33, 42],
-  software: "https://github.com/Spl0itable/nosflare",
-  version: "7.9.45",
-  icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
-  // Optional fields (uncomment as needed):
-  // banner: "https://example.com/banner.jpg",
-  // privacy_policy: "https://example.com/privacy-policy.html",
-  // terms_of_service: "https://example.com/terms.html",
-  // Relay limitations
-  limitation: {
-    // max_message_length: 524288, // 512KB
-    // max_subscriptions: 300,
-    // max_limit: 10000,
-    // max_subid_length: 256,
-    // max_event_tags: 2000,
-    // max_content_length: 70000,
-    // min_pow_difficulty: 0,
-    auth_required: AUTH_REQUIRED,
-    payment_required: PAY_TO_RELAY_ENABLED,
-    restricted_writes: PAY_TO_RELAY_ENABLED
-    // created_at_lower_limit: 0,
-    // created_at_upper_limit: 2147483647,
-    // default_limit: 10000
-  }
-  // Event retention policies (uncomment and configure as needed):
-  // retention: [
-  //   { kinds: [0, 1, [5, 7], [40, 49]], time: 3600 },
-  //   { kinds: [[40000, 49999]], time: 100 },
-  //   { kinds: [[30000, 39999]], count: 1000 },
-  //   { time: 3600, count: 10000 }
-  // ],
-  // Content limitations by country (uncomment as needed):
-  // relay_countries: ["*"], // Use ["US", "CA", "EU"] for specific countries, ["*"] for global
-  // Community preferences (uncomment as needed):
-  // language_tags: ["en", "en-419"], // IETF language tags, use ["*"] for all languages
-  // tags: ["sfw-only", "bitcoin-only", "anime"], // Community/content tags
-  // posting_policy: "https://example.com/posting-policy.html",
-  // Payment configuration (added dynamically in handleRelayInfoRequest if PAY_TO_RELAY_ENABLED):
-  // payments_url: "https://my-relay/payments",
-  // fees: {
-  //   admission: [{ amount: 1000000, unit: "msats" }],
-  //   subscription: [{ amount: 5000000, unit: "msats", period: 2592000 }],
-  //   publication: [{ kinds: [4], amount: 100, unit: "msats" }],
-  // }
-};
-var nip05Users = {
-  "Luxas": "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df"
-  // ... more NIP-05 verified users
-};
-var enableAntiSpam = false;
-var enableGlobalDuplicateCheck = false;
-var antiSpamKinds = /* @__PURE__ */ new Set([
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  16,
-  17,
-  40,
-  41,
-  42,
-  43,
-  44,
-  64,
-  818,
-  1021,
-  1022,
-  1040,
-  1059,
-  1063,
-  1311,
-  1617,
-  1621,
-  1622,
-  1630,
-  1633,
-  1971,
-  1984,
-  1985,
-  1986,
-  1987,
-  2003,
-  2004,
-  2022,
-  4550,
-  5e3,
-  5999,
-  6e3,
-  6999,
-  7e3,
-  9e3,
-  9030,
-  9041,
-  9467,
-  9734,
-  9735,
-  9802,
-  1e4,
-  10001,
-  10002,
-  10003,
-  10004,
-  10005,
-  10006,
-  10007,
-  10009,
-  10015,
-  10030,
-  10050,
-  10063,
-  10096,
-  13194,
-  21e3,
-  22242,
-  23194,
-  23195,
-  24133,
-  24242,
-  27235,
-  3e4,
-  30001,
-  30002,
-  30003,
-  30004,
-  30005,
-  30007,
-  30008,
-  30009,
-  30015,
-  30017,
-  30018,
-  30019,
-  30020,
-  30023,
-  30024,
-  30030,
-  30040,
-  30041,
-  30063,
-  30078,
-  30311,
-  30315,
-  30402,
-  30403,
-  30617,
-  30618,
-  30818,
-  30819,
-  31890,
-  31922,
-  31923,
-  31924,
-  31925,
-  31989,
-  31990,
-  34235,
-  34236,
-  34237,
-  34550,
-  39e3,
-  39001,
-  39002,
-  39003,
-  39004,
-  39005,
-  39006,
-  39007,
-  39008,
-  39009
-  // Add other kinds you want to check for duplicates
-]);
-var blockedPubkeys = /* @__PURE__ */ new Set([
-  "3c7f5948b5d80900046a67d8e3bf4971d6cba013abece1dd542eca223cf3dd3f",
-  "fed5c0c3c8fe8f51629a0b39951acdf040fd40f53a327ae79ee69991176ba058",
-  "e810fafa1e89cdf80cced8e013938e87e21b699b24c8570537be92aec4b12c18",
-  "05aee96dd41429a3ae97a9dac4dfc6867fdfacebca3f3bdc051e5004b0751f01",
-  "53a756bb596055219d93e888f71d936ec6c47d960320476c955efd8941af4362"
-]);
-var allowedPubkeys = /* @__PURE__ */ new Set([
-  // ... pubkeys that are explicitly allowed
-]);
-var blockedEventKinds = /* @__PURE__ */ new Set([
-  1064
-]);
-var allowedEventKinds = /* @__PURE__ */ new Set([
-  // ... kinds that are explicitly allowed
-]);
-var blockedContent = /* @__PURE__ */ new Set([
-  "~~ hello world! ~~"
-  // ... more blocked content
-]);
-var checkValidNip05 = false;
-var blockedNip05Domains = /* @__PURE__ */ new Set([
-  // Add domains that are explicitly blocked
-  // "primal.net"
-]);
-var allowedNip05Domains = /* @__PURE__ */ new Set([
-  // Add domains that are explicitly allowed
-  // Leave empty to allow all domains (unless blocked)
-]);
-var blockedTags = /* @__PURE__ */ new Set([
-  // ... tags that are explicitly blocked
-]);
-var allowedTags = /* @__PURE__ */ new Set([
-  // "p", "e", "t"
-  // ... tags that are explicitly allowed
-]);
-var PUBKEY_RATE_LIMIT = { rate: 10 / 6e4, capacity: 10 };
-var REQ_RATE_LIMIT = { rate: 50 / 6e4, capacity: 50 };
-var excludedRateLimitKinds = /* @__PURE__ */ new Set([]);
-var DB_PRUNING_ENABLED = true;
-var DB_SIZE_THRESHOLD_GB = 4;
-var DB_PRUNE_BATCH_SIZE = 1e3;
-var DB_PRUNE_TARGET_GB = 3.5;
-var pruneProtectedKinds = /* @__PURE__ */ new Set([
-  0,
-  // Profile metadata
-  3,
-  // Contact list / follows
-  10002
-  // Relay list metadata
-]);
 function isPubkeyAllowed(pubkey) {
   if (allowedPubkeys.size > 0 && !allowedPubkeys.has(pubkey)) {
     return false;
   }
   return !blockedPubkeys.has(pubkey);
 }
-__name(isPubkeyAllowed, "isPubkeyAllowed");
 function isEventKindAllowed(kind) {
   if (allowedEventKinds.size > 0 && !allowedEventKinds.has(kind)) {
     return false;
   }
   return !blockedEventKinds.has(kind);
 }
-__name(isEventKindAllowed, "isEventKindAllowed");
 function containsBlockedContent(event) {
   const lowercaseContent = (event.content || "").toLowerCase();
   const lowercaseTags = event.tags.map((tag) => tag.join("").toLowerCase());
@@ -337,49 +101,301 @@ function containsBlockedContent(event) {
   }
   return false;
 }
-__name(containsBlockedContent, "containsBlockedContent");
 function isTagAllowed(tag) {
   if (allowedTags.size > 0 && !allowedTags.has(tag)) {
     return false;
   }
   return !blockedTags.has(tag);
 }
-__name(isTagAllowed, "isTagAllowed");
+var relayNpub, PAY_TO_RELAY_ENABLED, RELAY_ACCESS_PRICE_SATS, AUTH_REQUIRED, AUTH_TIMEOUT_MS, relayInfo, nip05Users, enableAntiSpam, enableGlobalDuplicateCheck, antiSpamKinds, blockedPubkeys, allowedPubkeys, blockedEventKinds, allowedEventKinds, blockedContent, checkValidNip05, blockedNip05Domains, allowedNip05Domains, blockedTags, allowedTags, PUBKEY_RATE_LIMIT, REQ_RATE_LIMIT, excludedRateLimitKinds, DB_PRUNING_ENABLED, DB_SIZE_THRESHOLD_GB, DB_PRUNE_BATCH_SIZE, DB_PRUNE_TARGET_GB, pruneProtectedKinds;
+var init_config = __esm({
+  "src/config.ts"() {
+    "use strict";
+    relayNpub = "npub16jdfqgazrkapk0yrqm9rdxlnys7ck39c7zmdzxtxqlmmpxg04r0sd733sv";
+    PAY_TO_RELAY_ENABLED = false;
+    RELAY_ACCESS_PRICE_SATS = 212121;
+    AUTH_REQUIRED = true;
+    AUTH_TIMEOUT_MS = 6e4;
+    relayInfo = {
+      name: "Nosflare",
+      description: "A serverless Nostr relay through Cloudflare Worker and D1 database",
+      pubkey: "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df",
+      contact: "lux@fed.wtf",
+      // Only NIPs verified as implemented (see docs/BASELINE.md)
+      supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 20, 33, 42],
+      software: "https://github.com/Spl0itable/nosflare",
+      version: "7.9.45",
+      icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
+      // Optional fields (uncomment as needed):
+      // banner: "https://example.com/banner.jpg",
+      // privacy_policy: "https://example.com/privacy-policy.html",
+      // terms_of_service: "https://example.com/terms.html",
+      // Relay limitations
+      limitation: {
+        // max_message_length: 524288, // 512KB
+        // max_subscriptions: 300,
+        // max_limit: 10000,
+        // max_subid_length: 256,
+        // max_event_tags: 2000,
+        // max_content_length: 70000,
+        // min_pow_difficulty: 0,
+        auth_required: AUTH_REQUIRED,
+        payment_required: PAY_TO_RELAY_ENABLED,
+        restricted_writes: PAY_TO_RELAY_ENABLED
+        // created_at_lower_limit: 0,
+        // created_at_upper_limit: 2147483647,
+        // default_limit: 10000
+      }
+      // Event retention policies (uncomment and configure as needed):
+      // retention: [
+      //   { kinds: [0, 1, [5, 7], [40, 49]], time: 3600 },
+      //   { kinds: [[40000, 49999]], time: 100 },
+      //   { kinds: [[30000, 39999]], count: 1000 },
+      //   { time: 3600, count: 10000 }
+      // ],
+      // Content limitations by country (uncomment as needed):
+      // relay_countries: ["*"], // Use ["US", "CA", "EU"] for specific countries, ["*"] for global
+      // Community preferences (uncomment as needed):
+      // language_tags: ["en", "en-419"], // IETF language tags, use ["*"] for all languages
+      // tags: ["sfw-only", "bitcoin-only", "anime"], // Community/content tags
+      // posting_policy: "https://example.com/posting-policy.html",
+      // Payment configuration (added dynamically in handleRelayInfoRequest if PAY_TO_RELAY_ENABLED):
+      // payments_url: "https://my-relay/payments",
+      // fees: {
+      //   admission: [{ amount: 1000000, unit: "msats" }],
+      //   subscription: [{ amount: 5000000, unit: "msats", period: 2592000 }],
+      //   publication: [{ kinds: [4], amount: 100, unit: "msats" }],
+      // }
+    };
+    nip05Users = {
+      "Luxas": "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df"
+      // ... more NIP-05 verified users
+    };
+    enableAntiSpam = false;
+    enableGlobalDuplicateCheck = false;
+    antiSpamKinds = /* @__PURE__ */ new Set([
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      40,
+      41,
+      42,
+      43,
+      44,
+      64,
+      818,
+      1021,
+      1022,
+      1040,
+      1059,
+      1063,
+      1311,
+      1617,
+      1621,
+      1622,
+      1630,
+      1633,
+      1971,
+      1984,
+      1985,
+      1986,
+      1987,
+      2003,
+      2004,
+      2022,
+      4550,
+      5e3,
+      5999,
+      6e3,
+      6999,
+      7e3,
+      9e3,
+      9030,
+      9041,
+      9467,
+      9734,
+      9735,
+      9802,
+      1e4,
+      10001,
+      10002,
+      10003,
+      10004,
+      10005,
+      10006,
+      10007,
+      10009,
+      10015,
+      10030,
+      10050,
+      10063,
+      10096,
+      13194,
+      21e3,
+      22242,
+      23194,
+      23195,
+      24133,
+      24242,
+      27235,
+      3e4,
+      30001,
+      30002,
+      30003,
+      30004,
+      30005,
+      30007,
+      30008,
+      30009,
+      30015,
+      30017,
+      30018,
+      30019,
+      30020,
+      30023,
+      30024,
+      30030,
+      30040,
+      30041,
+      30063,
+      30078,
+      30311,
+      30315,
+      30402,
+      30403,
+      30617,
+      30618,
+      30818,
+      30819,
+      31890,
+      31922,
+      31923,
+      31924,
+      31925,
+      31989,
+      31990,
+      34235,
+      34236,
+      34237,
+      34550,
+      39e3,
+      39001,
+      39002,
+      39003,
+      39004,
+      39005,
+      39006,
+      39007,
+      39008,
+      39009
+      // Add other kinds you want to check for duplicates
+    ]);
+    blockedPubkeys = /* @__PURE__ */ new Set([
+      "3c7f5948b5d80900046a67d8e3bf4971d6cba013abece1dd542eca223cf3dd3f",
+      "fed5c0c3c8fe8f51629a0b39951acdf040fd40f53a327ae79ee69991176ba058",
+      "e810fafa1e89cdf80cced8e013938e87e21b699b24c8570537be92aec4b12c18",
+      "05aee96dd41429a3ae97a9dac4dfc6867fdfacebca3f3bdc051e5004b0751f01",
+      "53a756bb596055219d93e888f71d936ec6c47d960320476c955efd8941af4362"
+    ]);
+    allowedPubkeys = /* @__PURE__ */ new Set([
+      // ... pubkeys that are explicitly allowed
+    ]);
+    blockedEventKinds = /* @__PURE__ */ new Set([
+      1064
+    ]);
+    allowedEventKinds = /* @__PURE__ */ new Set([
+      // ... kinds that are explicitly allowed
+    ]);
+    blockedContent = /* @__PURE__ */ new Set([
+      "~~ hello world! ~~"
+      // ... more blocked content
+    ]);
+    checkValidNip05 = false;
+    blockedNip05Domains = /* @__PURE__ */ new Set([
+      // Add domains that are explicitly blocked
+      // "primal.net"
+    ]);
+    allowedNip05Domains = /* @__PURE__ */ new Set([
+      // Add domains that are explicitly allowed
+      // Leave empty to allow all domains (unless blocked)
+    ]);
+    blockedTags = /* @__PURE__ */ new Set([
+      // ... tags that are explicitly blocked
+    ]);
+    allowedTags = /* @__PURE__ */ new Set([
+      // "p", "e", "t"
+      // ... tags that are explicitly allowed
+    ]);
+    PUBKEY_RATE_LIMIT = { rate: 10 / 6e4, capacity: 10 };
+    REQ_RATE_LIMIT = { rate: 50 / 6e4, capacity: 50 };
+    excludedRateLimitKinds = /* @__PURE__ */ new Set([]);
+    DB_PRUNING_ENABLED = true;
+    DB_SIZE_THRESHOLD_GB = 4;
+    DB_PRUNE_BATCH_SIZE = 1e3;
+    DB_PRUNE_TARGET_GB = 3.5;
+    pruneProtectedKinds = /* @__PURE__ */ new Set([
+      0,
+      // Profile metadata
+      3,
+      // Contact list / follows
+      10002
+      // Relay list metadata
+    ]);
+    __name(isPubkeyAllowed, "isPubkeyAllowed");
+    __name(isEventKindAllowed, "isEventKindAllowed");
+    __name(containsBlockedContent, "containsBlockedContent");
+    __name(isTagAllowed, "isTagAllowed");
+  }
+});
 
 // node_modules/@noble/hashes/esm/crypto.js
-var crypto2 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
+var crypto2;
+var init_crypto = __esm({
+  "node_modules/@noble/hashes/esm/crypto.js"() {
+    crypto2 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
+  }
+});
 
 // node_modules/@noble/hashes/esm/utils.js
 function isBytes(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
 }
-__name(isBytes, "isBytes");
 function anumber(n) {
   if (!Number.isSafeInteger(n) || n < 0)
     throw new Error("positive integer expected, got " + n);
 }
-__name(anumber, "anumber");
 function abytes(b, ...lengths) {
   if (!isBytes(b))
     throw new Error("Uint8Array expected");
   if (lengths.length > 0 && !lengths.includes(b.length))
     throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b.length);
 }
-__name(abytes, "abytes");
 function ahash(h) {
   if (typeof h !== "function" || typeof h.create !== "function")
     throw new Error("Hash should be wrapped by utils.createHasher");
   anumber(h.outputLen);
   anumber(h.blockLen);
 }
-__name(ahash, "ahash");
 function aexists(instance, checkFinished = true) {
   if (instance.destroyed)
     throw new Error("Hash instance has been destroyed");
   if (checkFinished && instance.finished)
     throw new Error("Hash#digest() has already been called");
 }
-__name(aexists, "aexists");
 function aoutput(out, instance) {
   abytes(out);
   const min = instance.outputLen;
@@ -387,26 +403,17 @@ function aoutput(out, instance) {
     throw new Error("digestInto() expects output buffer of length at least " + min);
   }
 }
-__name(aoutput, "aoutput");
 function clean(...arrays) {
   for (let i = 0; i < arrays.length; i++) {
     arrays[i].fill(0);
   }
 }
-__name(clean, "clean");
 function createView(arr) {
   return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
 }
-__name(createView, "createView");
 function rotr(word, shift) {
   return word << 32 - shift | word >>> shift;
 }
-__name(rotr, "rotr");
-var hasHexBuiltin = /* @__PURE__ */ (() => (
-  // @ts-ignore
-  typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
-))();
-var hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
 function bytesToHex(bytes) {
   abytes(bytes);
   if (hasHexBuiltin)
@@ -417,8 +424,6 @@ function bytesToHex(bytes) {
   }
   return hex;
 }
-__name(bytesToHex, "bytesToHex");
-var asciis = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 };
 function asciiToBase16(ch) {
   if (ch >= asciis._0 && ch <= asciis._9)
     return ch - asciis._0;
@@ -428,7 +433,6 @@ function asciiToBase16(ch) {
     return ch - (asciis.a - 10);
   return;
 }
-__name(asciiToBase16, "asciiToBase16");
 function hexToBytes(hex) {
   if (typeof hex !== "string")
     throw new Error("hex string expected, got " + typeof hex);
@@ -450,20 +454,17 @@ function hexToBytes(hex) {
   }
   return array;
 }
-__name(hexToBytes, "hexToBytes");
 function utf8ToBytes(str) {
   if (typeof str !== "string")
     throw new Error("string expected");
   return new Uint8Array(new TextEncoder().encode(str));
 }
-__name(utf8ToBytes, "utf8ToBytes");
 function toBytes(data) {
   if (typeof data === "string")
     data = utf8ToBytes(data);
   abytes(data);
   return data;
 }
-__name(toBytes, "toBytes");
 function concatBytes(...arrays) {
   let sum = 0;
   for (let i = 0; i < arrays.length; i++) {
@@ -472,18 +473,13 @@ function concatBytes(...arrays) {
     sum += a.length;
   }
   const res = new Uint8Array(sum);
-  for (let i = 0, pad = 0; i < arrays.length; i++) {
+  for (let i = 0, pad2 = 0; i < arrays.length; i++) {
     const a = arrays[i];
-    res.set(a, pad);
-    pad += a.length;
+    res.set(a, pad2);
+    pad2 += a.length;
   }
   return res;
 }
-__name(concatBytes, "concatBytes");
-var _Hash = class _Hash {
-};
-__name(_Hash, "Hash");
-var Hash = _Hash;
 function createHasher(hashCons) {
   const hashC = /* @__PURE__ */ __name((msg) => hashCons().update(toBytes(msg)).digest(), "hashC");
   const tmp = hashCons();
@@ -492,7 +488,6 @@ function createHasher(hashCons) {
   hashC.create = () => hashCons();
   return hashC;
 }
-__name(createHasher, "createHasher");
 function randomBytes(bytesLength = 32) {
   if (crypto2 && typeof crypto2.getRandomValues === "function") {
     return crypto2.getRandomValues(new Uint8Array(bytesLength));
@@ -502,348 +497,397 @@ function randomBytes(bytesLength = 32) {
   }
   throw new Error("crypto.getRandomValues must be defined");
 }
-__name(randomBytes, "randomBytes");
+var hasHexBuiltin, hexes, asciis, _Hash, Hash;
+var init_utils = __esm({
+  "node_modules/@noble/hashes/esm/utils.js"() {
+    init_crypto();
+    __name(isBytes, "isBytes");
+    __name(anumber, "anumber");
+    __name(abytes, "abytes");
+    __name(ahash, "ahash");
+    __name(aexists, "aexists");
+    __name(aoutput, "aoutput");
+    __name(clean, "clean");
+    __name(createView, "createView");
+    __name(rotr, "rotr");
+    hasHexBuiltin = /* @__PURE__ */ (() => (
+      // @ts-ignore
+      typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
+    ))();
+    hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
+    __name(bytesToHex, "bytesToHex");
+    asciis = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 };
+    __name(asciiToBase16, "asciiToBase16");
+    __name(hexToBytes, "hexToBytes");
+    __name(utf8ToBytes, "utf8ToBytes");
+    __name(toBytes, "toBytes");
+    __name(concatBytes, "concatBytes");
+    _Hash = class _Hash {
+    };
+    __name(_Hash, "Hash");
+    Hash = _Hash;
+    __name(createHasher, "createHasher");
+    __name(randomBytes, "randomBytes");
+  }
+});
 
 // node_modules/@noble/hashes/esm/_md.js
-function setBigUint64(view, byteOffset, value, isLE) {
+function setBigUint64(view, byteOffset, value, isLE2) {
   if (typeof view.setBigUint64 === "function")
-    return view.setBigUint64(byteOffset, value, isLE);
+    return view.setBigUint64(byteOffset, value, isLE2);
   const _32n = BigInt(32);
   const _u32_max = BigInt(4294967295);
   const wh = Number(value >> _32n & _u32_max);
   const wl = Number(value & _u32_max);
-  const h = isLE ? 4 : 0;
-  const l = isLE ? 0 : 4;
-  view.setUint32(byteOffset + h, wh, isLE);
-  view.setUint32(byteOffset + l, wl, isLE);
+  const h = isLE2 ? 4 : 0;
+  const l = isLE2 ? 0 : 4;
+  view.setUint32(byteOffset + h, wh, isLE2);
+  view.setUint32(byteOffset + l, wl, isLE2);
 }
-__name(setBigUint64, "setBigUint64");
 function Chi(a, b, c) {
   return a & b ^ ~a & c;
 }
-__name(Chi, "Chi");
 function Maj(a, b, c) {
   return a & b ^ a & c ^ b & c;
 }
-__name(Maj, "Maj");
-var _HashMD = class _HashMD extends Hash {
-  constructor(blockLen, outputLen, padOffset, isLE) {
-    super();
-    this.finished = false;
-    this.length = 0;
-    this.pos = 0;
-    this.destroyed = false;
-    this.blockLen = blockLen;
-    this.outputLen = outputLen;
-    this.padOffset = padOffset;
-    this.isLE = isLE;
-    this.buffer = new Uint8Array(blockLen);
-    this.view = createView(this.buffer);
-  }
-  update(data) {
-    aexists(this);
-    data = toBytes(data);
-    abytes(data);
-    const { view, buffer, blockLen } = this;
-    const len = data.length;
-    for (let pos = 0; pos < len; ) {
-      const take = Math.min(blockLen - this.pos, len - pos);
-      if (take === blockLen) {
-        const dataView = createView(data);
-        for (; blockLen <= len - pos; pos += blockLen)
-          this.process(dataView, pos);
-        continue;
-      }
-      buffer.set(data.subarray(pos, pos + take), this.pos);
-      this.pos += take;
-      pos += take;
-      if (this.pos === blockLen) {
-        this.process(view, 0);
+var _HashMD, HashMD, SHA256_IV;
+var init_md = __esm({
+  "node_modules/@noble/hashes/esm/_md.js"() {
+    init_utils();
+    __name(setBigUint64, "setBigUint64");
+    __name(Chi, "Chi");
+    __name(Maj, "Maj");
+    _HashMD = class _HashMD extends Hash {
+      constructor(blockLen, outputLen, padOffset, isLE2) {
+        super();
+        this.finished = false;
+        this.length = 0;
         this.pos = 0;
+        this.destroyed = false;
+        this.blockLen = blockLen;
+        this.outputLen = outputLen;
+        this.padOffset = padOffset;
+        this.isLE = isLE2;
+        this.buffer = new Uint8Array(blockLen);
+        this.view = createView(this.buffer);
       }
-    }
-    this.length += data.length;
-    this.roundClean();
-    return this;
+      update(data) {
+        aexists(this);
+        data = toBytes(data);
+        abytes(data);
+        const { view, buffer, blockLen } = this;
+        const len = data.length;
+        for (let pos = 0; pos < len; ) {
+          const take = Math.min(blockLen - this.pos, len - pos);
+          if (take === blockLen) {
+            const dataView = createView(data);
+            for (; blockLen <= len - pos; pos += blockLen)
+              this.process(dataView, pos);
+            continue;
+          }
+          buffer.set(data.subarray(pos, pos + take), this.pos);
+          this.pos += take;
+          pos += take;
+          if (this.pos === blockLen) {
+            this.process(view, 0);
+            this.pos = 0;
+          }
+        }
+        this.length += data.length;
+        this.roundClean();
+        return this;
+      }
+      digestInto(out) {
+        aexists(this);
+        aoutput(out, this);
+        this.finished = true;
+        const { buffer, view, blockLen, isLE: isLE2 } = this;
+        let { pos } = this;
+        buffer[pos++] = 128;
+        clean(this.buffer.subarray(pos));
+        if (this.padOffset > blockLen - pos) {
+          this.process(view, 0);
+          pos = 0;
+        }
+        for (let i = pos; i < blockLen; i++)
+          buffer[i] = 0;
+        setBigUint64(view, blockLen - 8, BigInt(this.length * 8), isLE2);
+        this.process(view, 0);
+        const oview = createView(out);
+        const len = this.outputLen;
+        if (len % 4)
+          throw new Error("_sha2: outputLen should be aligned to 32bit");
+        const outLen = len / 4;
+        const state = this.get();
+        if (outLen > state.length)
+          throw new Error("_sha2: outputLen bigger than state");
+        for (let i = 0; i < outLen; i++)
+          oview.setUint32(4 * i, state[i], isLE2);
+      }
+      digest() {
+        const { buffer, outputLen } = this;
+        this.digestInto(buffer);
+        const res = buffer.slice(0, outputLen);
+        this.destroy();
+        return res;
+      }
+      _cloneInto(to) {
+        to || (to = new this.constructor());
+        to.set(...this.get());
+        const { blockLen, buffer, length, finished, destroyed, pos } = this;
+        to.destroyed = destroyed;
+        to.finished = finished;
+        to.length = length;
+        to.pos = pos;
+        if (length % blockLen)
+          to.buffer.set(buffer);
+        return to;
+      }
+      clone() {
+        return this._cloneInto();
+      }
+    };
+    __name(_HashMD, "HashMD");
+    HashMD = _HashMD;
+    SHA256_IV = /* @__PURE__ */ Uint32Array.from([
+      1779033703,
+      3144134277,
+      1013904242,
+      2773480762,
+      1359893119,
+      2600822924,
+      528734635,
+      1541459225
+    ]);
   }
-  digestInto(out) {
-    aexists(this);
-    aoutput(out, this);
-    this.finished = true;
-    const { buffer, view, blockLen, isLE } = this;
-    let { pos } = this;
-    buffer[pos++] = 128;
-    clean(this.buffer.subarray(pos));
-    if (this.padOffset > blockLen - pos) {
-      this.process(view, 0);
-      pos = 0;
-    }
-    for (let i = pos; i < blockLen; i++)
-      buffer[i] = 0;
-    setBigUint64(view, blockLen - 8, BigInt(this.length * 8), isLE);
-    this.process(view, 0);
-    const oview = createView(out);
-    const len = this.outputLen;
-    if (len % 4)
-      throw new Error("_sha2: outputLen should be aligned to 32bit");
-    const outLen = len / 4;
-    const state = this.get();
-    if (outLen > state.length)
-      throw new Error("_sha2: outputLen bigger than state");
-    for (let i = 0; i < outLen; i++)
-      oview.setUint32(4 * i, state[i], isLE);
-  }
-  digest() {
-    const { buffer, outputLen } = this;
-    this.digestInto(buffer);
-    const res = buffer.slice(0, outputLen);
-    this.destroy();
-    return res;
-  }
-  _cloneInto(to) {
-    to || (to = new this.constructor());
-    to.set(...this.get());
-    const { blockLen, buffer, length, finished, destroyed, pos } = this;
-    to.destroyed = destroyed;
-    to.finished = finished;
-    to.length = length;
-    to.pos = pos;
-    if (length % blockLen)
-      to.buffer.set(buffer);
-    return to;
-  }
-  clone() {
-    return this._cloneInto();
-  }
-};
-__name(_HashMD, "HashMD");
-var HashMD = _HashMD;
-var SHA256_IV = /* @__PURE__ */ Uint32Array.from([
-  1779033703,
-  3144134277,
-  1013904242,
-  2773480762,
-  1359893119,
-  2600822924,
-  528734635,
-  1541459225
-]);
+});
 
 // node_modules/@noble/hashes/esm/sha2.js
-var SHA256_K = /* @__PURE__ */ Uint32Array.from([
-  1116352408,
-  1899447441,
-  3049323471,
-  3921009573,
-  961987163,
-  1508970993,
-  2453635748,
-  2870763221,
-  3624381080,
-  310598401,
-  607225278,
-  1426881987,
-  1925078388,
-  2162078206,
-  2614888103,
-  3248222580,
-  3835390401,
-  4022224774,
-  264347078,
-  604807628,
-  770255983,
-  1249150122,
-  1555081692,
-  1996064986,
-  2554220882,
-  2821834349,
-  2952996808,
-  3210313671,
-  3336571891,
-  3584528711,
-  113926993,
-  338241895,
-  666307205,
-  773529912,
-  1294757372,
-  1396182291,
-  1695183700,
-  1986661051,
-  2177026350,
-  2456956037,
-  2730485921,
-  2820302411,
-  3259730800,
-  3345764771,
-  3516065817,
-  3600352804,
-  4094571909,
-  275423344,
-  430227734,
-  506948616,
-  659060556,
-  883997877,
-  958139571,
-  1322822218,
-  1537002063,
-  1747873779,
-  1955562222,
-  2024104815,
-  2227730452,
-  2361852424,
-  2428436474,
-  2756734187,
-  3204031479,
-  3329325298
-]);
-var SHA256_W = /* @__PURE__ */ new Uint32Array(64);
-var _SHA256 = class _SHA256 extends HashMD {
-  constructor(outputLen = 32) {
-    super(64, outputLen, 8, false);
-    this.A = SHA256_IV[0] | 0;
-    this.B = SHA256_IV[1] | 0;
-    this.C = SHA256_IV[2] | 0;
-    this.D = SHA256_IV[3] | 0;
-    this.E = SHA256_IV[4] | 0;
-    this.F = SHA256_IV[5] | 0;
-    this.G = SHA256_IV[6] | 0;
-    this.H = SHA256_IV[7] | 0;
+var SHA256_K, SHA256_W, _SHA256, SHA256, sha256;
+var init_sha2 = __esm({
+  "node_modules/@noble/hashes/esm/sha2.js"() {
+    init_md();
+    init_utils();
+    SHA256_K = /* @__PURE__ */ Uint32Array.from([
+      1116352408,
+      1899447441,
+      3049323471,
+      3921009573,
+      961987163,
+      1508970993,
+      2453635748,
+      2870763221,
+      3624381080,
+      310598401,
+      607225278,
+      1426881987,
+      1925078388,
+      2162078206,
+      2614888103,
+      3248222580,
+      3835390401,
+      4022224774,
+      264347078,
+      604807628,
+      770255983,
+      1249150122,
+      1555081692,
+      1996064986,
+      2554220882,
+      2821834349,
+      2952996808,
+      3210313671,
+      3336571891,
+      3584528711,
+      113926993,
+      338241895,
+      666307205,
+      773529912,
+      1294757372,
+      1396182291,
+      1695183700,
+      1986661051,
+      2177026350,
+      2456956037,
+      2730485921,
+      2820302411,
+      3259730800,
+      3345764771,
+      3516065817,
+      3600352804,
+      4094571909,
+      275423344,
+      430227734,
+      506948616,
+      659060556,
+      883997877,
+      958139571,
+      1322822218,
+      1537002063,
+      1747873779,
+      1955562222,
+      2024104815,
+      2227730452,
+      2361852424,
+      2428436474,
+      2756734187,
+      3204031479,
+      3329325298
+    ]);
+    SHA256_W = /* @__PURE__ */ new Uint32Array(64);
+    _SHA256 = class _SHA256 extends HashMD {
+      constructor(outputLen = 32) {
+        super(64, outputLen, 8, false);
+        this.A = SHA256_IV[0] | 0;
+        this.B = SHA256_IV[1] | 0;
+        this.C = SHA256_IV[2] | 0;
+        this.D = SHA256_IV[3] | 0;
+        this.E = SHA256_IV[4] | 0;
+        this.F = SHA256_IV[5] | 0;
+        this.G = SHA256_IV[6] | 0;
+        this.H = SHA256_IV[7] | 0;
+      }
+      get() {
+        const { A, B, C, D, E, F, G, H } = this;
+        return [A, B, C, D, E, F, G, H];
+      }
+      // prettier-ignore
+      set(A, B, C, D, E, F, G, H) {
+        this.A = A | 0;
+        this.B = B | 0;
+        this.C = C | 0;
+        this.D = D | 0;
+        this.E = E | 0;
+        this.F = F | 0;
+        this.G = G | 0;
+        this.H = H | 0;
+      }
+      process(view, offset) {
+        for (let i = 0; i < 16; i++, offset += 4)
+          SHA256_W[i] = view.getUint32(offset, false);
+        for (let i = 16; i < 64; i++) {
+          const W15 = SHA256_W[i - 15];
+          const W2 = SHA256_W[i - 2];
+          const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
+          const s1 = rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10;
+          SHA256_W[i] = s1 + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
+        }
+        let { A, B, C, D, E, F, G, H } = this;
+        for (let i = 0; i < 64; i++) {
+          const sigma1 = rotr(E, 6) ^ rotr(E, 11) ^ rotr(E, 25);
+          const T1 = H + sigma1 + Chi(E, F, G) + SHA256_K[i] + SHA256_W[i] | 0;
+          const sigma0 = rotr(A, 2) ^ rotr(A, 13) ^ rotr(A, 22);
+          const T2 = sigma0 + Maj(A, B, C) | 0;
+          H = G;
+          G = F;
+          F = E;
+          E = D + T1 | 0;
+          D = C;
+          C = B;
+          B = A;
+          A = T1 + T2 | 0;
+        }
+        A = A + this.A | 0;
+        B = B + this.B | 0;
+        C = C + this.C | 0;
+        D = D + this.D | 0;
+        E = E + this.E | 0;
+        F = F + this.F | 0;
+        G = G + this.G | 0;
+        H = H + this.H | 0;
+        this.set(A, B, C, D, E, F, G, H);
+      }
+      roundClean() {
+        clean(SHA256_W);
+      }
+      destroy() {
+        this.set(0, 0, 0, 0, 0, 0, 0, 0);
+        clean(this.buffer);
+      }
+    };
+    __name(_SHA256, "SHA256");
+    SHA256 = _SHA256;
+    sha256 = /* @__PURE__ */ createHasher(() => new SHA256());
   }
-  get() {
-    const { A, B, C, D, E, F, G, H } = this;
-    return [A, B, C, D, E, F, G, H];
-  }
-  // prettier-ignore
-  set(A, B, C, D, E, F, G, H) {
-    this.A = A | 0;
-    this.B = B | 0;
-    this.C = C | 0;
-    this.D = D | 0;
-    this.E = E | 0;
-    this.F = F | 0;
-    this.G = G | 0;
-    this.H = H | 0;
-  }
-  process(view, offset) {
-    for (let i = 0; i < 16; i++, offset += 4)
-      SHA256_W[i] = view.getUint32(offset, false);
-    for (let i = 16; i < 64; i++) {
-      const W15 = SHA256_W[i - 15];
-      const W2 = SHA256_W[i - 2];
-      const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
-      const s1 = rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10;
-      SHA256_W[i] = s1 + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
-    }
-    let { A, B, C, D, E, F, G, H } = this;
-    for (let i = 0; i < 64; i++) {
-      const sigma1 = rotr(E, 6) ^ rotr(E, 11) ^ rotr(E, 25);
-      const T1 = H + sigma1 + Chi(E, F, G) + SHA256_K[i] + SHA256_W[i] | 0;
-      const sigma0 = rotr(A, 2) ^ rotr(A, 13) ^ rotr(A, 22);
-      const T2 = sigma0 + Maj(A, B, C) | 0;
-      H = G;
-      G = F;
-      F = E;
-      E = D + T1 | 0;
-      D = C;
-      C = B;
-      B = A;
-      A = T1 + T2 | 0;
-    }
-    A = A + this.A | 0;
-    B = B + this.B | 0;
-    C = C + this.C | 0;
-    D = D + this.D | 0;
-    E = E + this.E | 0;
-    F = F + this.F | 0;
-    G = G + this.G | 0;
-    H = H + this.H | 0;
-    this.set(A, B, C, D, E, F, G, H);
-  }
-  roundClean() {
-    clean(SHA256_W);
-  }
-  destroy() {
-    this.set(0, 0, 0, 0, 0, 0, 0, 0);
-    clean(this.buffer);
-  }
-};
-__name(_SHA256, "SHA256");
-var SHA256 = _SHA256;
-var sha256 = /* @__PURE__ */ createHasher(() => new SHA256());
+});
 
 // node_modules/@noble/hashes/esm/hmac.js
-var _HMAC = class _HMAC extends Hash {
-  constructor(hash, _key) {
-    super();
-    this.finished = false;
-    this.destroyed = false;
-    ahash(hash);
-    const key = toBytes(_key);
-    this.iHash = hash.create();
-    if (typeof this.iHash.update !== "function")
-      throw new Error("Expected instance of class which extends utils.Hash");
-    this.blockLen = this.iHash.blockLen;
-    this.outputLen = this.iHash.outputLen;
-    const blockLen = this.blockLen;
-    const pad = new Uint8Array(blockLen);
-    pad.set(key.length > blockLen ? hash.create().update(key).digest() : key);
-    for (let i = 0; i < pad.length; i++)
-      pad[i] ^= 54;
-    this.iHash.update(pad);
-    this.oHash = hash.create();
-    for (let i = 0; i < pad.length; i++)
-      pad[i] ^= 54 ^ 92;
-    this.oHash.update(pad);
-    clean(pad);
+var _HMAC, HMAC, hmac;
+var init_hmac = __esm({
+  "node_modules/@noble/hashes/esm/hmac.js"() {
+    init_utils();
+    _HMAC = class _HMAC extends Hash {
+      constructor(hash, _key) {
+        super();
+        this.finished = false;
+        this.destroyed = false;
+        ahash(hash);
+        const key = toBytes(_key);
+        this.iHash = hash.create();
+        if (typeof this.iHash.update !== "function")
+          throw new Error("Expected instance of class which extends utils.Hash");
+        this.blockLen = this.iHash.blockLen;
+        this.outputLen = this.iHash.outputLen;
+        const blockLen = this.blockLen;
+        const pad2 = new Uint8Array(blockLen);
+        pad2.set(key.length > blockLen ? hash.create().update(key).digest() : key);
+        for (let i = 0; i < pad2.length; i++)
+          pad2[i] ^= 54;
+        this.iHash.update(pad2);
+        this.oHash = hash.create();
+        for (let i = 0; i < pad2.length; i++)
+          pad2[i] ^= 54 ^ 92;
+        this.oHash.update(pad2);
+        clean(pad2);
+      }
+      update(buf) {
+        aexists(this);
+        this.iHash.update(buf);
+        return this;
+      }
+      digestInto(out) {
+        aexists(this);
+        abytes(out, this.outputLen);
+        this.finished = true;
+        this.iHash.digestInto(out);
+        this.oHash.update(out);
+        this.oHash.digestInto(out);
+        this.destroy();
+      }
+      digest() {
+        const out = new Uint8Array(this.oHash.outputLen);
+        this.digestInto(out);
+        return out;
+      }
+      _cloneInto(to) {
+        to || (to = Object.create(Object.getPrototypeOf(this), {}));
+        const { oHash, iHash, finished, destroyed, blockLen, outputLen } = this;
+        to = to;
+        to.finished = finished;
+        to.destroyed = destroyed;
+        to.blockLen = blockLen;
+        to.outputLen = outputLen;
+        to.oHash = oHash._cloneInto(to.oHash);
+        to.iHash = iHash._cloneInto(to.iHash);
+        return to;
+      }
+      clone() {
+        return this._cloneInto();
+      }
+      destroy() {
+        this.destroyed = true;
+        this.oHash.destroy();
+        this.iHash.destroy();
+      }
+    };
+    __name(_HMAC, "HMAC");
+    HMAC = _HMAC;
+    hmac = /* @__PURE__ */ __name((hash, key, message) => new HMAC(hash, key).update(message).digest(), "hmac");
+    hmac.create = (hash, key) => new HMAC(hash, key);
   }
-  update(buf) {
-    aexists(this);
-    this.iHash.update(buf);
-    return this;
-  }
-  digestInto(out) {
-    aexists(this);
-    abytes(out, this.outputLen);
-    this.finished = true;
-    this.iHash.digestInto(out);
-    this.oHash.update(out);
-    this.oHash.digestInto(out);
-    this.destroy();
-  }
-  digest() {
-    const out = new Uint8Array(this.oHash.outputLen);
-    this.digestInto(out);
-    return out;
-  }
-  _cloneInto(to) {
-    to || (to = Object.create(Object.getPrototypeOf(this), {}));
-    const { oHash, iHash, finished, destroyed, blockLen, outputLen } = this;
-    to = to;
-    to.finished = finished;
-    to.destroyed = destroyed;
-    to.blockLen = blockLen;
-    to.outputLen = outputLen;
-    to.oHash = oHash._cloneInto(to.oHash);
-    to.iHash = iHash._cloneInto(to.iHash);
-    return to;
-  }
-  clone() {
-    return this._cloneInto();
-  }
-  destroy() {
-    this.destroyed = true;
-    this.oHash.destroy();
-    this.iHash.destroy();
-  }
-};
-__name(_HMAC, "HMAC");
-var HMAC = _HMAC;
-var hmac = /* @__PURE__ */ __name((hash, key, message) => new HMAC(hash, key).update(message).digest(), "hmac");
-hmac.create = (hash, key) => new HMAC(hash, key);
+});
 
 // node_modules/@noble/curves/esm/utils.js
-var _0n = /* @__PURE__ */ BigInt(0);
-var _1n = /* @__PURE__ */ BigInt(1);
 function _abool2(value, title = "") {
   if (typeof value !== "boolean") {
     const prefix = title && `"${title}"`;
@@ -851,7 +895,6 @@ function _abool2(value, title = "") {
   }
   return value;
 }
-__name(_abool2, "_abool2");
 function _abytes2(value, length, title = "") {
   const bytes = isBytes(value);
   const len = value?.length;
@@ -864,35 +907,28 @@ function _abytes2(value, length, title = "") {
   }
   return value;
 }
-__name(_abytes2, "_abytes2");
 function numberToHexUnpadded(num2) {
   const hex = num2.toString(16);
   return hex.length & 1 ? "0" + hex : hex;
 }
-__name(numberToHexUnpadded, "numberToHexUnpadded");
 function hexToNumber(hex) {
   if (typeof hex !== "string")
     throw new Error("hex string expected, got " + typeof hex);
   return hex === "" ? _0n : BigInt("0x" + hex);
 }
-__name(hexToNumber, "hexToNumber");
 function bytesToNumberBE(bytes) {
   return hexToNumber(bytesToHex(bytes));
 }
-__name(bytesToNumberBE, "bytesToNumberBE");
 function bytesToNumberLE(bytes) {
   abytes(bytes);
   return hexToNumber(bytesToHex(Uint8Array.from(bytes).reverse()));
 }
-__name(bytesToNumberLE, "bytesToNumberLE");
 function numberToBytesBE(n, len) {
   return hexToBytes(n.toString(16).padStart(len * 2, "0"));
 }
-__name(numberToBytesBE, "numberToBytesBE");
 function numberToBytesLE(n, len) {
   return numberToBytesBE(n, len).reverse();
 }
-__name(numberToBytesLE, "numberToBytesLE");
 function ensureBytes(title, hex, expectedLength) {
   let res;
   if (typeof hex === "string") {
@@ -911,25 +947,19 @@ function ensureBytes(title, hex, expectedLength) {
     throw new Error(title + " of length " + expectedLength + " expected, got " + len);
   return res;
 }
-__name(ensureBytes, "ensureBytes");
-var isPosBig = /* @__PURE__ */ __name((n) => typeof n === "bigint" && _0n <= n, "isPosBig");
 function inRange(n, min, max) {
   return isPosBig(n) && isPosBig(min) && isPosBig(max) && min <= n && n < max;
 }
-__name(inRange, "inRange");
 function aInRange(title, n, min, max) {
   if (!inRange(n, min, max))
     throw new Error("expected valid " + title + ": " + min + " <= n < " + max + ", got " + n);
 }
-__name(aInRange, "aInRange");
 function bitLen(n) {
   let len;
   for (len = 0; n > _0n; n >>= _1n, len += 1)
     ;
   return len;
 }
-__name(bitLen, "bitLen");
-var bitMask = /* @__PURE__ */ __name((n) => (_1n << BigInt(n)) - _1n, "bitMask");
 function createHmacDrbg(hashLen, qByteLen, hmacFn) {
   if (typeof hashLen !== "number" || hashLen < 2)
     throw new Error("hashLen must be a number");
@@ -980,7 +1010,6 @@ function createHmacDrbg(hashLen, qByteLen, hmacFn) {
   }, "genUntil");
   return genUntil;
 }
-__name(createHmacDrbg, "createHmacDrbg");
 function _validateObject(object, fields, optFields = {}) {
   if (!object || typeof object !== "object")
     throw new Error("expected valid options object");
@@ -996,7 +1025,6 @@ function _validateObject(object, fields, optFields = {}) {
   Object.entries(fields).forEach(([k, v]) => checkField(k, v, false));
   Object.entries(optFields).forEach(([k, v]) => checkField(k, v, true));
 }
-__name(_validateObject, "_validateObject");
 function memoized(fn) {
   const map = /* @__PURE__ */ new WeakMap();
   return (arg, ...args) => {
@@ -1008,24 +1036,38 @@ function memoized(fn) {
     return computed;
   };
 }
-__name(memoized, "memoized");
+var _0n, _1n, isPosBig, bitMask;
+var init_utils2 = __esm({
+  "node_modules/@noble/curves/esm/utils.js"() {
+    init_utils();
+    init_utils();
+    _0n = /* @__PURE__ */ BigInt(0);
+    _1n = /* @__PURE__ */ BigInt(1);
+    __name(_abool2, "_abool2");
+    __name(_abytes2, "_abytes2");
+    __name(numberToHexUnpadded, "numberToHexUnpadded");
+    __name(hexToNumber, "hexToNumber");
+    __name(bytesToNumberBE, "bytesToNumberBE");
+    __name(bytesToNumberLE, "bytesToNumberLE");
+    __name(numberToBytesBE, "numberToBytesBE");
+    __name(numberToBytesLE, "numberToBytesLE");
+    __name(ensureBytes, "ensureBytes");
+    isPosBig = /* @__PURE__ */ __name((n) => typeof n === "bigint" && _0n <= n, "isPosBig");
+    __name(inRange, "inRange");
+    __name(aInRange, "aInRange");
+    __name(bitLen, "bitLen");
+    bitMask = /* @__PURE__ */ __name((n) => (_1n << BigInt(n)) - _1n, "bitMask");
+    __name(createHmacDrbg, "createHmacDrbg");
+    __name(_validateObject, "_validateObject");
+    __name(memoized, "memoized");
+  }
+});
 
 // node_modules/@noble/curves/esm/abstract/modular.js
-var _0n2 = BigInt(0);
-var _1n2 = BigInt(1);
-var _2n = /* @__PURE__ */ BigInt(2);
-var _3n = /* @__PURE__ */ BigInt(3);
-var _4n = /* @__PURE__ */ BigInt(4);
-var _5n = /* @__PURE__ */ BigInt(5);
-var _7n = /* @__PURE__ */ BigInt(7);
-var _8n = /* @__PURE__ */ BigInt(8);
-var _9n = /* @__PURE__ */ BigInt(9);
-var _16n = /* @__PURE__ */ BigInt(16);
 function mod(a, b) {
   const result = a % b;
   return result >= _0n2 ? result : b + result;
 }
-__name(mod, "mod");
 function pow2(x, power, modulo) {
   let res = x;
   while (power-- > _0n2) {
@@ -1034,7 +1076,6 @@ function pow2(x, power, modulo) {
   }
   return res;
 }
-__name(pow2, "pow2");
 function invert(number, modulo) {
   if (number === _0n2)
     throw new Error("invert: expected non-zero number");
@@ -1055,19 +1096,16 @@ function invert(number, modulo) {
     throw new Error("invert: does not exist");
   return mod(x, modulo);
 }
-__name(invert, "invert");
 function assertIsSquare(Fp, root, n) {
   if (!Fp.eql(Fp.sqr(root), n))
     throw new Error("Cannot find square root");
 }
-__name(assertIsSquare, "assertIsSquare");
 function sqrt3mod4(Fp, n) {
   const p1div4 = (Fp.ORDER + _1n2) / _4n;
   const root = Fp.pow(n, p1div4);
   assertIsSquare(Fp, root, n);
   return root;
 }
-__name(sqrt3mod4, "sqrt3mod4");
 function sqrt5mod8(Fp, n) {
   const p5div8 = (Fp.ORDER - _5n) / _8n;
   const n2 = Fp.mul(n, _2n);
@@ -1078,7 +1116,6 @@ function sqrt5mod8(Fp, n) {
   assertIsSquare(Fp, root, n);
   return root;
 }
-__name(sqrt5mod8, "sqrt5mod8");
 function sqrt9mod16(P) {
   const Fp_ = Field(P);
   const tn = tonelliShanks(P);
@@ -1101,7 +1138,6 @@ function sqrt9mod16(P) {
     return root;
   };
 }
-__name(sqrt9mod16, "sqrt9mod16");
 function tonelliShanks(P) {
   if (P < _3n)
     throw new Error("sqrt is not defined for small field");
@@ -1151,7 +1187,6 @@ function tonelliShanks(P) {
     return R;
   }, "tonelliSlow");
 }
-__name(tonelliShanks, "tonelliShanks");
 function FpSqrt(P) {
   if (P % _4n === _3n)
     return sqrt3mod4;
@@ -1161,26 +1196,6 @@ function FpSqrt(P) {
     return sqrt9mod16(P);
   return tonelliShanks(P);
 }
-__name(FpSqrt, "FpSqrt");
-var FIELD_FIELDS = [
-  "create",
-  "isValid",
-  "is0",
-  "neg",
-  "inv",
-  "sqrt",
-  "sqr",
-  "eql",
-  "add",
-  "sub",
-  "mul",
-  "pow",
-  "div",
-  "addN",
-  "subN",
-  "mulN",
-  "sqrN"
-];
 function validateField(field) {
   const initial = {
     ORDER: "bigint",
@@ -1195,7 +1210,6 @@ function validateField(field) {
   _validateObject(field, opts);
   return field;
 }
-__name(validateField, "validateField");
 function FpPow(Fp, num2, power) {
   if (power < _0n2)
     throw new Error("invalid exponent, negatives unsupported");
@@ -1213,7 +1227,6 @@ function FpPow(Fp, num2, power) {
   }
   return p;
 }
-__name(FpPow, "FpPow");
 function FpInvertBatch(Fp, nums, passZero = false) {
   const inverted = new Array(nums.length).fill(passZero ? Fp.ZERO : void 0);
   const multipliedAcc = nums.reduce((acc, num2, i) => {
@@ -1231,7 +1244,6 @@ function FpInvertBatch(Fp, nums, passZero = false) {
   }, invertedAcc);
   return inverted;
 }
-__name(FpInvertBatch, "FpInvertBatch");
 function FpLegendre(Fp, n) {
   const p1mod2 = (Fp.ORDER - _1n2) / _2n;
   const powered = Fp.pow(n, p1mod2);
@@ -1242,7 +1254,6 @@ function FpLegendre(Fp, n) {
     throw new Error("invalid Legendre symbol result");
   return yes ? 1 : zero ? 0 : -1;
 }
-__name(FpLegendre, "FpLegendre");
 function nLength(n, nBitLength) {
   if (nBitLength !== void 0)
     anumber(nBitLength);
@@ -1250,8 +1261,7 @@ function nLength(n, nBitLength) {
   const nByteLength = Math.ceil(_nBitLength / 8);
   return { nBitLength: _nBitLength, nByteLength };
 }
-__name(nLength, "nLength");
-function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
+function Field(ORDER, bitLenOrOpts, isLE2 = false, opts = {}) {
   if (ORDER <= _0n2)
     throw new Error("invalid field: expected ORDER > 0, got " + ORDER);
   let _nbitLength = void 0;
@@ -1259,7 +1269,7 @@ function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
   let modFromBytes = false;
   let allowedLengths = void 0;
   if (typeof bitLenOrOpts === "object" && bitLenOrOpts != null) {
-    if (opts.sqrt || isLE)
+    if (opts.sqrt || isLE2)
       throw new Error("cannot specify opts in two arguments");
     const _opts = bitLenOrOpts;
     if (_opts.BITS)
@@ -1267,7 +1277,7 @@ function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
     if (_opts.sqrt)
       _sqrt = _opts.sqrt;
     if (typeof _opts.isLE === "boolean")
-      isLE = _opts.isLE;
+      isLE2 = _opts.isLE;
     if (typeof _opts.modFromBytes === "boolean")
       modFromBytes = _opts.modFromBytes;
     allowedLengths = _opts.allowedLengths;
@@ -1283,7 +1293,7 @@ function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
   let sqrtP;
   const f = Object.freeze({
     ORDER,
-    isLE,
+    isLE: isLE2,
     BITS,
     BYTES,
     MASK: bitMask(BITS),
@@ -1319,19 +1329,19 @@ function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
         sqrtP = FpSqrt(ORDER);
       return sqrtP(f, n);
     }),
-    toBytes: (num2) => isLE ? numberToBytesLE(num2, BYTES) : numberToBytesBE(num2, BYTES),
+    toBytes: (num2) => isLE2 ? numberToBytesLE(num2, BYTES) : numberToBytesBE(num2, BYTES),
     fromBytes: (bytes, skipValidation = true) => {
       if (allowedLengths) {
         if (!allowedLengths.includes(bytes.length) || bytes.length > BYTES) {
           throw new Error("Field.fromBytes: expected " + allowedLengths + " bytes, got " + bytes.length);
         }
         const padded = new Uint8Array(BYTES);
-        padded.set(bytes, isLE ? 0 : padded.length - bytes.length);
+        padded.set(bytes, isLE2 ? 0 : padded.length - bytes.length);
         bytes = padded;
       }
       if (bytes.length !== BYTES)
         throw new Error("Field.fromBytes: expected " + BYTES + " bytes, got " + bytes.length);
-      let scalar = isLE ? bytesToNumberLE(bytes) : bytesToNumberBE(bytes);
+      let scalar = isLE2 ? bytesToNumberLE(bytes) : bytesToNumberBE(bytes);
       if (modFromBytes)
         scalar = mod(scalar, ORDER);
       if (!skipValidation) {
@@ -1348,49 +1358,93 @@ function Field(ORDER, bitLenOrOpts, isLE = false, opts = {}) {
   });
   return Object.freeze(f);
 }
-__name(Field, "Field");
 function getFieldBytesLength(fieldOrder) {
   if (typeof fieldOrder !== "bigint")
     throw new Error("field order must be bigint");
   const bitLength = fieldOrder.toString(2).length;
   return Math.ceil(bitLength / 8);
 }
-__name(getFieldBytesLength, "getFieldBytesLength");
 function getMinHashLength(fieldOrder) {
   const length = getFieldBytesLength(fieldOrder);
   return length + Math.ceil(length / 2);
 }
-__name(getMinHashLength, "getMinHashLength");
-function mapHashToField(key, fieldOrder, isLE = false) {
+function mapHashToField(key, fieldOrder, isLE2 = false) {
   const len = key.length;
   const fieldLen = getFieldBytesLength(fieldOrder);
   const minLen = getMinHashLength(fieldOrder);
   if (len < 16 || len < minLen || len > 1024)
     throw new Error("expected " + minLen + "-1024 bytes of input, got " + len);
-  const num2 = isLE ? bytesToNumberLE(key) : bytesToNumberBE(key);
+  const num2 = isLE2 ? bytesToNumberLE(key) : bytesToNumberBE(key);
   const reduced = mod(num2, fieldOrder - _1n2) + _1n2;
-  return isLE ? numberToBytesLE(reduced, fieldLen) : numberToBytesBE(reduced, fieldLen);
+  return isLE2 ? numberToBytesLE(reduced, fieldLen) : numberToBytesBE(reduced, fieldLen);
 }
-__name(mapHashToField, "mapHashToField");
+var _0n2, _1n2, _2n, _3n, _4n, _5n, _7n, _8n, _9n, _16n, FIELD_FIELDS;
+var init_modular = __esm({
+  "node_modules/@noble/curves/esm/abstract/modular.js"() {
+    init_utils2();
+    _0n2 = BigInt(0);
+    _1n2 = BigInt(1);
+    _2n = /* @__PURE__ */ BigInt(2);
+    _3n = /* @__PURE__ */ BigInt(3);
+    _4n = /* @__PURE__ */ BigInt(4);
+    _5n = /* @__PURE__ */ BigInt(5);
+    _7n = /* @__PURE__ */ BigInt(7);
+    _8n = /* @__PURE__ */ BigInt(8);
+    _9n = /* @__PURE__ */ BigInt(9);
+    _16n = /* @__PURE__ */ BigInt(16);
+    __name(mod, "mod");
+    __name(pow2, "pow2");
+    __name(invert, "invert");
+    __name(assertIsSquare, "assertIsSquare");
+    __name(sqrt3mod4, "sqrt3mod4");
+    __name(sqrt5mod8, "sqrt5mod8");
+    __name(sqrt9mod16, "sqrt9mod16");
+    __name(tonelliShanks, "tonelliShanks");
+    __name(FpSqrt, "FpSqrt");
+    FIELD_FIELDS = [
+      "create",
+      "isValid",
+      "is0",
+      "neg",
+      "inv",
+      "sqrt",
+      "sqr",
+      "eql",
+      "add",
+      "sub",
+      "mul",
+      "pow",
+      "div",
+      "addN",
+      "subN",
+      "mulN",
+      "sqrN"
+    ];
+    __name(validateField, "validateField");
+    __name(FpPow, "FpPow");
+    __name(FpInvertBatch, "FpInvertBatch");
+    __name(FpLegendre, "FpLegendre");
+    __name(nLength, "nLength");
+    __name(Field, "Field");
+    __name(getFieldBytesLength, "getFieldBytesLength");
+    __name(getMinHashLength, "getMinHashLength");
+    __name(mapHashToField, "mapHashToField");
+  }
+});
 
 // node_modules/@noble/curves/esm/abstract/curve.js
-var _0n3 = BigInt(0);
-var _1n3 = BigInt(1);
 function negateCt(condition, item) {
   const neg = item.negate();
   return condition ? neg : item;
 }
-__name(negateCt, "negateCt");
 function normalizeZ(c, points) {
   const invertedZs = FpInvertBatch(c.Fp, points.map((p) => p.Z));
   return points.map((p, i) => c.fromAffine(p.toAffine(invertedZs[i])));
 }
-__name(normalizeZ, "normalizeZ");
 function validateW(W, bits) {
   if (!Number.isSafeInteger(W) || W <= 0 || W > bits)
     throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W);
 }
-__name(validateW, "validateW");
 function calcWOpts(W, scalarBits) {
   validateW(W, scalarBits);
   const windows = Math.ceil(scalarBits / W) + 1;
@@ -1400,7 +1454,6 @@ function calcWOpts(W, scalarBits) {
   const shiftBy = BigInt(W);
   return { windows, windowSize, mask, maxNumber, shiftBy };
 }
-__name(calcWOpts, "calcWOpts");
 function calcOffsets(n, window, wOpts) {
   const { windowSize, mask, maxNumber, shiftBy } = wOpts;
   let wbits = Number(n & mask);
@@ -1417,7 +1470,6 @@ function calcOffsets(n, window, wOpts) {
   const offsetF = offsetStart;
   return { nextN, offset, isZero, isNeg, isNegF, offsetF };
 }
-__name(calcOffsets, "calcOffsets");
 function validateMSMPoints(points, c) {
   if (!Array.isArray(points))
     throw new Error("array expected");
@@ -1426,7 +1478,6 @@ function validateMSMPoints(points, c) {
       throw new Error("invalid point at index " + i);
   });
 }
-__name(validateMSMPoints, "validateMSMPoints");
 function validateMSMScalars(scalars, field) {
   if (!Array.isArray(scalars))
     throw new Error("array of scalars expected");
@@ -1435,147 +1486,13 @@ function validateMSMScalars(scalars, field) {
       throw new Error("invalid scalar at index " + i);
   });
 }
-__name(validateMSMScalars, "validateMSMScalars");
-var pointPrecomputes = /* @__PURE__ */ new WeakMap();
-var pointWindowSizes = /* @__PURE__ */ new WeakMap();
 function getW(P) {
   return pointWindowSizes.get(P) || 1;
 }
-__name(getW, "getW");
 function assert0(n) {
   if (n !== _0n3)
     throw new Error("invalid wNAF");
 }
-__name(assert0, "assert0");
-var _wNAF = class _wNAF {
-  // Parametrized with a given Point class (not individual point)
-  constructor(Point, bits) {
-    this.BASE = Point.BASE;
-    this.ZERO = Point.ZERO;
-    this.Fn = Point.Fn;
-    this.bits = bits;
-  }
-  // non-const time multiplication ladder
-  _unsafeLadder(elm, n, p = this.ZERO) {
-    let d = elm;
-    while (n > _0n3) {
-      if (n & _1n3)
-        p = p.add(d);
-      d = d.double();
-      n >>= _1n3;
-    }
-    return p;
-  }
-  /**
-   * Creates a wNAF precomputation window. Used for caching.
-   * Default window size is set by `utils.precompute()` and is equal to 8.
-   * Number of precomputed points depends on the curve size:
-   * 2^(𝑊−1) * (Math.ceil(𝑛 / 𝑊) + 1), where:
-   * - 𝑊 is the window size
-   * - 𝑛 is the bitlength of the curve order.
-   * For a 256-bit curve and window size 8, the number of precomputed points is 128 * 33 = 4224.
-   * @param point Point instance
-   * @param W window size
-   * @returns precomputed point tables flattened to a single array
-   */
-  precomputeWindow(point, W) {
-    const { windows, windowSize } = calcWOpts(W, this.bits);
-    const points = [];
-    let p = point;
-    let base = p;
-    for (let window = 0; window < windows; window++) {
-      base = p;
-      points.push(base);
-      for (let i = 1; i < windowSize; i++) {
-        base = base.add(p);
-        points.push(base);
-      }
-      p = base.double();
-    }
-    return points;
-  }
-  /**
-   * Implements ec multiplication using precomputed tables and w-ary non-adjacent form.
-   * More compact implementation:
-   * https://github.com/paulmillr/noble-secp256k1/blob/47cb1669b6e506ad66b35fe7d76132ae97465da2/index.ts#L502-L541
-   * @returns real and fake (for const-time) points
-   */
-  wNAF(W, precomputes, n) {
-    if (!this.Fn.isValid(n))
-      throw new Error("invalid scalar");
-    let p = this.ZERO;
-    let f = this.BASE;
-    const wo = calcWOpts(W, this.bits);
-    for (let window = 0; window < wo.windows; window++) {
-      const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets(n, window, wo);
-      n = nextN;
-      if (isZero) {
-        f = f.add(negateCt(isNegF, precomputes[offsetF]));
-      } else {
-        p = p.add(negateCt(isNeg, precomputes[offset]));
-      }
-    }
-    assert0(n);
-    return { p, f };
-  }
-  /**
-   * Implements ec unsafe (non const-time) multiplication using precomputed tables and w-ary non-adjacent form.
-   * @param acc accumulator point to add result of multiplication
-   * @returns point
-   */
-  wNAFUnsafe(W, precomputes, n, acc = this.ZERO) {
-    const wo = calcWOpts(W, this.bits);
-    for (let window = 0; window < wo.windows; window++) {
-      if (n === _0n3)
-        break;
-      const { nextN, offset, isZero, isNeg } = calcOffsets(n, window, wo);
-      n = nextN;
-      if (isZero) {
-        continue;
-      } else {
-        const item = precomputes[offset];
-        acc = acc.add(isNeg ? item.negate() : item);
-      }
-    }
-    assert0(n);
-    return acc;
-  }
-  getPrecomputes(W, point, transform) {
-    let comp = pointPrecomputes.get(point);
-    if (!comp) {
-      comp = this.precomputeWindow(point, W);
-      if (W !== 1) {
-        if (typeof transform === "function")
-          comp = transform(comp);
-        pointPrecomputes.set(point, comp);
-      }
-    }
-    return comp;
-  }
-  cached(point, scalar, transform) {
-    const W = getW(point);
-    return this.wNAF(W, this.getPrecomputes(W, point, transform), scalar);
-  }
-  unsafe(point, scalar, transform, prev) {
-    const W = getW(point);
-    if (W === 1)
-      return this._unsafeLadder(point, scalar, prev);
-    return this.wNAFUnsafe(W, this.getPrecomputes(W, point, transform), scalar, prev);
-  }
-  // We calculate precomputes for elliptic curve point multiplication
-  // using windowed method. This specifies window size and
-  // stores precomputed values. Usually only base point would be precomputed.
-  createCache(P, W) {
-    validateW(W, this.bits);
-    pointWindowSizes.set(P, W);
-    pointPrecomputes.delete(P);
-  }
-  hasCache(elm) {
-    return getW(elm) !== 1;
-  }
-};
-__name(_wNAF, "wNAF");
-var wNAF = _wNAF;
 function mulEndoUnsafe(Point, point, k1, k2) {
   let acc = point;
   let p1 = Point.ZERO;
@@ -1591,7 +1508,6 @@ function mulEndoUnsafe(Point, point, k1, k2) {
   }
   return { p1, p2 };
 }
-__name(mulEndoUnsafe, "mulEndoUnsafe");
 function pippenger(c, fieldN, points, scalars) {
   validateMSMPoints(points, c);
   validateMSMScalars(scalars, fieldN);
@@ -1631,18 +1547,16 @@ function pippenger(c, fieldN, points, scalars) {
   }
   return sum;
 }
-__name(pippenger, "pippenger");
-function createField(order, field, isLE) {
+function createField(order, field, isLE2) {
   if (field) {
     if (field.ORDER !== order)
       throw new Error("Field.ORDER must match order: Fp == p, Fn == n");
     validateField(field);
     return field;
   } else {
-    return Field(order, { isLE });
+    return Field(order, { isLE: isLE2 });
   }
 }
-__name(createField, "createField");
 function _createCurveFields(type, CURVE, curveOpts = {}, FpFnLE) {
   if (FpFnLE === void 0)
     FpFnLE = type === "edwards";
@@ -1664,10 +1578,161 @@ function _createCurveFields(type, CURVE, curveOpts = {}, FpFnLE) {
   CURVE = Object.freeze(Object.assign({}, CURVE));
   return { CURVE, Fp, Fn };
 }
-__name(_createCurveFields, "_createCurveFields");
+var _0n3, _1n3, pointPrecomputes, pointWindowSizes, _wNAF, wNAF;
+var init_curve = __esm({
+  "node_modules/@noble/curves/esm/abstract/curve.js"() {
+    init_utils2();
+    init_modular();
+    _0n3 = BigInt(0);
+    _1n3 = BigInt(1);
+    __name(negateCt, "negateCt");
+    __name(normalizeZ, "normalizeZ");
+    __name(validateW, "validateW");
+    __name(calcWOpts, "calcWOpts");
+    __name(calcOffsets, "calcOffsets");
+    __name(validateMSMPoints, "validateMSMPoints");
+    __name(validateMSMScalars, "validateMSMScalars");
+    pointPrecomputes = /* @__PURE__ */ new WeakMap();
+    pointWindowSizes = /* @__PURE__ */ new WeakMap();
+    __name(getW, "getW");
+    __name(assert0, "assert0");
+    _wNAF = class _wNAF {
+      // Parametrized with a given Point class (not individual point)
+      constructor(Point, bits) {
+        this.BASE = Point.BASE;
+        this.ZERO = Point.ZERO;
+        this.Fn = Point.Fn;
+        this.bits = bits;
+      }
+      // non-const time multiplication ladder
+      _unsafeLadder(elm, n, p = this.ZERO) {
+        let d = elm;
+        while (n > _0n3) {
+          if (n & _1n3)
+            p = p.add(d);
+          d = d.double();
+          n >>= _1n3;
+        }
+        return p;
+      }
+      /**
+       * Creates a wNAF precomputation window. Used for caching.
+       * Default window size is set by `utils.precompute()` and is equal to 8.
+       * Number of precomputed points depends on the curve size:
+       * 2^(𝑊−1) * (Math.ceil(𝑛 / 𝑊) + 1), where:
+       * - 𝑊 is the window size
+       * - 𝑛 is the bitlength of the curve order.
+       * For a 256-bit curve and window size 8, the number of precomputed points is 128 * 33 = 4224.
+       * @param point Point instance
+       * @param W window size
+       * @returns precomputed point tables flattened to a single array
+       */
+      precomputeWindow(point, W) {
+        const { windows, windowSize } = calcWOpts(W, this.bits);
+        const points = [];
+        let p = point;
+        let base = p;
+        for (let window = 0; window < windows; window++) {
+          base = p;
+          points.push(base);
+          for (let i = 1; i < windowSize; i++) {
+            base = base.add(p);
+            points.push(base);
+          }
+          p = base.double();
+        }
+        return points;
+      }
+      /**
+       * Implements ec multiplication using precomputed tables and w-ary non-adjacent form.
+       * More compact implementation:
+       * https://github.com/paulmillr/noble-secp256k1/blob/47cb1669b6e506ad66b35fe7d76132ae97465da2/index.ts#L502-L541
+       * @returns real and fake (for const-time) points
+       */
+      wNAF(W, precomputes, n) {
+        if (!this.Fn.isValid(n))
+          throw new Error("invalid scalar");
+        let p = this.ZERO;
+        let f = this.BASE;
+        const wo = calcWOpts(W, this.bits);
+        for (let window = 0; window < wo.windows; window++) {
+          const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets(n, window, wo);
+          n = nextN;
+          if (isZero) {
+            f = f.add(negateCt(isNegF, precomputes[offsetF]));
+          } else {
+            p = p.add(negateCt(isNeg, precomputes[offset]));
+          }
+        }
+        assert0(n);
+        return { p, f };
+      }
+      /**
+       * Implements ec unsafe (non const-time) multiplication using precomputed tables and w-ary non-adjacent form.
+       * @param acc accumulator point to add result of multiplication
+       * @returns point
+       */
+      wNAFUnsafe(W, precomputes, n, acc = this.ZERO) {
+        const wo = calcWOpts(W, this.bits);
+        for (let window = 0; window < wo.windows; window++) {
+          if (n === _0n3)
+            break;
+          const { nextN, offset, isZero, isNeg } = calcOffsets(n, window, wo);
+          n = nextN;
+          if (isZero) {
+            continue;
+          } else {
+            const item = precomputes[offset];
+            acc = acc.add(isNeg ? item.negate() : item);
+          }
+        }
+        assert0(n);
+        return acc;
+      }
+      getPrecomputes(W, point, transform) {
+        let comp = pointPrecomputes.get(point);
+        if (!comp) {
+          comp = this.precomputeWindow(point, W);
+          if (W !== 1) {
+            if (typeof transform === "function")
+              comp = transform(comp);
+            pointPrecomputes.set(point, comp);
+          }
+        }
+        return comp;
+      }
+      cached(point, scalar, transform) {
+        const W = getW(point);
+        return this.wNAF(W, this.getPrecomputes(W, point, transform), scalar);
+      }
+      unsafe(point, scalar, transform, prev) {
+        const W = getW(point);
+        if (W === 1)
+          return this._unsafeLadder(point, scalar, prev);
+        return this.wNAFUnsafe(W, this.getPrecomputes(W, point, transform), scalar, prev);
+      }
+      // We calculate precomputes for elliptic curve point multiplication
+      // using windowed method. This specifies window size and
+      // stores precomputed values. Usually only base point would be precomputed.
+      createCache(P, W) {
+        validateW(W, this.bits);
+        pointWindowSizes.set(P, W);
+        pointPrecomputes.delete(P);
+      }
+      hasCache(elm) {
+        return getW(elm) !== 1;
+      }
+    };
+    __name(_wNAF, "wNAF");
+    wNAF = _wNAF;
+    __name(mulEndoUnsafe, "mulEndoUnsafe");
+    __name(pippenger, "pippenger");
+    __name(createField, "createField");
+    __name(_createCurveFields, "_createCurveFields");
+  }
+});
 
 // node_modules/@noble/curves/esm/abstract/weierstrass.js
-var divNearest = /* @__PURE__ */ __name((num2, den) => (num2 + (num2 >= 0 ? den : -den) / _2n2) / den, "divNearest");
 function _splitEndoScalar(k, basis, n) {
   const [[a1, b1], [a2, b2]] = basis;
   const c1 = divNearest(b2 * k, n);
@@ -1686,13 +1751,11 @@ function _splitEndoScalar(k, basis, n) {
   }
   return { k1neg, k1, k2neg, k2 };
 }
-__name(_splitEndoScalar, "_splitEndoScalar");
 function validateSigFormat(format) {
   if (!["compact", "recovered", "der"].includes(format))
     throw new Error('Signature format must be "compact", "recovered", or "der"');
   return format;
 }
-__name(validateSigFormat, "validateSigFormat");
 function validateSigOpts(opts, def) {
   const optsn = {};
   for (let optName of Object.keys(def)) {
@@ -1704,119 +1767,6 @@ function validateSigOpts(opts, def) {
     validateSigFormat(optsn.format);
   return optsn;
 }
-__name(validateSigOpts, "validateSigOpts");
-var _DERErr = class _DERErr extends Error {
-  constructor(m = "") {
-    super(m);
-  }
-};
-__name(_DERErr, "DERErr");
-var DERErr = _DERErr;
-var DER = {
-  // asn.1 DER encoding utils
-  Err: DERErr,
-  // Basic building block is TLV (Tag-Length-Value)
-  _tlv: {
-    encode: (tag, data) => {
-      const { Err: E } = DER;
-      if (tag < 0 || tag > 256)
-        throw new E("tlv.encode: wrong tag");
-      if (data.length & 1)
-        throw new E("tlv.encode: unpadded data");
-      const dataLen = data.length / 2;
-      const len = numberToHexUnpadded(dataLen);
-      if (len.length / 2 & 128)
-        throw new E("tlv.encode: long form length too big");
-      const lenLen = dataLen > 127 ? numberToHexUnpadded(len.length / 2 | 128) : "";
-      const t = numberToHexUnpadded(tag);
-      return t + lenLen + len + data;
-    },
-    // v - value, l - left bytes (unparsed)
-    decode(tag, data) {
-      const { Err: E } = DER;
-      let pos = 0;
-      if (tag < 0 || tag > 256)
-        throw new E("tlv.encode: wrong tag");
-      if (data.length < 2 || data[pos++] !== tag)
-        throw new E("tlv.decode: wrong tlv");
-      const first = data[pos++];
-      const isLong = !!(first & 128);
-      let length = 0;
-      if (!isLong)
-        length = first;
-      else {
-        const lenLen = first & 127;
-        if (!lenLen)
-          throw new E("tlv.decode(long): indefinite length not supported");
-        if (lenLen > 4)
-          throw new E("tlv.decode(long): byte length is too big");
-        const lengthBytes = data.subarray(pos, pos + lenLen);
-        if (lengthBytes.length !== lenLen)
-          throw new E("tlv.decode: length bytes not complete");
-        if (lengthBytes[0] === 0)
-          throw new E("tlv.decode(long): zero leftmost byte");
-        for (const b of lengthBytes)
-          length = length << 8 | b;
-        pos += lenLen;
-        if (length < 128)
-          throw new E("tlv.decode(long): not minimal encoding");
-      }
-      const v = data.subarray(pos, pos + length);
-      if (v.length !== length)
-        throw new E("tlv.decode: wrong value length");
-      return { v, l: data.subarray(pos + length) };
-    }
-  },
-  // https://crypto.stackexchange.com/a/57734 Leftmost bit of first byte is 'negative' flag,
-  // since we always use positive integers here. It must always be empty:
-  // - add zero byte if exists
-  // - if next byte doesn't have a flag, leading zero is not allowed (minimal encoding)
-  _int: {
-    encode(num2) {
-      const { Err: E } = DER;
-      if (num2 < _0n4)
-        throw new E("integer: negative integers are not allowed");
-      let hex = numberToHexUnpadded(num2);
-      if (Number.parseInt(hex[0], 16) & 8)
-        hex = "00" + hex;
-      if (hex.length & 1)
-        throw new E("unexpected DER parsing assertion: unpadded hex");
-      return hex;
-    },
-    decode(data) {
-      const { Err: E } = DER;
-      if (data[0] & 128)
-        throw new E("invalid signature integer: negative");
-      if (data[0] === 0 && !(data[1] & 128))
-        throw new E("invalid signature integer: unnecessary leading zero");
-      return bytesToNumberBE(data);
-    }
-  },
-  toSig(hex) {
-    const { Err: E, _int: int, _tlv: tlv } = DER;
-    const data = ensureBytes("signature", hex);
-    const { v: seqBytes, l: seqLeftBytes } = tlv.decode(48, data);
-    if (seqLeftBytes.length)
-      throw new E("invalid signature: left bytes after parsing");
-    const { v: rBytes, l: rLeftBytes } = tlv.decode(2, seqBytes);
-    const { v: sBytes, l: sLeftBytes } = tlv.decode(2, rLeftBytes);
-    if (sLeftBytes.length)
-      throw new E("invalid signature: left bytes after parsing");
-    return { r: int.decode(rBytes), s: int.decode(sBytes) };
-  },
-  hexFromSig(sig) {
-    const { _tlv: tlv, _int: int } = DER;
-    const rs = tlv.encode(2, int.encode(sig.r));
-    const ss = tlv.encode(2, int.encode(sig.s));
-    const seq = rs + ss;
-    return tlv.encode(48, seq);
-  }
-};
-var _0n4 = BigInt(0);
-var _1n4 = BigInt(1);
-var _2n2 = BigInt(2);
-var _3n2 = BigInt(3);
-var _4n2 = BigInt(4);
 function _normFnElement(Fn, key) {
   const { BYTES: expected } = Fn;
   let num2;
@@ -1834,7 +1784,6 @@ function _normFnElement(Fn, key) {
     throw new Error("invalid private key: out of range [1..N-1]");
   return num2;
 }
-__name(_normFnElement, "_normFnElement");
 function weierstrassN(params, extraOpts = {}) {
   const validated = _createCurveFields("weierstrass", params, extraOpts);
   const { Fp, Fn } = validated;
@@ -2292,11 +2241,9 @@ function weierstrassN(params, extraOpts = {}) {
   Point.BASE.precompute(8);
   return Point;
 }
-__name(weierstrassN, "weierstrassN");
 function pprefix(hasEvenY) {
   return Uint8Array.of(hasEvenY ? 2 : 3);
 }
-__name(pprefix, "pprefix");
 function getWLengths(Fp, Fn) {
   return {
     secretKey: Fn.BYTES,
@@ -2306,7 +2253,6 @@ function getWLengths(Fp, Fn) {
     signature: 2 * Fn.BYTES
   };
 }
-__name(getWLengths, "getWLengths");
 function ecdh(Point, ecdhOpts = {}) {
   const { Fn } = Point;
   const randomBytes_ = ecdhOpts.randomBytes || randomBytes;
@@ -2382,7 +2328,6 @@ function ecdh(Point, ecdhOpts = {}) {
   };
   return Object.freeze({ getPublicKey, getSharedSecret, keygen, Point, utils, lengths });
 }
-__name(ecdh, "ecdh");
 function ecdsa(Point, hash, ecdsaOpts = {}) {
   ahash(hash);
   _validateObject(ecdsaOpts, {}, {
@@ -2392,7 +2337,7 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
     bits2int: "function",
     bits2int_modN: "function"
   });
-  const randomBytes2 = ecdsaOpts.randomBytes || randomBytes;
+  const randomBytes3 = ecdsaOpts.randomBytes || randomBytes;
   const hmac2 = ecdsaOpts.hmac || ((key, ...msgs) => hmac(hash, key, concatBytes(...msgs)));
   const { Fp, Fn } = Point;
   const { ORDER: CURVE_ORDER, BITS: fnBits } = Fn;
@@ -2554,7 +2499,7 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
     const d = _normFnElement(Fn, privateKey);
     const seedArgs = [int2octets(d), int2octets(h1int)];
     if (extraEntropy != null && extraEntropy !== false) {
-      const e = extraEntropy === true ? randomBytes2(lengths.secretKey) : extraEntropy;
+      const e = extraEntropy === true ? randomBytes3(lengths.secretKey) : extraEntropy;
       seedArgs.push(ensureBytes("extraEntropy", e));
     }
     const seed = concatBytes(...seedArgs);
@@ -2667,7 +2612,6 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
     hash
   });
 }
-__name(ecdsa, "ecdsa");
 function _weierstrass_legacy_opts_to_new(c) {
   const CURVE = {
     a: c.a,
@@ -2697,7 +2641,6 @@ function _weierstrass_legacy_opts_to_new(c) {
   };
   return { CURVE, curveOpts };
 }
-__name(_weierstrass_legacy_opts_to_new, "_weierstrass_legacy_opts_to_new");
 function _ecdsa_legacy_opts_to_new(c) {
   const { CURVE, curveOpts } = _weierstrass_legacy_opts_to_new(c);
   const ecdsaOpts = {
@@ -2709,7 +2652,6 @@ function _ecdsa_legacy_opts_to_new(c) {
   };
   return { CURVE, curveOpts, hash: c.hash, ecdsaOpts };
 }
-__name(_ecdsa_legacy_opts_to_new, "_ecdsa_legacy_opts_to_new");
 function _ecdsa_new_output_to_legacy(c, _ecdsa) {
   const Point = _ecdsa.Point;
   return Object.assign({}, _ecdsa, {
@@ -2717,42 +2659,162 @@ function _ecdsa_new_output_to_legacy(c, _ecdsa) {
     CURVE: Object.assign({}, c, nLength(Point.Fn.ORDER, Point.Fn.BITS))
   });
 }
-__name(_ecdsa_new_output_to_legacy, "_ecdsa_new_output_to_legacy");
 function weierstrass(c) {
   const { CURVE, curveOpts, hash, ecdsaOpts } = _ecdsa_legacy_opts_to_new(c);
   const Point = weierstrassN(CURVE, curveOpts);
   const signs = ecdsa(Point, hash, ecdsaOpts);
   return _ecdsa_new_output_to_legacy(c, signs);
 }
-__name(weierstrass, "weierstrass");
+var divNearest, _DERErr, DERErr, DER, _0n4, _1n4, _2n2, _3n2, _4n2;
+var init_weierstrass = __esm({
+  "node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
+    init_hmac();
+    init_utils();
+    init_utils2();
+    init_curve();
+    init_modular();
+    divNearest = /* @__PURE__ */ __name((num2, den) => (num2 + (num2 >= 0 ? den : -den) / _2n2) / den, "divNearest");
+    __name(_splitEndoScalar, "_splitEndoScalar");
+    __name(validateSigFormat, "validateSigFormat");
+    __name(validateSigOpts, "validateSigOpts");
+    _DERErr = class _DERErr extends Error {
+      constructor(m = "") {
+        super(m);
+      }
+    };
+    __name(_DERErr, "DERErr");
+    DERErr = _DERErr;
+    DER = {
+      // asn.1 DER encoding utils
+      Err: DERErr,
+      // Basic building block is TLV (Tag-Length-Value)
+      _tlv: {
+        encode: (tag, data) => {
+          const { Err: E } = DER;
+          if (tag < 0 || tag > 256)
+            throw new E("tlv.encode: wrong tag");
+          if (data.length & 1)
+            throw new E("tlv.encode: unpadded data");
+          const dataLen = data.length / 2;
+          const len = numberToHexUnpadded(dataLen);
+          if (len.length / 2 & 128)
+            throw new E("tlv.encode: long form length too big");
+          const lenLen = dataLen > 127 ? numberToHexUnpadded(len.length / 2 | 128) : "";
+          const t = numberToHexUnpadded(tag);
+          return t + lenLen + len + data;
+        },
+        // v - value, l - left bytes (unparsed)
+        decode(tag, data) {
+          const { Err: E } = DER;
+          let pos = 0;
+          if (tag < 0 || tag > 256)
+            throw new E("tlv.encode: wrong tag");
+          if (data.length < 2 || data[pos++] !== tag)
+            throw new E("tlv.decode: wrong tlv");
+          const first = data[pos++];
+          const isLong = !!(first & 128);
+          let length = 0;
+          if (!isLong)
+            length = first;
+          else {
+            const lenLen = first & 127;
+            if (!lenLen)
+              throw new E("tlv.decode(long): indefinite length not supported");
+            if (lenLen > 4)
+              throw new E("tlv.decode(long): byte length is too big");
+            const lengthBytes = data.subarray(pos, pos + lenLen);
+            if (lengthBytes.length !== lenLen)
+              throw new E("tlv.decode: length bytes not complete");
+            if (lengthBytes[0] === 0)
+              throw new E("tlv.decode(long): zero leftmost byte");
+            for (const b of lengthBytes)
+              length = length << 8 | b;
+            pos += lenLen;
+            if (length < 128)
+              throw new E("tlv.decode(long): not minimal encoding");
+          }
+          const v = data.subarray(pos, pos + length);
+          if (v.length !== length)
+            throw new E("tlv.decode: wrong value length");
+          return { v, l: data.subarray(pos + length) };
+        }
+      },
+      // https://crypto.stackexchange.com/a/57734 Leftmost bit of first byte is 'negative' flag,
+      // since we always use positive integers here. It must always be empty:
+      // - add zero byte if exists
+      // - if next byte doesn't have a flag, leading zero is not allowed (minimal encoding)
+      _int: {
+        encode(num2) {
+          const { Err: E } = DER;
+          if (num2 < _0n4)
+            throw new E("integer: negative integers are not allowed");
+          let hex = numberToHexUnpadded(num2);
+          if (Number.parseInt(hex[0], 16) & 8)
+            hex = "00" + hex;
+          if (hex.length & 1)
+            throw new E("unexpected DER parsing assertion: unpadded hex");
+          return hex;
+        },
+        decode(data) {
+          const { Err: E } = DER;
+          if (data[0] & 128)
+            throw new E("invalid signature integer: negative");
+          if (data[0] === 0 && !(data[1] & 128))
+            throw new E("invalid signature integer: unnecessary leading zero");
+          return bytesToNumberBE(data);
+        }
+      },
+      toSig(hex) {
+        const { Err: E, _int: int, _tlv: tlv } = DER;
+        const data = ensureBytes("signature", hex);
+        const { v: seqBytes, l: seqLeftBytes } = tlv.decode(48, data);
+        if (seqLeftBytes.length)
+          throw new E("invalid signature: left bytes after parsing");
+        const { v: rBytes, l: rLeftBytes } = tlv.decode(2, seqBytes);
+        const { v: sBytes, l: sLeftBytes } = tlv.decode(2, rLeftBytes);
+        if (sLeftBytes.length)
+          throw new E("invalid signature: left bytes after parsing");
+        return { r: int.decode(rBytes), s: int.decode(sBytes) };
+      },
+      hexFromSig(sig) {
+        const { _tlv: tlv, _int: int } = DER;
+        const rs = tlv.encode(2, int.encode(sig.r));
+        const ss = tlv.encode(2, int.encode(sig.s));
+        const seq = rs + ss;
+        return tlv.encode(48, seq);
+      }
+    };
+    _0n4 = BigInt(0);
+    _1n4 = BigInt(1);
+    _2n2 = BigInt(2);
+    _3n2 = BigInt(3);
+    _4n2 = BigInt(4);
+    __name(_normFnElement, "_normFnElement");
+    __name(weierstrassN, "weierstrassN");
+    __name(pprefix, "pprefix");
+    __name(getWLengths, "getWLengths");
+    __name(ecdh, "ecdh");
+    __name(ecdsa, "ecdsa");
+    __name(_weierstrass_legacy_opts_to_new, "_weierstrass_legacy_opts_to_new");
+    __name(_ecdsa_legacy_opts_to_new, "_ecdsa_legacy_opts_to_new");
+    __name(_ecdsa_new_output_to_legacy, "_ecdsa_new_output_to_legacy");
+    __name(weierstrass, "weierstrass");
+  }
+});
 
 // node_modules/@noble/curves/esm/_shortw_utils.js
 function createCurve(curveDef, defHash) {
   const create = /* @__PURE__ */ __name((hash) => weierstrass({ ...curveDef, hash }), "create");
   return { ...create(defHash), create };
 }
-__name(createCurve, "createCurve");
+var init_shortw_utils = __esm({
+  "node_modules/@noble/curves/esm/_shortw_utils.js"() {
+    init_weierstrass();
+    __name(createCurve, "createCurve");
+  }
+});
 
 // node_modules/@noble/curves/esm/secp256k1.js
-var secp256k1_CURVE = {
-  p: BigInt("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"),
-  n: BigInt("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"),
-  h: BigInt(1),
-  a: BigInt(0),
-  b: BigInt(7),
-  Gx: BigInt("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"),
-  Gy: BigInt("0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8")
-};
-var secp256k1_ENDO = {
-  beta: BigInt("0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee"),
-  basises: [
-    [BigInt("0x3086d221a7d46bcde86c90e49284eb15"), -BigInt("0xe4437ed6010e88286f547fa90abfe4c3")],
-    [BigInt("0x114ca50f7a8e2f3f657c1108d9d44cfd8"), BigInt("0x3086d221a7d46bcde86c90e49284eb15")]
-  ]
-};
-var _0n5 = /* @__PURE__ */ BigInt(0);
-var _1n5 = /* @__PURE__ */ BigInt(1);
-var _2n3 = /* @__PURE__ */ BigInt(2);
 function sqrtMod(y) {
   const P = secp256k1_CURVE.p;
   const _3n3 = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
@@ -2775,10 +2837,6 @@ function sqrtMod(y) {
     throw new Error("Cannot find square root");
   return root;
 }
-__name(sqrtMod, "sqrtMod");
-var Fpk1 = Field(secp256k1_CURVE.p, { sqrt: sqrtMod });
-var secp256k1 = createCurve({ ...secp256k1_CURVE, Fp: Fpk1, lowS: true, endo: secp256k1_ENDO }, sha256);
-var TAGGED_HASH_PREFIXES = {};
 function taggedHash(tag, ...messages) {
   let tagP = TAGGED_HASH_PREFIXES[tag];
   if (tagP === void 0) {
@@ -2788,10 +2846,6 @@ function taggedHash(tag, ...messages) {
   }
   return sha256(concatBytes(tagP, ...messages));
 }
-__name(taggedHash, "taggedHash");
-var pointToBytes = /* @__PURE__ */ __name((point) => point.toBytes(true).slice(1), "pointToBytes");
-var Pointk1 = /* @__PURE__ */ (() => secp256k1.Point)();
-var hasEven = /* @__PURE__ */ __name((y) => y % _2n3 === _0n5, "hasEven");
 function schnorrGetExtPubKey(priv) {
   const { Fn, BASE } = Pointk1;
   const d_ = _normFnElement(Fn, priv);
@@ -2799,7 +2853,6 @@ function schnorrGetExtPubKey(priv) {
   const scalar = hasEven(p.y) ? d_ : Fn.neg(d_);
   return { scalar, bytes: pointToBytes(p) };
 }
-__name(schnorrGetExtPubKey, "schnorrGetExtPubKey");
 function lift_x(x) {
   const Fp = Fpk1;
   if (!Fp.isValidNot0(x))
@@ -2813,16 +2866,12 @@ function lift_x(x) {
   p.assertValidity();
   return p;
 }
-__name(lift_x, "lift_x");
-var num = bytesToNumberBE;
 function challenge(...args) {
   return Pointk1.Fn.create(num(taggedHash("BIP0340/challenge", ...args)));
 }
-__name(challenge, "challenge");
 function schnorrGetPublicKey(secretKey) {
   return schnorrGetExtPubKey(secretKey).bytes;
 }
-__name(schnorrGetPublicKey, "schnorrGetPublicKey");
 function schnorrSign(message, secretKey, auxRand = randomBytes(32)) {
   const { Fn } = Pointk1;
   const m = ensureBytes("message", message);
@@ -2839,7 +2888,6 @@ function schnorrSign(message, secretKey, auxRand = randomBytes(32)) {
     throw new Error("sign: Invalid signature produced");
   return sig;
 }
-__name(schnorrSign, "schnorrSign");
 function schnorrVerify(signature, message, publicKey) {
   const { Fn, BASE } = Pointk1;
   const sig = ensureBytes("signature", signature, 64);
@@ -2863,68 +2911,2562 @@ function schnorrVerify(signature, message, publicKey) {
     return false;
   }
 }
-__name(schnorrVerify, "schnorrVerify");
-var schnorr = /* @__PURE__ */ (() => {
-  const size = 32;
-  const seedLength = 48;
-  const randomSecretKey = /* @__PURE__ */ __name((seed = randomBytes(seedLength)) => {
-    return mapHashToField(seed, secp256k1_CURVE.n);
-  }, "randomSecretKey");
-  secp256k1.utils.randomSecretKey;
-  function keygen(seed) {
-    const secretKey = randomSecretKey(seed);
-    return { secretKey, publicKey: schnorrGetPublicKey(secretKey) };
+var secp256k1_CURVE, secp256k1_ENDO, _0n5, _1n5, _2n3, Fpk1, secp256k1, TAGGED_HASH_PREFIXES, pointToBytes, Pointk1, hasEven, num, schnorr;
+var init_secp256k1 = __esm({
+  "node_modules/@noble/curves/esm/secp256k1.js"() {
+    init_sha2();
+    init_utils();
+    init_shortw_utils();
+    init_modular();
+    init_weierstrass();
+    init_utils2();
+    secp256k1_CURVE = {
+      p: BigInt("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"),
+      n: BigInt("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"),
+      h: BigInt(1),
+      a: BigInt(0),
+      b: BigInt(7),
+      Gx: BigInt("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"),
+      Gy: BigInt("0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8")
+    };
+    secp256k1_ENDO = {
+      beta: BigInt("0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee"),
+      basises: [
+        [BigInt("0x3086d221a7d46bcde86c90e49284eb15"), -BigInt("0xe4437ed6010e88286f547fa90abfe4c3")],
+        [BigInt("0x114ca50f7a8e2f3f657c1108d9d44cfd8"), BigInt("0x3086d221a7d46bcde86c90e49284eb15")]
+      ]
+    };
+    _0n5 = /* @__PURE__ */ BigInt(0);
+    _1n5 = /* @__PURE__ */ BigInt(1);
+    _2n3 = /* @__PURE__ */ BigInt(2);
+    __name(sqrtMod, "sqrtMod");
+    Fpk1 = Field(secp256k1_CURVE.p, { sqrt: sqrtMod });
+    secp256k1 = createCurve({ ...secp256k1_CURVE, Fp: Fpk1, lowS: true, endo: secp256k1_ENDO }, sha256);
+    TAGGED_HASH_PREFIXES = {};
+    __name(taggedHash, "taggedHash");
+    pointToBytes = /* @__PURE__ */ __name((point) => point.toBytes(true).slice(1), "pointToBytes");
+    Pointk1 = /* @__PURE__ */ (() => secp256k1.Point)();
+    hasEven = /* @__PURE__ */ __name((y) => y % _2n3 === _0n5, "hasEven");
+    __name(schnorrGetExtPubKey, "schnorrGetExtPubKey");
+    __name(lift_x, "lift_x");
+    num = bytesToNumberBE;
+    __name(challenge, "challenge");
+    __name(schnorrGetPublicKey, "schnorrGetPublicKey");
+    __name(schnorrSign, "schnorrSign");
+    __name(schnorrVerify, "schnorrVerify");
+    schnorr = /* @__PURE__ */ (() => {
+      const size = 32;
+      const seedLength = 48;
+      const randomSecretKey = /* @__PURE__ */ __name((seed = randomBytes(seedLength)) => {
+        return mapHashToField(seed, secp256k1_CURVE.n);
+      }, "randomSecretKey");
+      secp256k1.utils.randomSecretKey;
+      function keygen(seed) {
+        const secretKey = randomSecretKey(seed);
+        return { secretKey, publicKey: schnorrGetPublicKey(secretKey) };
+      }
+      __name(keygen, "keygen");
+      return {
+        keygen,
+        getPublicKey: schnorrGetPublicKey,
+        sign: schnorrSign,
+        verify: schnorrVerify,
+        Point: Pointk1,
+        utils: {
+          randomSecretKey,
+          randomPrivateKey: randomSecretKey,
+          taggedHash,
+          // TODO: remove
+          lift_x,
+          pointToBytes,
+          numberToBytesBE,
+          bytesToNumberBE,
+          mod
+        },
+        lengths: {
+          secretKey: size,
+          publicKey: size,
+          publicKeyHasPrefix: false,
+          signature: size * 2,
+          seed: seedLength
+        }
+      };
+    })();
   }
-  __name(keygen, "keygen");
-  return {
-    keygen,
-    getPublicKey: schnorrGetPublicKey,
-    sign: schnorrSign,
-    verify: schnorrVerify,
-    Point: Pointk1,
-    utils: {
-      randomSecretKey,
-      randomPrivateKey: randomSecretKey,
-      taggedHash,
-      // TODO: remove
-      lift_x,
-      pointToBytes,
-      numberToBytesBE,
-      bytesToNumberBE,
-      mod
-    },
-    lengths: {
-      secretKey: size,
-      publicKey: size,
-      publicKeyHasPrefix: false,
-      signature: size * 2,
-      seed: seedLength
+});
+
+// src/relay/services/registry.ts
+var _ExtensionRegistry, ExtensionRegistry, extensionRegistry;
+var init_registry = __esm({
+  "src/relay/services/registry.ts"() {
+    "use strict";
+    _ExtensionRegistry = class _ExtensionRegistry {
+      constructor() {
+        this.extensions = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Register a protocol extension.
+       */
+      register(extension) {
+        if (this.extensions.has(extension.name)) {
+          throw new Error(`Extension "${extension.name}" is already registered`);
+        }
+        this.extensions.set(extension.name, extension);
+        console.log(`Registered extension: ${extension.name}`);
+      }
+      /**
+       * Unregister a protocol extension.
+       */
+      unregister(name) {
+        this.extensions.delete(name);
+      }
+      /**
+       * Get all registered extensions.
+       */
+      getAll() {
+        return Array.from(this.extensions.values());
+      }
+      /**
+       * Find an extension that can handle the given event.
+       * Returns the first matching extension, or null if none match.
+       */
+      findHandler(event, context) {
+        for (const ext of this.extensions.values()) {
+          if (ext.canHandleEvent(event, context)) {
+            return ext;
+          }
+        }
+        return null;
+      }
+      /**
+       * Check all extensions for query authorization.
+       * If any extension denies the query, it's denied.
+       * If no extension handles it, default policy applies.
+       */
+      async authorizeQuery(filters, context) {
+        for (const ext of this.extensions.values()) {
+          if (ext.authorizeQuery) {
+            const result = await ext.authorizeQuery(filters, context);
+            if (!result.allowed) {
+              return result;
+            }
+          }
+        }
+        return { allowed: true };
+      }
+    };
+    __name(_ExtensionRegistry, "ExtensionRegistry");
+    ExtensionRegistry = _ExtensionRegistry;
+    extensionRegistry = new ExtensionRegistry();
+  }
+});
+
+// node_modules/@noble/hashes/esm/hkdf.js
+function extract(hash, ikm, salt) {
+  ahash(hash);
+  if (salt === void 0)
+    salt = new Uint8Array(hash.outputLen);
+  return hmac(hash, toBytes(salt), toBytes(ikm));
+}
+function expand(hash, prk, info, length = 32) {
+  ahash(hash);
+  anumber(length);
+  const olen = hash.outputLen;
+  if (length > 255 * olen)
+    throw new Error("Length should be <= 255*HashLen");
+  const blocks = Math.ceil(length / olen);
+  if (info === void 0)
+    info = EMPTY_BUFFER;
+  const okm = new Uint8Array(blocks * olen);
+  const HMAC2 = hmac.create(hash, prk);
+  const HMACTmp = HMAC2._cloneInto();
+  const T = new Uint8Array(HMAC2.outputLen);
+  for (let counter = 0; counter < blocks; counter++) {
+    HKDF_COUNTER[0] = counter + 1;
+    HMACTmp.update(counter === 0 ? EMPTY_BUFFER : T).update(info).update(HKDF_COUNTER).digestInto(T);
+    okm.set(T, olen * counter);
+    HMAC2._cloneInto(HMACTmp);
+  }
+  HMAC2.destroy();
+  HMACTmp.destroy();
+  clean(T, HKDF_COUNTER);
+  return okm.slice(0, length);
+}
+var HKDF_COUNTER, EMPTY_BUFFER;
+var init_hkdf = __esm({
+  "node_modules/@noble/hashes/esm/hkdf.js"() {
+    init_hmac();
+    init_utils();
+    __name(extract, "extract");
+    HKDF_COUNTER = /* @__PURE__ */ Uint8Array.from([0]);
+    EMPTY_BUFFER = /* @__PURE__ */ Uint8Array.of();
+    __name(expand, "expand");
+  }
+});
+
+// node_modules/@noble/hashes/esm/sha256.js
+var sha2562;
+var init_sha256 = __esm({
+  "node_modules/@noble/hashes/esm/sha256.js"() {
+    init_sha2();
+    sha2562 = sha256;
+  }
+});
+
+// node_modules/@noble/ciphers/utils.js
+function isBytes2(a) {
+  return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
+}
+function abool(b) {
+  if (typeof b !== "boolean")
+    throw new TypeError(`boolean expected, not ${b}`);
+}
+function anumber2(n) {
+  if (typeof n !== "number")
+    throw new TypeError("number expected, got " + typeof n);
+  if (!Number.isSafeInteger(n) || n < 0)
+    throw new RangeError("positive integer expected, got " + n);
+}
+function abytes2(value, length, title = "") {
+  const bytes = isBytes2(value);
+  const len = value?.length;
+  const needsLen = length !== void 0;
+  if (!bytes || needsLen && len !== length) {
+    const prefix = title && `"${title}" `;
+    const ofLen = needsLen ? ` of length ${length}` : "";
+    const got = bytes ? `length=${len}` : `type=${typeof value}`;
+    const message = prefix + "expected Uint8Array" + ofLen + ", got " + got;
+    if (!bytes)
+      throw new TypeError(message);
+    throw new RangeError(message);
+  }
+  return value;
+}
+function u32(arr) {
+  return new Uint32Array(arr.buffer, arr.byteOffset, Math.floor(arr.byteLength / 4));
+}
+function clean2(...arrays) {
+  for (let i = 0; i < arrays.length; i++) {
+    arrays[i].fill(0);
+  }
+}
+function checkOpts(defaults, opts) {
+  if (opts == null || typeof opts !== "object")
+    throw new Error("options must be defined");
+  const merged = Object.assign(defaults, opts);
+  return merged;
+}
+function getOutput(expectedLength, out, onlyAligned = true) {
+  if (out === void 0)
+    return new Uint8Array(expectedLength);
+  abytes2(out, void 0, "output");
+  if (out.length !== expectedLength)
+    throw new Error('"output" expected Uint8Array of length ' + expectedLength + ", got: " + out.length);
+  if (onlyAligned && !isAligned32(out))
+    throw new Error("invalid output, must be aligned");
+  return out;
+}
+function isAligned32(bytes) {
+  return bytes.byteOffset % 4 === 0;
+}
+function copyBytes(bytes) {
+  return Uint8Array.from(abytes2(bytes));
+}
+function randomBytes2(bytesLength = 32) {
+  anumber2(bytesLength);
+  const cr = typeof globalThis === "object" ? globalThis.crypto : null;
+  if (typeof cr?.getRandomValues !== "function")
+    throw new Error("crypto.getRandomValues must be defined");
+  return cr.getRandomValues(new Uint8Array(bytesLength));
+}
+var isLE, byteSwap, byteSwap32, swap32IfBE;
+var init_utils3 = __esm({
+  "node_modules/@noble/ciphers/utils.js"() {
+    __name(isBytes2, "isBytes");
+    __name(abool, "abool");
+    __name(anumber2, "anumber");
+    __name(abytes2, "abytes");
+    __name(u32, "u32");
+    __name(clean2, "clean");
+    isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
+    byteSwap = /* @__PURE__ */ __name((word) => word << 24 & 4278190080 | word << 8 & 16711680 | word >>> 8 & 65280 | word >>> 24 & 255, "byteSwap");
+    byteSwap32 = /* @__PURE__ */ __name((arr) => {
+      for (let i = 0; i < arr.length; i++)
+        arr[i] = byteSwap(arr[i]);
+      return arr;
+    }, "byteSwap32");
+    swap32IfBE = isLE ? (u) => u : byteSwap32;
+    __name(checkOpts, "checkOpts");
+    __name(getOutput, "getOutput");
+    __name(isAligned32, "isAligned32");
+    __name(copyBytes, "copyBytes");
+    __name(randomBytes2, "randomBytes");
+  }
+});
+
+// node_modules/@noble/ciphers/_arx.js
+function rotl(a, b) {
+  return a << b | a >>> 32 - b;
+}
+function runCipher(core, sigma, key, nonce, data, output, counter, rounds) {
+  const len = data.length;
+  const block = new Uint8Array(BLOCK_LEN);
+  const b32 = u32(block);
+  const isAligned = isLE && isAligned32(data) && isAligned32(output);
+  const d32 = isAligned ? u32(data) : U32_EMPTY;
+  const o32 = isAligned ? u32(output) : U32_EMPTY;
+  if (!isLE) {
+    for (let pos = 0; pos < len; counter++) {
+      core(sigma, key, nonce, b32, counter, rounds);
+      swap32IfBE(b32);
+      if (counter >= MAX_COUNTER)
+        throw new Error("arx: counter overflow");
+      const take = Math.min(BLOCK_LEN, len - pos);
+      for (let j = 0, posj; j < take; j++) {
+        posj = pos + j;
+        output[posj] = data[posj] ^ block[j];
+      }
+      pos += take;
+    }
+    return;
+  }
+  for (let pos = 0; pos < len; counter++) {
+    core(sigma, key, nonce, b32, counter, rounds);
+    if (counter >= MAX_COUNTER)
+      throw new Error("arx: counter overflow");
+    const take = Math.min(BLOCK_LEN, len - pos);
+    if (isAligned && take === BLOCK_LEN) {
+      const pos32 = pos / 4;
+      if (pos % 4 !== 0)
+        throw new Error("arx: invalid block position");
+      for (let j = 0, posj; j < BLOCK_LEN32; j++) {
+        posj = pos32 + j;
+        o32[posj] = d32[posj] ^ b32[j];
+      }
+      pos += BLOCK_LEN;
+      continue;
+    }
+    for (let j = 0, posj; j < take; j++) {
+      posj = pos + j;
+      output[posj] = data[posj] ^ block[j];
+    }
+    pos += take;
+  }
+}
+function createCipher(core, opts) {
+  const { allowShortKeys, extendNonceFn, counterLength, counterRight, rounds } = checkOpts({ allowShortKeys: false, counterLength: 8, counterRight: false, rounds: 20 }, opts);
+  if (typeof core !== "function")
+    throw new Error("core must be a function");
+  anumber2(counterLength);
+  anumber2(rounds);
+  abool(counterRight);
+  abool(allowShortKeys);
+  return (key, nonce, data, output, counter = 0) => {
+    abytes2(key, void 0, "key");
+    abytes2(nonce, void 0, "nonce");
+    abytes2(data, void 0, "data");
+    const len = data.length;
+    output = getOutput(len, output, false);
+    anumber2(counter);
+    if (counter < 0 || counter >= MAX_COUNTER)
+      throw new Error("arx: counter overflow");
+    const toClean = [];
+    let l = key.length;
+    let k;
+    let sigma;
+    if (l === 32) {
+      toClean.push(k = copyBytes(key));
+      sigma = sigma32_32;
+    } else if (l === 16 && allowShortKeys) {
+      k = new Uint8Array(32);
+      k.set(key);
+      k.set(key, 16);
+      sigma = sigma16_32;
+      toClean.push(k);
+    } else {
+      abytes2(key, 32, "arx key");
+      throw new Error("invalid key size");
+    }
+    if (!isLE || !isAligned32(nonce))
+      toClean.push(nonce = copyBytes(nonce));
+    let k32 = u32(k);
+    if (extendNonceFn) {
+      if (nonce.length !== 24)
+        throw new Error(`arx: extended nonce must be 24 bytes`);
+      const n16 = nonce.subarray(0, 16);
+      if (isLE)
+        extendNonceFn(sigma, k32, u32(n16), k32);
+      else {
+        const sigmaRaw = swap32IfBE(Uint32Array.from(sigma));
+        extendNonceFn(sigmaRaw, k32, u32(n16), k32);
+        clean2(sigmaRaw);
+        swap32IfBE(k32);
+      }
+      nonce = nonce.subarray(16);
+    } else if (!isLE)
+      swap32IfBE(k32);
+    const nonceNcLen = 16 - counterLength;
+    if (nonceNcLen !== nonce.length)
+      throw new Error(`arx: nonce must be ${nonceNcLen} or 16 bytes`);
+    if (nonceNcLen !== 12) {
+      const nc = new Uint8Array(12);
+      nc.set(nonce, counterRight ? 0 : 12 - nonce.length);
+      nonce = nc;
+      toClean.push(nonce);
+    }
+    const n32 = swap32IfBE(u32(nonce));
+    try {
+      runCipher(core, sigma, k32, n32, data, output, counter, rounds);
+      return output;
+    } finally {
+      clean2(...toClean);
     }
   };
-})();
+}
+var encodeStr, sigma16_32, sigma32_32, BLOCK_LEN, BLOCK_LEN32, MAX_COUNTER, U32_EMPTY;
+var init_arx = __esm({
+  "node_modules/@noble/ciphers/_arx.js"() {
+    init_utils3();
+    encodeStr = /* @__PURE__ */ __name((str) => Uint8Array.from(str.split(""), (c) => c.charCodeAt(0)), "encodeStr");
+    sigma16_32 = /* @__PURE__ */ (() => swap32IfBE(u32(encodeStr("expand 16-byte k"))))();
+    sigma32_32 = /* @__PURE__ */ (() => swap32IfBE(u32(encodeStr("expand 32-byte k"))))();
+    __name(rotl, "rotl");
+    BLOCK_LEN = 64;
+    BLOCK_LEN32 = 16;
+    MAX_COUNTER = /* @__PURE__ */ (() => 2 ** 32 - 1)();
+    U32_EMPTY = /* @__PURE__ */ Uint32Array.of();
+    __name(runCipher, "runCipher");
+    __name(createCipher, "createCipher");
+  }
+});
+
+// node_modules/@noble/ciphers/chacha.js
+function chachaCore(s, k, n, out, cnt, rounds = 20) {
+  let y00 = s[0], y01 = s[1], y02 = s[2], y03 = s[3], y04 = k[0], y05 = k[1], y06 = k[2], y07 = k[3], y08 = k[4], y09 = k[5], y10 = k[6], y11 = k[7], y12 = cnt, y13 = n[0], y14 = n[1], y15 = n[2];
+  let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
+  for (let r = 0; r < rounds; r += 2) {
+    x00 = x00 + x04 | 0;
+    x12 = rotl(x12 ^ x00, 16);
+    x08 = x08 + x12 | 0;
+    x04 = rotl(x04 ^ x08, 12);
+    x00 = x00 + x04 | 0;
+    x12 = rotl(x12 ^ x00, 8);
+    x08 = x08 + x12 | 0;
+    x04 = rotl(x04 ^ x08, 7);
+    x01 = x01 + x05 | 0;
+    x13 = rotl(x13 ^ x01, 16);
+    x09 = x09 + x13 | 0;
+    x05 = rotl(x05 ^ x09, 12);
+    x01 = x01 + x05 | 0;
+    x13 = rotl(x13 ^ x01, 8);
+    x09 = x09 + x13 | 0;
+    x05 = rotl(x05 ^ x09, 7);
+    x02 = x02 + x06 | 0;
+    x14 = rotl(x14 ^ x02, 16);
+    x10 = x10 + x14 | 0;
+    x06 = rotl(x06 ^ x10, 12);
+    x02 = x02 + x06 | 0;
+    x14 = rotl(x14 ^ x02, 8);
+    x10 = x10 + x14 | 0;
+    x06 = rotl(x06 ^ x10, 7);
+    x03 = x03 + x07 | 0;
+    x15 = rotl(x15 ^ x03, 16);
+    x11 = x11 + x15 | 0;
+    x07 = rotl(x07 ^ x11, 12);
+    x03 = x03 + x07 | 0;
+    x15 = rotl(x15 ^ x03, 8);
+    x11 = x11 + x15 | 0;
+    x07 = rotl(x07 ^ x11, 7);
+    x00 = x00 + x05 | 0;
+    x15 = rotl(x15 ^ x00, 16);
+    x10 = x10 + x15 | 0;
+    x05 = rotl(x05 ^ x10, 12);
+    x00 = x00 + x05 | 0;
+    x15 = rotl(x15 ^ x00, 8);
+    x10 = x10 + x15 | 0;
+    x05 = rotl(x05 ^ x10, 7);
+    x01 = x01 + x06 | 0;
+    x12 = rotl(x12 ^ x01, 16);
+    x11 = x11 + x12 | 0;
+    x06 = rotl(x06 ^ x11, 12);
+    x01 = x01 + x06 | 0;
+    x12 = rotl(x12 ^ x01, 8);
+    x11 = x11 + x12 | 0;
+    x06 = rotl(x06 ^ x11, 7);
+    x02 = x02 + x07 | 0;
+    x13 = rotl(x13 ^ x02, 16);
+    x08 = x08 + x13 | 0;
+    x07 = rotl(x07 ^ x08, 12);
+    x02 = x02 + x07 | 0;
+    x13 = rotl(x13 ^ x02, 8);
+    x08 = x08 + x13 | 0;
+    x07 = rotl(x07 ^ x08, 7);
+    x03 = x03 + x04 | 0;
+    x14 = rotl(x14 ^ x03, 16);
+    x09 = x09 + x14 | 0;
+    x04 = rotl(x04 ^ x09, 12);
+    x03 = x03 + x04 | 0;
+    x14 = rotl(x14 ^ x03, 8);
+    x09 = x09 + x14 | 0;
+    x04 = rotl(x04 ^ x09, 7);
+  }
+  let oi = 0;
+  out[oi++] = y00 + x00 | 0;
+  out[oi++] = y01 + x01 | 0;
+  out[oi++] = y02 + x02 | 0;
+  out[oi++] = y03 + x03 | 0;
+  out[oi++] = y04 + x04 | 0;
+  out[oi++] = y05 + x05 | 0;
+  out[oi++] = y06 + x06 | 0;
+  out[oi++] = y07 + x07 | 0;
+  out[oi++] = y08 + x08 | 0;
+  out[oi++] = y09 + x09 | 0;
+  out[oi++] = y10 + x10 | 0;
+  out[oi++] = y11 + x11 | 0;
+  out[oi++] = y12 + x12 | 0;
+  out[oi++] = y13 + x13 | 0;
+  out[oi++] = y14 + x14 | 0;
+  out[oi++] = y15 + x15 | 0;
+}
+var chacha20;
+var init_chacha = __esm({
+  "node_modules/@noble/ciphers/chacha.js"() {
+    init_arx();
+    __name(chachaCore, "chachaCore");
+    chacha20 = /* @__PURE__ */ createCipher(chachaCore, {
+      counterRight: false,
+      counterLength: 4,
+      allowShortKeys: false
+    });
+  }
+});
+
+// src/protocols/opendating/crypto/encryption.ts
+function generateKeypair() {
+  const priv = randomBytes2(32);
+  const pub = schnorr.getPublicKey(priv);
+  return {
+    privateKey: bytesToHex2(priv),
+    publicKey: bytesToHex2(pub)
+  };
+}
+function getConversationKey(privateKeyHex, publicKeyHex) {
+  const priv = hexToBytes2(privateKeyHex);
+  const pub = hexToBytes2(publicKeyHex);
+  const pubKeyBigInt = bytesToBigInt(pub);
+  const pubPoint = schnorr.utils.lift_x(pubKeyBigInt);
+  const privScalar = bytesToBigInt(priv);
+  const sharedPoint = pubPoint.multiply(privScalar);
+  const sharedX = sharedPoint.toRawBytes(true).slice(1, 33);
+  return extract(sha2562, sharedX, NIP44_SALT);
+}
+function bytesToBigInt(bytes) {
+  let hex = "0x";
+  for (const b of bytes) {
+    hex += b.toString(16).padStart(2, "0");
+  }
+  return BigInt(hex);
+}
+function getMessageKeys(conversationKey, nonce) {
+  const expanded = expand(sha2562, conversationKey, nonce, MESSAGE_KEYS_LEN);
+  return {
+    chachaKey: expanded.slice(0, CHACHA_KEY_LEN),
+    chachaNonce: expanded.slice(CHACHA_KEY_LEN, CHACHA_KEY_LEN + CHACHA_NONCE_LEN),
+    hmacKey: expanded.slice(CHACHA_KEY_LEN + CHACHA_NONCE_LEN)
+  };
+}
+function calcPaddedLen(unpaddedLen) {
+  if (unpaddedLen < MIN_PLAINTEXT_LEN) {
+    throw new Error("Plaintext must be at least 1 byte");
+  }
+  if (unpaddedLen <= MIN_PADDED_LEN) {
+    return MIN_PADDED_LEN;
+  }
+  const nextPower = 1 << Math.floor(Math.log2(unpaddedLen - 1)) + 1;
+  const chunk = nextPower <= 256 ? MIN_PADDED_LEN : nextPower / 8;
+  return chunk * (Math.floor((unpaddedLen - 1) / chunk) + 1);
+}
+function pad(plaintext) {
+  const unpaddedLen = plaintext.length;
+  const paddedLen = calcPaddedLen(unpaddedLen);
+  const result = new Uint8Array(paddedLen);
+  if (unpaddedLen < 65536) {
+    result[0] = unpaddedLen >> 8 & 255;
+    result[1] = unpaddedLen & 255;
+    result.set(plaintext, 2);
+  } else {
+    result[0] = 0;
+    result[1] = 0;
+    result[2] = unpaddedLen >> 24 & 255;
+    result[3] = unpaddedLen >> 16 & 255;
+    result[4] = unpaddedLen >> 8 & 255;
+    result[5] = unpaddedLen & 255;
+    result.set(plaintext, 6);
+  }
+  return result;
+}
+function unpad(padded) {
+  if (padded.length < 2) {
+    throw new Error("Padded data too short");
+  }
+  let unpaddedLen;
+  let offset;
+  if (padded[0] === 0 && padded[1] === 0) {
+    if (padded.length < 6) {
+      throw new Error("Padded data too short for long format");
+    }
+    unpaddedLen = padded[2] << 24 | padded[3] << 16 | padded[4] << 8 | padded[5];
+    offset = 6;
+  } else {
+    unpaddedLen = padded[0] << 8 | padded[1];
+    offset = 2;
+  }
+  if (unpaddedLen < MIN_PLAINTEXT_LEN || unpaddedLen > padded.length - offset) {
+    throw new Error("Invalid padding length");
+  }
+  return padded.slice(offset, offset + unpaddedLen);
+}
+function nip44Encrypt(plaintext, privateKeyHex, publicKeyHex) {
+  const conversationKey = getConversationKey(privateKeyHex, publicKeyHex);
+  const nonce = randomBytes2(NONCE_LEN);
+  const keys = getMessageKeys(conversationKey, nonce);
+  const plaintextBytes = new TextEncoder().encode(plaintext);
+  const padded = pad(plaintextBytes);
+  const ciphertext = chacha20(keys.chachaKey, keys.chachaNonce, padded);
+  const aad = new Uint8Array(nonce.length + ciphertext.length);
+  aad.set(nonce);
+  aad.set(ciphertext, nonce.length);
+  const mac = hmac(sha2562, keys.hmacKey, aad);
+  const payload = new Uint8Array(1 + NONCE_LEN + ciphertext.length + MAC_LEN);
+  payload[0] = NIP44_VERSION;
+  payload.set(nonce, 1);
+  payload.set(ciphertext, 1 + NONCE_LEN);
+  payload.set(mac, 1 + NONCE_LEN + ciphertext.length);
+  return bytesToBase64(payload);
+}
+function nip44Decrypt(payload, privateKeyHex, publicKeyHex) {
+  if (!payload || payload.length < 128) {
+    throw new Error("nip44: payload too short");
+  }
+  if (payload[0] === "#") {
+    throw new Error("nip44: unknown encoding version");
+  }
+  const data = base64ToBytes(payload);
+  if (data.length < 97) {
+    throw new Error("nip44: decoded data too short");
+  }
+  const version = data[0];
+  if (version !== NIP44_VERSION) {
+    throw new Error(`nip44: unknown version ${version}`);
+  }
+  const nonce = data.slice(1, 1 + NONCE_LEN);
+  const ciphertext = data.slice(1 + NONCE_LEN, data.length - MAC_LEN);
+  const mac = data.slice(data.length - MAC_LEN);
+  const conversationKey = getConversationKey(privateKeyHex, publicKeyHex);
+  const keys = getMessageKeys(conversationKey, nonce);
+  const aad = new Uint8Array(nonce.length + ciphertext.length);
+  aad.set(nonce);
+  aad.set(ciphertext, nonce.length);
+  const expectedMac = hmac(sha2562, keys.hmacKey, aad);
+  if (!constantTimeEqual(mac, expectedMac)) {
+    throw new Error("nip44: MAC verification failed");
+  }
+  const padded = chacha20(keys.chachaKey, keys.chachaNonce, ciphertext);
+  const plaintext = unpad(padded);
+  return new TextDecoder().decode(plaintext);
+}
+function getEventHash(event) {
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content
+  ]);
+  return bytesToHex2(sha2562(new TextEncoder().encode(serialized)));
+}
+function signEvent(event, privateKeyHex) {
+  const id = getEventHash(event);
+  const sig = bytesToHex2(schnorr.sign(hexToBytes2(id), privateKeyHex));
+  return { id, sig };
+}
+function constantTimeEqual(a, b) {
+  if (a.length !== b.length)
+    return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
+}
+function bytesToHex2(bytes) {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexToBytes2(hex) {
+  if (hex.length % 2 !== 0)
+    throw new Error("Invalid hex string");
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+function base64ToBytes(base64) {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+var NIP44_VERSION, NIP44_SALT, NONCE_LEN, MAC_LEN, CHACHA_KEY_LEN, CHACHA_NONCE_LEN, MESSAGE_KEYS_LEN, MIN_PLAINTEXT_LEN, MIN_PADDED_LEN;
+var init_encryption = __esm({
+  "src/protocols/opendating/crypto/encryption.ts"() {
+    "use strict";
+    init_secp256k1();
+    init_hkdf();
+    init_sha256();
+    init_hmac();
+    init_chacha();
+    init_utils3();
+    NIP44_VERSION = 2;
+    NIP44_SALT = new TextEncoder().encode("nip44-v2");
+    NONCE_LEN = 32;
+    MAC_LEN = 32;
+    CHACHA_KEY_LEN = 32;
+    CHACHA_NONCE_LEN = 12;
+    MESSAGE_KEYS_LEN = 76;
+    MIN_PLAINTEXT_LEN = 1;
+    MIN_PADDED_LEN = 32;
+    __name(generateKeypair, "generateKeypair");
+    __name(getConversationKey, "getConversationKey");
+    __name(bytesToBigInt, "bytesToBigInt");
+    __name(getMessageKeys, "getMessageKeys");
+    __name(calcPaddedLen, "calcPaddedLen");
+    __name(pad, "pad");
+    __name(unpad, "unpad");
+    __name(nip44Encrypt, "nip44Encrypt");
+    __name(nip44Decrypt, "nip44Decrypt");
+    __name(getEventHash, "getEventHash");
+    __name(signEvent, "signEvent");
+    __name(constantTimeEqual, "constantTimeEqual");
+    __name(bytesToHex2, "bytesToHex");
+    __name(hexToBytes2, "hexToBytes");
+    __name(bytesToBase64, "bytesToBase64");
+    __name(base64ToBytes, "base64ToBytes");
+  }
+});
+
+// src/protocols/opendating/protocol/constants.ts
+var OPENDATING_PROTOCOL, OPENDATING_VERSION, SUPPORTED_VERSIONS, MAX_OD_PAYLOAD_BYTES, OD_REQUEST_MAX_AGE_SEC, OD_REQUEST_MAX_FUTURE_SEC, OD_IDEMPOTENCY_RETENTION_SEC, OD_FEATURES;
+var init_constants = __esm({
+  "src/protocols/opendating/protocol/constants.ts"() {
+    "use strict";
+    OPENDATING_PROTOCOL = "opendating";
+    OPENDATING_VERSION = "0.1";
+    SUPPORTED_VERSIONS = ["0.1"];
+    MAX_OD_PAYLOAD_BYTES = 16 * 1024;
+    OD_REQUEST_MAX_AGE_SEC = 5 * 60;
+    OD_REQUEST_MAX_FUTURE_SEC = 60;
+    OD_IDEMPOTENCY_RETENTION_SEC = 24 * 60 * 60;
+    OD_FEATURES = [
+      "private-service-requests",
+      "nip42-required",
+      "nip59-transport"
+    ];
+  }
+});
+
+// src/protocols/opendating/protocol/message-types.ts
+function isValidPingPayload(p) {
+  return typeof p === "object" && p !== null && Object.keys(p).length === 0;
+}
+function isValidPongPayload(p) {
+  if (typeof p !== "object" || p === null)
+    return false;
+  const o = p;
+  return typeof o.server_time === "number" && typeof o.protocol_version === "string";
+}
+function isValidCapabilitiesPayload(p) {
+  return typeof p === "object" && p !== null && Object.keys(p).length === 0;
+}
+function isValidCapabilitiesResultPayload(p) {
+  if (typeof p !== "object" || p === null)
+    return false;
+  const o = p;
+  return Array.isArray(o.versions) && Array.isArray(o.services) && Array.isArray(o.features);
+}
+function isKnownMessageType(type) {
+  return type in MESSAGE_VALIDATORS;
+}
+function getPayloadValidator(type) {
+  return MESSAGE_VALIDATORS[type];
+}
+var MESSAGE_VALIDATORS;
+var init_message_types = __esm({
+  "src/protocols/opendating/protocol/message-types.ts"() {
+    "use strict";
+    __name(isValidPingPayload, "isValidPingPayload");
+    __name(isValidPongPayload, "isValidPongPayload");
+    __name(isValidCapabilitiesPayload, "isValidCapabilitiesPayload");
+    __name(isValidCapabilitiesResultPayload, "isValidCapabilitiesResultPayload");
+    MESSAGE_VALIDATORS = {
+      // System
+      "system.ping": isValidPingPayload,
+      "system.pong": isValidPongPayload,
+      "system.capabilities": isValidCapabilitiesPayload,
+      "system.capabilities.result": isValidCapabilitiesResultPayload,
+      "system.error": (p) => typeof p === "object" && p !== null && typeof p.code === "string",
+      // Profile
+      "profile.create": (p) => typeof p === "object" && p !== null,
+      "profile.create.result": (p) => typeof p === "object" && p !== null,
+      "profile.update": (p) => typeof p === "object" && p !== null,
+      "profile.update.result": (p) => typeof p === "object" && p !== null,
+      "profile.get": (p) => typeof p === "object" && p !== null,
+      "profile.get.result": (p) => typeof p === "object" && p !== null,
+      "profile.pause": (p) => typeof p === "object" && p !== null,
+      "profile.pause.result": (p) => typeof p === "object" && p !== null,
+      "profile.resume": (p) => typeof p === "object" && p !== null,
+      "profile.resume.result": (p) => typeof p === "object" && p !== null,
+      "profile.delete": (p) => typeof p === "object" && p !== null,
+      "profile.delete.result": (p) => typeof p === "object" && p !== null,
+      // Discovery
+      "discovery.update_location": (p) => typeof p === "object" && p !== null,
+      "discovery.update_location.result": (p) => typeof p === "object" && p !== null,
+      "discovery.get_candidates": (p) => typeof p === "object" && p !== null,
+      "discovery.get_candidates.result": (p) => typeof p === "object" && p !== null,
+      "discovery.update_preferences": (p) => typeof p === "object" && p !== null,
+      "discovery.update_preferences.result": (p) => typeof p === "object" && p !== null,
+      // Intents + Matches
+      "intent.like": (p) => typeof p === "object" && p !== null,
+      "intent.like.result": (p) => typeof p === "object" && p !== null,
+      "intent.revoke": (p) => typeof p === "object" && p !== null,
+      "intent.revoke.result": (p) => typeof p === "object" && p !== null,
+      "match.list": (p) => typeof p === "object" && p !== null,
+      "match.list.result": (p) => typeof p === "object" && p !== null,
+      // Blocks
+      "block.create": (p) => typeof p === "object" && p !== null,
+      "block.create.result": (p) => typeof p === "object" && p !== null,
+      "block.list": (p) => typeof p === "object" && p !== null,
+      "block.list.result": (p) => typeof p === "object" && p !== null,
+      "unmatch.create": (p) => typeof p === "object" && p !== null,
+      "unmatch.create.result": (p) => typeof p === "object" && p !== null,
+      // Reports + Moderation
+      "report.create": (p) => typeof p === "object" && p !== null,
+      "report.create.result": (p) => typeof p === "object" && p !== null,
+      "moderation.action": (p) => typeof p === "object" && p !== null,
+      "moderation.action.result": (p) => typeof p === "object" && p !== null
+    };
+    __name(isKnownMessageType, "isKnownMessageType");
+    __name(getPayloadValidator, "getPayloadValidator");
+  }
+});
+
+// src/protocols/opendating/protocol/version.ts
+function isSupportedVersion(version) {
+  return SUPPORTED_VERSIONS.includes(version);
+}
+var init_version = __esm({
+  "src/protocols/opendating/protocol/version.ts"() {
+    "use strict";
+    init_constants();
+    __name(isSupportedVersion, "isSupportedVersion");
+  }
+});
+
+// src/protocols/opendating/protocol/validation.ts
+function validateODRequest(envelope) {
+  if (!envelope || typeof envelope !== "object") {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Envelope must be an object" };
+  }
+  const e = envelope;
+  if (e.protocol !== OPENDATING_PROTOCOL) {
+    return {
+      valid: false,
+      errorCode: "invalid_envelope",
+      errorMessage: `Unknown protocol: ${String(e.protocol)}`
+    };
+  }
+  if (typeof e.version !== "string") {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Missing version" };
+  }
+  if (!isSupportedVersion(e.version)) {
+    return {
+      valid: false,
+      errorCode: "unsupported_version",
+      errorMessage: `Unsupported version: ${e.version}`
+    };
+  }
+  if (typeof e.type !== "string" || e.type.length === 0) {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Missing message type" };
+  }
+  if (!isKnownMessageType(e.type)) {
+    return {
+      valid: false,
+      errorCode: "unsupported_type",
+      errorMessage: `Unknown message type: ${e.type}`
+    };
+  }
+  if (typeof e.request_id !== "string" || e.request_id.length < 8) {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Invalid request_id" };
+  }
+  if (typeof e.created_at !== "number" || e.created_at <= 0) {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Invalid created_at" };
+  }
+  if (typeof e.payload !== "object" || e.payload === null) {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Payload must be an object" };
+  }
+  const payloadValidator = getPayloadValidator(e.type);
+  if (payloadValidator && !payloadValidator(e.payload)) {
+    return { valid: false, errorCode: "invalid_envelope", errorMessage: "Invalid payload for message type" };
+  }
+  const size = JSON.stringify(e).length;
+  if (size > MAX_OD_PAYLOAD_BYTES) {
+    return {
+      valid: false,
+      errorCode: "payload_too_large",
+      errorMessage: `Payload too large: ${size} bytes (max ${MAX_OD_PAYLOAD_BYTES})`
+    };
+  }
+  return { valid: true };
+}
+var init_validation = __esm({
+  "src/protocols/opendating/protocol/validation.ts"() {
+    "use strict";
+    init_constants();
+    init_message_types();
+    init_version();
+    __name(validateODRequest, "validateODRequest");
+  }
+});
+
+// src/protocols/opendating/protocol/envelope.ts
+function createEnvelope(type, requestId, payload = {}, version = "0.1") {
+  return {
+    protocol: OPENDATING_PROTOCOL,
+    version,
+    type,
+    request_id: requestId,
+    created_at: Math.floor(Date.now() / 1e3),
+    payload
+  };
+}
+function createErrorEnvelope(requestId, code, message) {
+  return {
+    protocol: OPENDATING_PROTOCOL,
+    version: "0.1",
+    type: "system.error",
+    request_id: requestId,
+    created_at: Math.floor(Date.now() / 1e3),
+    payload: { code, message }
+  };
+}
+function checkRequestFreshness(created_at, maxAgeSec = 300, maxFutureSec = 60) {
+  const now = Math.floor(Date.now() / 1e3);
+  const age = now - created_at;
+  if (age > maxAgeSec) {
+    return `Request expired: ${age}s old (max ${maxAgeSec}s)`;
+  }
+  if (age < -maxFutureSec) {
+    return `Request from the future: ${-age}s ahead (max ${maxFutureSec}s)`;
+  }
+  return null;
+}
+var init_envelope = __esm({
+  "src/protocols/opendating/protocol/envelope.ts"() {
+    "use strict";
+    init_constants();
+    __name(createEnvelope, "createEnvelope");
+    __name(createErrorEnvelope, "createErrorEnvelope");
+    __name(checkRequestFreshness, "checkRequestFreshness");
+  }
+});
+
+// src/protocols/opendating/services/registry.ts
+var _OpenDatingServiceRegistry, OpenDatingServiceRegistry, odServiceRegistry;
+var init_registry2 = __esm({
+  "src/protocols/opendating/services/registry.ts"() {
+    "use strict";
+    _OpenDatingServiceRegistry = class _OpenDatingServiceRegistry {
+      constructor() {
+        this.services = /* @__PURE__ */ new Map();
+        this.byPubkey = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Register a service.
+       */
+      register(service) {
+        this.services.set(service.role, service);
+        this.byPubkey.set(service.pubkey, service);
+        console.log(`Registered OpenDating service: ${service.role} (pubkey: ${service.pubkey.substring(0, 8)}...)`);
+      }
+      /**
+       * Resolve a service by its Nostr public key (recipient of a gift wrap).
+       */
+      resolveByRecipient(pubkey) {
+        return this.byPubkey.get(pubkey);
+      }
+      /**
+       * Resolve a service by its role.
+       */
+      resolveByRole(role) {
+        return this.services.get(role);
+      }
+      /**
+       * Resolve a service that supports a given message type.
+       */
+      resolveByMessageType(type) {
+        for (const service of this.services.values()) {
+          if (service.supports(type)) {
+            return service;
+          }
+        }
+        return void 0;
+      }
+      /**
+       * List all registered services for capability reporting.
+       */
+      listServices() {
+        return Array.from(this.services.values()).map((s) => ({
+          role: s.role,
+          pubkey: s.pubkey
+        }));
+      }
+      /**
+       * Check if a pubkey is a registered service.
+       */
+      isServicePubkey(pubkey) {
+        return this.byPubkey.has(pubkey);
+      }
+    };
+    __name(_OpenDatingServiceRegistry, "OpenDatingServiceRegistry");
+    OpenDatingServiceRegistry = _OpenDatingServiceRegistry;
+    odServiceRegistry = new OpenDatingServiceRegistry();
+  }
+});
+
+// src/protocols/opendating/transport/context.ts
+var context_exports = {};
+__export(context_exports, {
+  toServiceContext: () => toServiceContext
+});
+function toServiceContext(ctx) {
+  return {
+    authenticatedPubkey: ctx.authenticatedPubkey,
+    senderPubkey: ctx.senderPubkey,
+    servicePubkey: ctx.servicePubkey,
+    protocolVersion: ctx.protocolVersion,
+    receivedAt: Math.floor(ctx.receivedAt / 1e3),
+    requestId: ctx.requestId
+  };
+}
+var init_context = __esm({
+  "src/protocols/opendating/transport/context.ts"() {
+    "use strict";
+    __name(toServiceContext, "toServiceContext");
+  }
+});
+
+// src/protocols/opendating/transport/router.ts
+async function routeRequest(envelope, ctx, idempotencyCheck, idempotencyRecord) {
+  const validation = validateODRequest(envelope);
+  if (!validation.valid) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id || "unknown",
+        validation.errorCode || "invalid_envelope",
+        validation.errorMessage || "Invalid request"
+      )
+    };
+  }
+  if (!isSupportedVersion(envelope.version)) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        "unsupported_version",
+        `Unsupported version: ${envelope.version}`
+      )
+    };
+  }
+  const freshnessError = checkRequestFreshness(
+    envelope.created_at,
+    OD_REQUEST_MAX_AGE_SEC,
+    OD_REQUEST_MAX_FUTURE_SEC
+  );
+  if (freshnessError) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        envelope.created_at > Math.floor(Date.now() / 1e3) ? "future_request" : "expired_request",
+        freshnessError
+      )
+    };
+  }
+  if (ctx.authenticatedPubkey !== ctx.senderPubkey) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        "sender_auth_mismatch",
+        "Authenticated connection identity does not match request sender"
+      )
+    };
+  }
+  const service = odServiceRegistry.resolveByRecipient(ctx.servicePubkey);
+  if (!service) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        "unknown_service",
+        "Unknown service recipient"
+      )
+    };
+  }
+  if (!service.supports(envelope.type)) {
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        "unsupported_type",
+        `Service ${service.role} does not support ${envelope.type}`
+      )
+    };
+  }
+  if (idempotencyCheck) {
+    const isDuplicate = await idempotencyCheck(
+      ctx.servicePubkey,
+      ctx.senderPubkey,
+      envelope.request_id
+    );
+    if (isDuplicate) {
+      return {
+        success: true,
+        envelope: createErrorEnvelope(
+          envelope.request_id,
+          "duplicate_request",
+          "Duplicate request \u2014 already processed"
+        ),
+        duplicate: true
+      };
+    }
+  }
+  try {
+    const { toServiceContext: toServiceContext2 } = await Promise.resolve().then(() => (init_context(), context_exports));
+    const result = await service.handle(envelope, toServiceContext2(ctx));
+    if (idempotencyRecord) {
+      await idempotencyRecord(
+        ctx.servicePubkey,
+        ctx.senderPubkey,
+        envelope.request_id,
+        envelope.type
+      ).catch((err) => console.error("Failed to record idempotency:", err));
+    }
+    return { success: true, envelope: result.response };
+  } catch (error) {
+    console.error(`Service error (${service.role}/${envelope.type}):`, error);
+    return {
+      success: false,
+      envelope: createErrorEnvelope(
+        envelope.request_id,
+        "internal_error",
+        "Internal processing error"
+      )
+    };
+  }
+}
+var init_router = __esm({
+  "src/protocols/opendating/transport/router.ts"() {
+    "use strict";
+    init_validation();
+    init_version();
+    init_envelope();
+    init_constants();
+    init_envelope();
+    init_registry2();
+    __name(routeRequest, "routeRequest");
+  }
+});
+
+// src/protocols/opendating/identities/registry.ts
+var _InMemoryServiceIdentityRegistry, InMemoryServiceIdentityRegistry, serviceIdentityRegistry;
+var init_registry3 = __esm({
+  "src/protocols/opendating/identities/registry.ts"() {
+    "use strict";
+    _InMemoryServiceIdentityRegistry = class _InMemoryServiceIdentityRegistry {
+      constructor() {
+        this.byRole = /* @__PURE__ */ new Map();
+        this.byPubkey = /* @__PURE__ */ new Map();
+        this.signers = /* @__PURE__ */ new Map();
+      }
+      register(identity) {
+        this.byRole.set(identity.role, identity);
+        this.byPubkey.set(identity.pubkey, identity);
+      }
+      registerSigner(signer) {
+        this.register(signer);
+        this.signers.set(signer.pubkey, signer);
+      }
+      getByRole(role) {
+        return this.byRole.get(role);
+      }
+      getByPubkey(pubkey) {
+        return this.byPubkey.get(pubkey);
+      }
+      getAll() {
+        return Array.from(this.byRole.values());
+      }
+      getSigner(pubkey) {
+        return this.signers.get(pubkey);
+      }
+      /**
+       * Check if a pubkey belongs to a registered service.
+       */
+      isServicePubkey(pubkey) {
+        return this.byPubkey.has(pubkey);
+      }
+    };
+    __name(_InMemoryServiceIdentityRegistry, "InMemoryServiceIdentityRegistry");
+    InMemoryServiceIdentityRegistry = _InMemoryServiceIdentityRegistry;
+    serviceIdentityRegistry = new InMemoryServiceIdentityRegistry();
+  }
+});
+
+// src/protocols/opendating/storage/d1/idempotency.ts
+var _D1IdempotencyStore, D1IdempotencyStore;
+var init_idempotency = __esm({
+  "src/protocols/opendating/storage/d1/idempotency.ts"() {
+    "use strict";
+    init_constants();
+    _D1IdempotencyStore = class _D1IdempotencyStore {
+      constructor(db) {
+        this.db = db;
+      }
+      async isDuplicate(servicePubkey, senderPubkey, requestId) {
+        try {
+          const session = this.db.withSession("first-unconstrained");
+          const result = await session.prepare(
+            `SELECT request_id FROM od_idempotency
+         WHERE service_pubkey = ? AND sender_pubkey = ? AND request_id = ?
+         LIMIT 1`
+          ).bind(servicePubkey, senderPubkey, requestId).first();
+          return result !== null;
+        } catch (error) {
+          console.error("Idempotency check failed:", error);
+          return false;
+        }
+      }
+      async record(servicePubkey, senderPubkey, requestId, requestType) {
+        try {
+          const session = this.db.withSession("first-primary");
+          const now = Math.floor(Date.now() / 1e3);
+          const expiresAt = now + OD_IDEMPOTENCY_RETENTION_SEC;
+          await session.prepare(
+            `INSERT OR IGNORE INTO od_idempotency
+         (service_pubkey, sender_pubkey, request_id, request_type, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(servicePubkey, senderPubkey, requestId, requestType, now, expiresAt).run();
+        } catch (error) {
+          console.error("Failed to record idempotency:", error);
+        }
+      }
+      async pruneExpired() {
+        try {
+          const session = this.db.withSession("first-primary");
+          const now = Math.floor(Date.now() / 1e3);
+          const result = await session.prepare(
+            `DELETE FROM od_idempotency WHERE expires_at < ?`
+          ).bind(now).run();
+          const deleted = result.meta?.changes || 0;
+          if (deleted > 0) {
+            console.log(`Pruned ${deleted} expired idempotency records`);
+          }
+          return deleted;
+        } catch (error) {
+          console.error("Idempotency pruning failed:", error);
+          return 0;
+        }
+      }
+    };
+    __name(_D1IdempotencyStore, "D1IdempotencyStore");
+    D1IdempotencyStore = _D1IdempotencyStore;
+  }
+});
+
+// src/protocols/opendating/crypto/gift-wrap.ts
+function randomPastTimestamp(now) {
+  const offsetBytes = randomBytes2(4);
+  const offset = new DataView(offsetBytes.buffer).getUint32(0) % MAX_PAST_OFFSET_SEC;
+  return now - offset;
+}
+async function buildGiftWrap(rumorKind, rumorContent, senderPrivKeyHex, senderPubKeyHex, recipientPubKeyHex) {
+  const now = Math.floor(Date.now() / 1e3);
+  const rumorUnsigned = {
+    pubkey: senderPubKeyHex,
+    created_at: now,
+    // Canonical time — the real one
+    kind: rumorKind,
+    tags: [],
+    content: rumorContent
+  };
+  const rumorId = getEventHash(rumorUnsigned);
+  const rumor = {
+    ...rumorUnsigned,
+    id: rumorId,
+    sig: ""
+    // Unsigned — no signature
+  };
+  const sealContent = nip44Encrypt(
+    JSON.stringify(rumor),
+    senderPrivKeyHex,
+    recipientPubKeyHex
+  );
+  const sealCreatedAt = randomPastTimestamp(now);
+  const sealUnsigned = {
+    pubkey: senderPubKeyHex,
+    created_at: sealCreatedAt,
+    kind: 13,
+    tags: [],
+    // NIP-59: tags MUST always be empty in kind 13
+    content: sealContent
+  };
+  const { id: sealId, sig: sealSig } = signEvent(sealUnsigned, senderPrivKeyHex);
+  const seal = {
+    ...sealUnsigned,
+    id: sealId,
+    sig: sealSig
+  };
+  const wrapperKeypair = generateKeypair();
+  const wrapContent = nip44Encrypt(
+    JSON.stringify(seal),
+    wrapperKeypair.privateKey,
+    recipientPubKeyHex
+  );
+  const wrapCreatedAt = randomPastTimestamp(now);
+  const wrapUnsigned = {
+    pubkey: wrapperKeypair.publicKey,
+    created_at: wrapCreatedAt,
+    kind: 1059,
+    tags: [["p", recipientPubKeyHex]],
+    // Route to recipient
+    content: wrapContent
+  };
+  const { id: wrapId, sig: wrapSig } = signEvent(wrapUnsigned, wrapperKeypair.privateKey);
+  return {
+    giftWrap: {
+      ...wrapUnsigned,
+      id: wrapId,
+      sig: wrapSig
+    },
+    wrapperKeypair
+  };
+}
+async function buildServiceResponseGiftWrap(rumorKind, responseContent, servicePrivKeyHex, servicePubKeyHex, userPubKeyHex) {
+  return buildGiftWrap(rumorKind, responseContent, servicePrivKeyHex, servicePubKeyHex, userPubKeyHex);
+}
+var MAX_PAST_OFFSET_SEC;
+var init_gift_wrap = __esm({
+  "src/protocols/opendating/crypto/gift-wrap.ts"() {
+    "use strict";
+    init_encryption();
+    init_utils3();
+    MAX_PAST_OFFSET_SEC = 2 * 24 * 60 * 60;
+    __name(randomPastTimestamp, "randomPastTimestamp");
+    __name(buildGiftWrap, "buildGiftWrap");
+    __name(buildServiceResponseGiftWrap, "buildServiceResponseGiftWrap");
+  }
+});
+
+// src/shared/logger.ts
+function formatLog(entry) {
+  const parts = [
+    `[${entry.timestamp}]`,
+    `[${entry.level.toUpperCase()}]`
+  ];
+  if (entry.sessionId)
+    parts.push(`[sess:${entry.sessionId.substring(0, 8)}]`);
+  if (entry.pubkey)
+    parts.push(`[pk:${entry.pubkey.substring(0, 8)}]`);
+  parts.push(entry.message);
+  if (entry.data)
+    parts.push(JSON.stringify(entry.data));
+  return parts.join(" ");
+}
+function log(level, message, context) {
+  const entry = {
+    level,
+    message,
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    ...context
+  };
+  const formatted = formatLog(entry);
+  switch (level) {
+    case "debug":
+      console.debug(formatted);
+      break;
+    case "info":
+      console.log(formatted);
+      break;
+    case "warn":
+      console.warn(formatted);
+      break;
+    case "error":
+    case "security":
+      console.error(formatted);
+      break;
+  }
+}
+var logger;
+var init_logger = __esm({
+  "src/shared/logger.ts"() {
+    "use strict";
+    __name(formatLog, "formatLog");
+    __name(log, "log");
+    logger = {
+      debug: (msg, ctx) => log("debug", msg, ctx),
+      info: (msg, ctx) => log("info", msg, ctx),
+      warn: (msg, ctx) => log("warn", msg, ctx),
+      error: (msg, ctx) => log("error", msg, ctx),
+      security: (msg, ctx) => log("security", msg, ctx)
+    };
+  }
+});
+
+// src/protocols/opendating/extension.ts
+function initOpenDatingExtension(db) {
+  idempotencyStore = new D1IdempotencyStore(db);
+}
+function isAddressedToService(event) {
+  if (event.kind !== 1059)
+    return null;
+  const pTags = event.tags.filter((t) => t[0] === "p").map((t) => t[1]);
+  for (const pTag of pTags) {
+    if (serviceIdentityRegistry.isServicePubkey(pTag)) {
+      return { servicePubkey: pTag };
+    }
+  }
+  return null;
+}
+async function decryptAndParse(event, servicePubkey) {
+  try {
+    const signer = serviceIdentityRegistry.getSigner(servicePubkey);
+    if (!signer) {
+      logger.warn("No signer available for service", { pubkey: servicePubkey.substring(0, 8) });
+      return null;
+    }
+    const sealJson = await nip44Decrypt(
+      event.content,
+      signer.privateKey,
+      event.pubkey
+      // ephemeral wrapper pubkey
+    );
+    const seal = JSON.parse(sealJson);
+    if (seal.kind !== 13) {
+      logger.warn("Inner seal is not kind 13", { kind: seal.kind });
+      return null;
+    }
+    const rumorJson = await nip44Decrypt(
+      seal.content,
+      signer.privateKey,
+      seal.pubkey
+      // sender's pubkey from the seal
+    );
+    const rumor = JSON.parse(rumorJson);
+    if (rumor.kind !== 78) {
+      logger.warn("Inner rumor is not kind 78", { kind: rumor.kind });
+      return null;
+    }
+    const envelope = JSON.parse(rumor.content);
+    if (envelope.protocol !== OPENDATING_PROTOCOL) {
+      return null;
+    }
+    return {
+      envelope,
+      rumorEvent: rumor,
+      senderPubkey: seal.pubkey
+      // The actual sender (from the seal)
+    };
+  } catch (error) {
+    logger.warn("Failed to decrypt/parse gift wrap", {
+      error: error.message
+    });
+    return null;
+  }
+}
+async function sendResponse(envelope, senderPubkey, servicePubkey, env) {
+  try {
+    const signer = serviceIdentityRegistry.getSigner(servicePubkey);
+    if (!signer) {
+      logger.error("Cannot send response \u2014 no signer for service", { servicePubkey: servicePubkey.substring(0, 8) });
+      return;
+    }
+    const responseJson = JSON.stringify(envelope);
+    const { giftWrap } = await buildServiceResponseGiftWrap(
+      78,
+      // rumor kind for application messages
+      responseJson,
+      signer.privateKey,
+      signer.pubkey,
+      senderPubkey
+    );
+    if (env.RELAY_DATABASE) {
+      const { processEvent: processEvent2 } = await Promise.resolve().then(() => (init_relay_worker(), relay_worker_exports));
+      await processEvent2(giftWrap, "opendating-service-response", env);
+      logger.info("Published OpenDating response", {
+        type: envelope.type,
+        requestId: envelope.request_id,
+        recipient: senderPubkey.substring(0, 8)
+      });
+    }
+  } catch (error) {
+    logger.error("Failed to send OpenDating response", {
+      error: error.message,
+      type: envelope.type
+    });
+  }
+}
+var idempotencyStore, openDatingExtension;
+var init_extension = __esm({
+  "src/protocols/opendating/extension.ts"() {
+    "use strict";
+    init_encryption();
+    init_router();
+    init_registry3();
+    init_constants();
+    init_idempotency();
+    init_gift_wrap();
+    init_logger();
+    idempotencyStore = null;
+    __name(initOpenDatingExtension, "initOpenDatingExtension");
+    __name(isAddressedToService, "isAddressedToService");
+    __name(decryptAndParse, "decryptAndParse");
+    __name(sendResponse, "sendResponse");
+    openDatingExtension = {
+      name: "opendating",
+      canHandleEvent(event, _context) {
+        const match = isAddressedToService(event);
+        return match !== null;
+      },
+      async handleEvent(event, context) {
+        const match = isAddressedToService(event);
+        if (!match) {
+          return { handled: false };
+        }
+        const { servicePubkey } = match;
+        const decrypted = await decryptAndParse(event, servicePubkey);
+        if (!decrypted) {
+          return { handled: false };
+        }
+        const { envelope, senderPubkey } = decrypted;
+        const transportCtx = {
+          relayContext: context,
+          authenticatedPubkey: context.authenticatedPubkey || "",
+          senderPubkey,
+          servicePubkey,
+          protocolVersion: envelope.version,
+          requestId: envelope.request_id,
+          receivedAt: Date.now()
+        };
+        const result = await routeRequest(
+          envelope,
+          transportCtx,
+          // Idempotency check
+          idempotencyStore ? (spk, sp, rid) => idempotencyStore.isDuplicate(spk, sp, rid) : void 0,
+          // Idempotency record
+          idempotencyStore ? (spk, sp, rid, type) => idempotencyStore.record(spk, sp, rid, type) : void 0
+        );
+        const env = context._env;
+        if (env) {
+          await sendResponse(result.envelope, senderPubkey, servicePubkey, env);
+        }
+        return {
+          handled: true,
+          storeNormally: false,
+          message: result.success ? "" : result.envelope.type === "system.error" ? "error" : ""
+        };
+      },
+      async authorizeQuery(_filters, _context) {
+        return { allowed: true };
+      }
+    };
+  }
+});
+
+// src/protocols/opendating/crypto/service-signer.ts
+function derivePublicKey(privateKeyHex) {
+  const privBytes = hexToBytes2(privateKeyHex);
+  const pubBytes = schnorr.getPublicKey(privBytes);
+  return bytesToHex2(pubBytes);
+}
+function validateServiceKey(privateKeyHex) {
+  try {
+    if (!/^[a-f0-9]{64}$/i.test(privateKeyHex)) {
+      return null;
+    }
+    return derivePublicKey(privateKeyHex);
+  } catch {
+    return null;
+  }
+}
+var init_service_signer = __esm({
+  "src/protocols/opendating/crypto/service-signer.ts"() {
+    "use strict";
+    init_secp256k1();
+    init_encryption();
+    __name(derivePublicKey, "derivePublicKey");
+    __name(validateServiceKey, "validateServiceKey");
+  }
+});
+
+// src/protocols/opendating/identities/loader.ts
+function loadServiceIdentity(role, privateKeyHex) {
+  const publicKey = validateServiceKey(privateKeyHex);
+  if (!publicKey) {
+    throw new Error(`Invalid private key for service role "${role}". Check the OD_${role.toUpperCase()}_SERVICE_PRIVKEY secret.`);
+  }
+  const signer = {
+    role,
+    pubkey: publicKey,
+    privateKey: privateKeyHex,
+    signEvent(event) {
+      return signEvent(event, this.privateKey);
+    }
+  };
+  serviceIdentityRegistry.registerSigner(signer);
+  console.log(`Loaded service identity: ${role} (pubkey: ${publicKey.substring(0, 8)}...)`);
+  return signer;
+}
+function loadServiceIdentitiesFromEnv(env) {
+  const signers = [];
+  const systemKey = env.OD_SYSTEM_SERVICE_PRIVKEY;
+  if (systemKey && systemKey.length > 0) {
+    try {
+      signers.push(loadServiceIdentity("system", systemKey));
+    } catch (err) {
+      console.error("Failed to load system service identity:", err.message);
+    }
+  } else {
+    console.warn("OD_SYSTEM_SERVICE_PRIVKEY not set \u2014 OpenDating system service will not be available");
+  }
+  return signers;
+}
+function getServiceIdentitiesForCapabilities() {
+  return serviceIdentityRegistry.getAll().map((si) => ({
+    role: si.role,
+    pubkey: si.pubkey,
+    supportedTypes: getSupportedTypesForRole(si.role)
+  }));
+}
+function getSupportedTypesForRole(role) {
+  switch (role) {
+    case "system":
+      return ["system.ping", "system.capabilities"];
+    case "profile":
+      return ["profile.create", "profile.update", "profile.get", "profile.pause", "profile.resume", "profile.delete"];
+    case "discovery":
+      return ["discovery.update_location", "discovery.get_candidates", "discovery.update_preferences"];
+    case "matcher":
+      return ["intent.like", "intent.revoke", "match.list"];
+    case "dm_policy":
+      return ["block.create", "block.list", "unmatch.create"];
+    case "moderation":
+      return ["report.create", "moderation.action"];
+    default:
+      return [];
+  }
+}
+var init_loader = __esm({
+  "src/protocols/opendating/identities/loader.ts"() {
+    "use strict";
+    init_service_signer();
+    init_encryption();
+    init_registry3();
+    __name(loadServiceIdentity, "loadServiceIdentity");
+    __name(loadServiceIdentitiesFromEnv, "loadServiceIdentitiesFromEnv");
+    __name(getServiceIdentitiesForCapabilities, "getServiceIdentitiesForCapabilities");
+    __name(getSupportedTypesForRole, "getSupportedTypesForRole");
+  }
+});
+
+// src/protocols/opendating/protocol/capabilities.ts
+function buildCapabilities(services) {
+  return {
+    versions: [...SUPPORTED_VERSIONS],
+    services: services.map((s) => ({
+      role: s.role,
+      pubkey: s.pubkey,
+      supported_types: s.supportedTypes
+    })),
+    features: [...OD_FEATURES]
+  };
+}
+function buildNip11Advertisement(services) {
+  const serviceMap = {};
+  for (const s of services) {
+    serviceMap[s.role] = { pubkey: s.pubkey };
+  }
+  return {
+    opendating: {
+      versions: [...SUPPORTED_VERSIONS],
+      services: serviceMap
+    }
+  };
+}
+var init_capabilities = __esm({
+  "src/protocols/opendating/protocol/capabilities.ts"() {
+    "use strict";
+    init_constants();
+    __name(buildCapabilities, "buildCapabilities");
+    __name(buildNip11Advertisement, "buildNip11Advertisement");
+  }
+});
+
+// src/protocols/opendating/services/system/service.ts
+var SUPPORTED_TYPES, _SystemService, SystemService;
+var init_service = __esm({
+  "src/protocols/opendating/services/system/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_constants();
+    init_capabilities();
+    init_loader();
+    SUPPORTED_TYPES = /* @__PURE__ */ new Set([
+      "system.ping",
+      "system.capabilities"
+    ]);
+    _SystemService = class _SystemService {
+      constructor(role, pubkey) {
+        this.role = role;
+        this.pubkey = pubkey;
+      }
+      supports(type) {
+        return SUPPORTED_TYPES.has(type);
+      }
+      async handle(request, context) {
+        switch (request.type) {
+          case "system.ping":
+            return this.handlePing(request);
+          case "system.capabilities":
+            return this.handleCapabilities(request);
+          default:
+            throw new Error(`System service does not support type: ${request.type}`);
+        }
+      }
+      handlePing(request) {
+        return {
+          response: createEnvelope("system.pong", request.request_id, {
+            server_time: Math.floor(Date.now() / 1e3),
+            protocol_version: OPENDATING_VERSION
+          })
+        };
+      }
+      handleCapabilities(request) {
+        const services = getServiceIdentitiesForCapabilities();
+        return {
+          response: createEnvelope(
+            "system.capabilities.result",
+            request.request_id,
+            buildCapabilities(services)
+          )
+        };
+      }
+    };
+    __name(_SystemService, "SystemService");
+    SystemService = _SystemService;
+  }
+});
+
+// src/protocols/opendating/storage/d1/membership.ts
+function deriveMemberId(pubkey, relaySalt) {
+  const input = new TextEncoder().encode(pubkey + relaySalt);
+  return bytesToHex2(sha2562(input));
+}
+var _D1MembershipStore, D1MembershipStore;
+var init_membership = __esm({
+  "src/protocols/opendating/storage/d1/membership.ts"() {
+    "use strict";
+    init_sha256();
+    init_encryption();
+    __name(deriveMemberId, "deriveMemberId");
+    _D1MembershipStore = class _D1MembershipStore {
+      constructor(db, relaySalt) {
+        this.db = db;
+        this.relaySalt = relaySalt || "opendating-membership-v1";
+      }
+      getMemberId(pubkey) {
+        return deriveMemberId(pubkey, this.relaySalt);
+      }
+      // -----------------------------------------------------------------------
+      // Member lifecycle
+      // -----------------------------------------------------------------------
+      async getMember(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          "SELECT * FROM od_members WHERE member_id = ?"
+        ).bind(memberId).first();
+        if (!row)
+          return null;
+        return {
+          memberId: row.member_id,
+          pubkey: row.pubkey,
+          state: row.state,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        };
+      }
+      async createMember(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT OR IGNORE INTO od_members (member_id, pubkey, state, created_at, updated_at)
+       VALUES (?, ?, 'active', ?, ?)`
+        ).bind(memberId, pubkey, now, now).run();
+        await session.prepare(
+          `INSERT OR IGNORE INTO od_profiles (member_id, visibility, created_at, updated_at)
+       VALUES (?, 'discoverable', ?, ?)`
+        ).bind(memberId, now, now).run();
+        return {
+          memberId,
+          pubkey,
+          state: "active",
+          createdAt: now,
+          updatedAt: now
+        };
+      }
+      async ensureMember(pubkey) {
+        const existing = await this.getMember(pubkey);
+        if (existing) {
+          if (existing.state === "deleted") {
+            throw new Error("Member has been deleted");
+          }
+          return existing;
+        }
+        return this.createMember(pubkey);
+      }
+      async pauseMember(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.batch([
+          session.prepare(
+            `UPDATE od_members SET state = 'paused', updated_at = ? WHERE member_id = ?`
+          ).bind(now, memberId),
+          session.prepare(
+            `UPDATE od_profiles SET visibility = 'paused', paused_at = ?, updated_at = ? WHERE member_id = ?`
+          ).bind(now, now, memberId)
+        ]);
+      }
+      async resumeMember(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.batch([
+          session.prepare(
+            `UPDATE od_members SET state = 'active', updated_at = ? WHERE member_id = ?`
+          ).bind(now, memberId),
+          session.prepare(
+            `UPDATE od_profiles SET visibility = 'discoverable', paused_at = NULL, updated_at = ? WHERE member_id = ?`
+          ).bind(now, memberId)
+        ]);
+      }
+      async deleteMember(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.batch([
+          session.prepare(
+            `UPDATE od_members SET state = 'deleted', updated_at = ? WHERE member_id = ?`
+          ).bind(now, memberId),
+          session.prepare(
+            `UPDATE od_profiles SET visibility = 'hidden', updated_at = ? WHERE member_id = ?`
+          ).bind(now, memberId),
+          session.prepare(
+            `DELETE FROM od_profile_media WHERE member_id = ?`
+          ).bind(memberId)
+        ]);
+      }
+      // -----------------------------------------------------------------------
+      // Profile
+      // -----------------------------------------------------------------------
+      async getProfile(pubkey) {
+        const memberId = this.getMemberId(pubkey);
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          "SELECT * FROM od_profiles WHERE member_id = ?"
+        ).bind(memberId).first();
+        if (!row)
+          return null;
+        return {
+          memberId: row.member_id,
+          profileEventId: row.profile_event_id,
+          displayNameHash: row.display_name_hash,
+          visibility: row.visibility,
+          pausedAt: row.paused_at,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        };
+      }
+      async updateProfileEventId(pubkey, eventId) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `UPDATE od_profiles SET profile_event_id = ?, updated_at = ? WHERE member_id = ?`
+        ).bind(eventId, now, memberId).run();
+      }
+      async setVisibility(pubkey, visibility) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `UPDATE od_profiles SET visibility = ?, updated_at = ? WHERE member_id = ?`
+        ).bind(visibility, now, memberId).run();
+      }
+      // -----------------------------------------------------------------------
+      // Anti-enumeration: no list/getAll methods
+      // Profiles can only be accessed by their owner or via discovery (Phase 2)
+      // -----------------------------------------------------------------------
+    };
+    __name(_D1MembershipStore, "D1MembershipStore");
+    D1MembershipStore = _D1MembershipStore;
+  }
+});
+
+// src/protocols/opendating/services/profile/service.ts
+var SUPPORTED_TYPES2, _ProfileService, ProfileService;
+var init_service2 = __esm({
+  "src/protocols/opendating/services/profile/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    SUPPORTED_TYPES2 = /* @__PURE__ */ new Set([
+      "profile.create",
+      "profile.update",
+      "profile.get",
+      "profile.pause",
+      "profile.resume",
+      "profile.delete"
+    ]);
+    _ProfileService = class _ProfileService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return SUPPORTED_TYPES2.has(type);
+      }
+      async handle(request, context) {
+        switch (request.type) {
+          case "profile.create":
+            return this.handleCreate(request, context);
+          case "profile.update":
+            return this.handleUpdate(request, context);
+          case "profile.get":
+            return this.handleGet(request, context);
+          case "profile.pause":
+            return this.handlePause(request, context);
+          case "profile.resume":
+            return this.handleResume(request, context);
+          case "profile.delete":
+            return this.handleDelete(request, context);
+          default:
+            throw new Error(`Profile service does not support: ${request.type}`);
+        }
+      }
+      async handleCreate(request, context) {
+        const member = await this.membership.ensureMember(context.senderPubkey);
+        return {
+          response: createEnvelope("profile.create.result", request.request_id, {
+            member_id: member.memberId,
+            state: member.state,
+            created_at: member.createdAt
+          })
+        };
+      }
+      async handleUpdate(request, context) {
+        await this.membership.ensureMember(context.senderPubkey);
+        const payload = request.payload;
+        const profileEventId = payload.profile_event_id;
+        if (profileEventId) {
+          await this.membership.updateProfileEventId(context.senderPubkey, profileEventId);
+        }
+        return {
+          response: createEnvelope("profile.update.result", request.request_id, {
+            updated_at: Math.floor(Date.now() / 1e3)
+          })
+        };
+      }
+      async handleGet(request, context) {
+        const member = await this.membership.getMember(context.senderPubkey);
+        if (!member) {
+          return {
+            response: createErrorEnvelope(request.request_id, "unauthorized", "No membership found")
+          };
+        }
+        const profile = await this.membership.getProfile(context.senderPubkey);
+        return {
+          response: createEnvelope("profile.get.result", request.request_id, {
+            member_id: member.memberId,
+            state: member.state,
+            visibility: profile?.visibility || "hidden",
+            profile_event_id: profile?.profileEventId || null,
+            paused_at: profile?.pausedAt || null,
+            created_at: member.createdAt,
+            updated_at: member.updatedAt
+          })
+        };
+      }
+      async handlePause(request, context) {
+        await this.membership.pauseMember(context.senderPubkey);
+        return {
+          response: createEnvelope("profile.pause.result", request.request_id, {
+            paused_at: Math.floor(Date.now() / 1e3)
+          })
+        };
+      }
+      async handleResume(request, context) {
+        await this.membership.resumeMember(context.senderPubkey);
+        return {
+          response: createEnvelope("profile.resume.result", request.request_id, {
+            resumed_at: Math.floor(Date.now() / 1e3)
+          })
+        };
+      }
+      async handleDelete(request, context) {
+        await this.membership.deleteMember(context.senderPubkey);
+        return {
+          response: createEnvelope("profile.delete.result", request.request_id, {
+            deleted_at: Math.floor(Date.now() / 1e3)
+          })
+        };
+      }
+    };
+    __name(_ProfileService, "ProfileService");
+    ProfileService = _ProfileService;
+  }
+});
+
+// src/protocols/opendating/services/discovery/service.ts
+var MAX_DAILY_CANDIDATES, CANDIDATE_BATCH_SIZE, CANDIDATE_GRANT_TTL, _DiscoveryService, DiscoveryService;
+var init_service3 = __esm({
+  "src/protocols/opendating/services/discovery/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    MAX_DAILY_CANDIDATES = 50;
+    CANDIDATE_BATCH_SIZE = 20;
+    CANDIDATE_GRANT_TTL = 24 * 60 * 60;
+    _DiscoveryService = class _DiscoveryService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.db = db;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return type === "discovery.update_location" || type === "discovery.get_candidates" || type === "discovery.update_preferences";
+      }
+      async handle(request, ctx) {
+        const member = await this.membership.ensureMember(ctx.senderPubkey);
+        switch (request.type) {
+          case "discovery.update_location":
+            return this.updateLocation(member.memberId, request);
+          case "discovery.get_candidates":
+            return this.getCandidates(member.memberId, request);
+          case "discovery.update_preferences":
+            return this.updatePreferences(member.memberId, request);
+          default:
+            throw new Error(`Discovery service does not support: ${request.type}`);
+        }
+      }
+      async updateLocation(memberId, request) {
+        const payload = request.payload;
+        const geohashPrefix = payload.geohash_prefix;
+        const countryCode = payload.country_code;
+        if (!geohashPrefix || geohashPrefix.length < 3 || geohashPrefix.length > 6) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_envelope",
+            "geohash_prefix must be 3-6 characters (coarse location only)"
+          ) };
+        }
+        const session = this.db.withSession("first-primary");
+        const now = Math.floor(Date.now() / 1e3);
+        await session.prepare(
+          `INSERT OR REPLACE INTO od_locations (member_id, geohash_prefix, geohash_prefix_short, country_code, updated_at)
+       VALUES (?, ?, ?, ?, ?)`
+        ).bind(memberId, geohashPrefix, geohashPrefix.substring(0, 2), countryCode || null, now).run();
+        return { response: createEnvelope("discovery.update_location.result", request.request_id, { updated_at: now }) };
+      }
+      async getCandidates(memberId, request) {
+        const payload = request.payload;
+        const cursor = payload.cursor;
+        const limit = Math.min(payload.limit || CANDIDATE_BATCH_SIZE, CANDIDATE_BATCH_SIZE);
+        const session = this.db.withSession("first-unconstrained");
+        const now = Math.floor(Date.now() / 1e3);
+        const quota = await session.prepare(
+          "SELECT * FROM od_discovery_quotas WHERE member_id = ?"
+        ).bind(memberId).first();
+        if (quota) {
+          if (now > quota.daily_reset_at) {
+            const ps = this.db.withSession("first-primary");
+            await ps.prepare(
+              "UPDATE od_discovery_quotas SET daily_candidates_served = 0, daily_reset_at = ? WHERE member_id = ?"
+            ).bind(now + 86400, memberId).run();
+          } else if (quota.daily_candidates_served >= MAX_DAILY_CANDIDATES) {
+            return { response: createErrorEnvelope(
+              request.request_id,
+              "rate_limited",
+              `Daily discovery limit reached (${MAX_DAILY_CANDIDATES})`
+            ) };
+          }
+        }
+        const grants = await session.prepare(
+          `SELECT candidate_id, distance_bucket FROM od_candidate_grants
+       WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
+       ORDER BY granted_at DESC LIMIT ?`
+        ).bind(memberId, now, limit).all();
+        if (grants.results.length > 0) {
+          const candidates = grants.results.map((r) => ({
+            candidate_id: r.candidate_id,
+            distance_bucket: r.distance_bucket
+          }));
+          return {
+            response: createEnvelope("discovery.get_candidates.result", request.request_id, {
+              candidates,
+              cursor: null,
+              remaining_today: MAX_DAILY_CANDIDATES - (quota?.daily_candidates_served || 0)
+            })
+          };
+        }
+        return {
+          response: createEnvelope("discovery.get_candidates.result", request.request_id, {
+            candidates: [],
+            cursor: null,
+            remaining_today: MAX_DAILY_CANDIDATES - (quota?.daily_candidates_served || 0),
+            message: "No candidates available. Update your location and preferences to discover new people."
+          })
+        };
+      }
+      async updatePreferences(memberId, request) {
+        const payload = request.payload;
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT OR REPLACE INTO od_discovery_prefs (member_id, max_distance_km, min_age, max_age, intent, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+        ).bind(
+          memberId,
+          payload.max_distance_km || 100,
+          payload.min_age || 18,
+          payload.max_age || 99,
+          payload.intent || "dating",
+          now
+        ).run();
+        return { response: createEnvelope("discovery.update_preferences.result", request.request_id, { updated_at: now }) };
+      }
+    };
+    __name(_DiscoveryService, "DiscoveryService");
+    DiscoveryService = _DiscoveryService;
+  }
+});
+
+// src/protocols/opendating/services/matcher/service.ts
+function deterministicMatchId(pubkeyA, pubkeyB) {
+  const sorted = [pubkeyA, pubkeyB].sort();
+  return bytesToHex2(sha2562(new TextEncoder().encode(sorted[0] + sorted[1])));
+}
+function intentId(fromPubkey, toPubkey, type) {
+  return bytesToHex2(sha2562(new TextEncoder().encode(fromPubkey + toPubkey + type)));
+}
+var LIKE_EXPIRY_SEC, _MatcherService, MatcherService;
+var init_service4 = __esm({
+  "src/protocols/opendating/services/matcher/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    init_sha256();
+    init_encryption();
+    LIKE_EXPIRY_SEC = 90 * 24 * 60 * 60;
+    __name(deterministicMatchId, "deterministicMatchId");
+    __name(intentId, "intentId");
+    _MatcherService = class _MatcherService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.db = db;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return ["intent.like", "intent.revoke", "match.list"].includes(type);
+      }
+      async handle(request, ctx) {
+        const member = await this.membership.ensureMember(ctx.senderPubkey);
+        switch (request.type) {
+          case "intent.like":
+            return this.handleLike(member.memberId, request, ctx);
+          case "intent.revoke":
+            return this.handleRevoke(member.memberId, request, ctx);
+          case "match.list":
+            return this.handleMatchList(member.memberId, request);
+          default:
+            throw new Error(`Matcher service does not support: ${request.type}`);
+        }
+      }
+      async handleLike(memberId, request, ctx) {
+        const payload = request.payload;
+        const targetPubkey = payload.target_pubkey;
+        if (!targetPubkey || targetPubkey === ctx.senderPubkey) {
+          return { response: createErrorEnvelope(request.request_id, "invalid_envelope", "Invalid target") };
+        }
+        const targetMemberId = this.membership.getMemberId(targetPubkey);
+        const iid = intentId(ctx.senderPubkey, targetPubkey, "like");
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT OR IGNORE INTO od_intents (id, from_member_id, to_member_id, intent_type, state, created_at, expires_at)
+       VALUES (?, ?, ?, 'like', 'active', ?, ?)`
+        ).bind(iid, memberId, targetMemberId, now, now + LIKE_EXPIRY_SEC).run();
+        const reciprocal = await session.prepare(
+          `SELECT id FROM od_intents
+       WHERE from_member_id = ? AND to_member_id = ? AND intent_type = 'like' AND state = 'active'`
+        ).bind(targetMemberId, memberId).first();
+        let matchCreated = false;
+        if (reciprocal) {
+          const matchId = deterministicMatchId(ctx.senderPubkey, targetPubkey);
+          await session.prepare(
+            `INSERT OR IGNORE INTO od_matches (match_id, member_a, member_b, state, created_at, updated_at)
+         VALUES (?, ?, ?, 'active', ?, ?)`
+          ).bind(matchId, memberId, targetMemberId, now, now).run();
+          const notifAId = bytesToHex2(sha2562(new TextEncoder().encode(matchId + memberId + "match_created")));
+          const notifBId = bytesToHex2(sha2562(new TextEncoder().encode(matchId + targetMemberId + "match_created")));
+          await session.batch([
+            session.prepare(
+              `INSERT OR IGNORE INTO od_match_notifications (id, match_id, recipient_member_id, notification_type, created_at)
+           VALUES (?, ?, ?, 'match_created', ?)`
+            ).bind(notifAId, matchId, memberId, now),
+            session.prepare(
+              `INSERT OR IGNORE INTO od_match_notifications (id, match_id, recipient_member_id, notification_type, created_at)
+           VALUES (?, ?, ?, 'match_created', ?)`
+            ).bind(notifBId, matchId, targetMemberId, now)
+          ]);
+          matchCreated = true;
+        }
+        return {
+          response: createEnvelope("intent.like.result", request.request_id, {
+            intent_id: iid,
+            match_created: matchCreated,
+            created_at: now
+          })
+        };
+      }
+      async handleRevoke(memberId, request, ctx) {
+        const payload = request.payload;
+        const targetPubkey = payload.target_pubkey;
+        const iid = intentId(ctx.senderPubkey, targetPubkey, "like");
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `UPDATE od_intents SET state = 'revoked', revoked_at = ? WHERE id = ? AND from_member_id = ?`
+        ).bind(now, iid, memberId).run();
+        return { response: createEnvelope("intent.revoke.result", request.request_id, { revoked_at: now }) };
+      }
+      async handleMatchList(memberId, request) {
+        const session = this.db.withSession("first-unconstrained");
+        const matches = await session.prepare(
+          `SELECT match_id, member_a, member_b, state, created_at FROM od_matches
+       WHERE (member_a = ? OR member_b = ?) AND state = 'active'
+       ORDER BY created_at DESC LIMIT 50`
+        ).bind(memberId, memberId).all();
+        return {
+          response: createEnvelope("match.list.result", request.request_id, {
+            matches: matches.results.map((r) => ({
+              match_id: r.match_id,
+              other_member: r.member_a === memberId ? r.member_b : r.member_a,
+              state: r.state,
+              created_at: r.created_at
+            }))
+          })
+        };
+      }
+    };
+    __name(_MatcherService, "MatcherService");
+    MatcherService = _MatcherService;
+  }
+});
+
+// src/protocols/opendating/services/block/service.ts
+var _BlockService, BlockService;
+var init_service5 = __esm({
+  "src/protocols/opendating/services/block/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    _BlockService = class _BlockService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.db = db;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return ["block.create", "block.list", "unmatch.create"].includes(type);
+      }
+      async handle(request, ctx) {
+        const member = await this.membership.ensureMember(ctx.senderPubkey);
+        switch (request.type) {
+          case "block.create":
+            return this.createBlock(member.memberId, request, ctx);
+          case "block.list":
+            return this.listBlocks(member.memberId, request);
+          case "unmatch.create":
+            return this.createUnmatch(member.memberId, request, ctx);
+          default:
+            throw new Error(`Block service does not support: ${request.type}`);
+        }
+      }
+      async createBlock(memberId, request, ctx) {
+        const payload = request.payload;
+        const targetPubkey = payload.target_pubkey;
+        const targetMemberId = this.membership.getMemberId(targetPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT OR REPLACE INTO od_blocks (blocker_member_id, blocked_member_id, block_type, created_at)
+       VALUES (?, ?, 'block', ?)`
+        ).bind(memberId, targetMemberId, now).run();
+        await session.prepare(
+          `UPDATE od_matches SET state = 'blocked_a', updated_at = ?
+       WHERE (member_a = ? AND member_b = ?) OR (member_a = ? AND member_b = ?)`
+        ).bind(now, memberId, targetMemberId, targetMemberId, memberId).run();
+        await session.prepare(
+          `UPDATE od_intents SET state = 'revoked', revoked_at = ?
+       WHERE (from_member_id = ? AND to_member_id = ?)
+          OR (from_member_id = ? AND to_member_id = ?)`
+        ).bind(now, memberId, targetMemberId, targetMemberId, memberId).run();
+        await session.prepare(
+          `DELETE FROM od_candidate_grants WHERE (viewer_id = ? AND candidate_id = ?) OR (viewer_id = ? AND candidate_id = ?)`
+        ).bind(memberId, targetMemberId, targetMemberId, memberId).run();
+        return { response: createEnvelope("block.create.result", request.request_id, { blocked_at: now }) };
+      }
+      async listBlocks(memberId, request) {
+        const session = this.db.withSession("first-unconstrained");
+        const blocks = await session.prepare(
+          `SELECT blocked_member_id, created_at FROM od_blocks WHERE blocker_member_id = ? ORDER BY created_at DESC`
+        ).bind(memberId).all();
+        return {
+          response: createEnvelope("block.list.result", request.request_id, {
+            blocked: blocks.results.map((r) => ({
+              member_id: r.blocked_member_id,
+              created_at: r.created_at
+            }))
+          })
+        };
+      }
+      async createUnmatch(memberId, request, ctx) {
+        const payload = request.payload;
+        const targetPubkey = payload.target_pubkey;
+        const targetMemberId = this.membership.getMemberId(targetPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
+        const matchResult = await session.prepare(
+          `UPDATE od_matches SET state = 'unmatched_a', updated_at = ?
+       WHERE member_a = ? AND member_b = ? AND state = 'active'`
+        ).bind(now, memberId, targetMemberId).run();
+        if (matchResult.meta?.changes === 0) {
+          await session.prepare(
+            `UPDATE od_matches SET state = 'unmatched_b', updated_at = ?
+         WHERE member_b = ? AND member_a = ? AND state = 'active'`
+          ).bind(now, memberId, targetMemberId).run();
+        }
+        return { response: createEnvelope("unmatch.create.result", request.request_id, { unmatched_at: now }) };
+      }
+    };
+    __name(_BlockService, "BlockService");
+    BlockService = _BlockService;
+  }
+});
+
+// src/protocols/opendating/services/moderation/service.ts
+var _ModerationService, ModerationService;
+var init_service6 = __esm({
+  "src/protocols/opendating/services/moderation/service.ts"() {
+    "use strict";
+    init_envelope();
+    init_membership();
+    init_encryption();
+    init_sha256();
+    _ModerationService = class _ModerationService {
+      constructor(role, pubkey, db) {
+        this.role = role;
+        this.pubkey = pubkey;
+        this.db = db;
+        this.membership = new D1MembershipStore(db);
+      }
+      supports(type) {
+        return ["report.create", "moderation.action"].includes(type);
+      }
+      async handle(request, ctx) {
+        switch (request.type) {
+          case "report.create":
+            return this.createReport(request, ctx);
+          case "moderation.action":
+            return this.applyAction(request, ctx);
+          default:
+            throw new Error(`Moderation service does not support: ${request.type}`);
+        }
+      }
+      async createReport(request, ctx) {
+        const payload = request.payload;
+        const subjectPubkey = payload.subject_pubkey;
+        const reportType = payload.report_type;
+        const description = payload.description_encrypted;
+        if (!subjectPubkey || !reportType) {
+          return { response: createErrorEnvelope(request.request_id, "invalid_envelope", "Missing subject_pubkey or report_type") };
+        }
+        const validTypes = ["harassment", "scam", "catfish", "underage", "inappropriate_content", "other"];
+        if (!validTypes.includes(reportType)) {
+          return { response: createErrorEnvelope(request.request_id, "invalid_envelope", `Invalid report_type: ${reportType}`) };
+        }
+        const reporterMemberId = this.membership.getMemberId(ctx.senderPubkey);
+        const subjectMemberId = this.membership.getMemberId(subjectPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const reportId = bytesToHex2(sha2562(new TextEncoder().encode(
+          ctx.senderPubkey + subjectPubkey + reportType + String(now)
+        )));
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT INTO od_reports (report_id, reporter_member_id, subject_member_id, report_type, description_encrypted,
+        evidence_event_ids, severity, state, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'medium', 'pending', ?, ?)`
+        ).bind(
+          reportId,
+          reporterMemberId,
+          subjectMemberId,
+          reportType,
+          description || null,
+          JSON.stringify(payload.evidence_event_ids || []),
+          now,
+          now
+        ).run();
+        return { response: createEnvelope("report.create.result", request.request_id, { report_id: reportId, created_at: now }) };
+      }
+      async applyAction(request, ctx) {
+        const session = this.db.withSession("first-unconstrained");
+        const moderator = await session.prepare(
+          "SELECT role FROM od_moderators WHERE pubkey = ?"
+        ).bind(ctx.senderPubkey).first();
+        if (!moderator) {
+          return { response: createErrorEnvelope(request.request_id, "unauthorized", "Not a moderator") };
+        }
+        const payload = request.payload;
+        const targetMemberId = payload.target_member_id;
+        const actionType = payload.action_type;
+        const reason = payload.reason;
+        const durationSeconds = payload.duration_seconds;
+        const now = Math.floor(Date.now() / 1e3);
+        const actionId = bytesToHex2(sha2562(new TextEncoder().encode(
+          ctx.senderPubkey + targetMemberId + actionType + String(now)
+        )));
+        const ps = this.db.withSession("first-primary");
+        await ps.prepare(
+          `INSERT INTO od_moderation_actions (action_id, report_id, moderator_pubkey, action_type, target_member_id, reason, duration_seconds, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(actionId, payload.report_id || null, ctx.senderPubkey, actionType, targetMemberId, reason, durationSeconds || null, now).run();
+        if (["suspend", "ban"].includes(actionType)) {
+          await ps.prepare(
+            `INSERT OR REPLACE INTO od_sanctions (target_member_id, sanction_type, reason, expires_at, created_at, created_by)
+         VALUES (?, ?, ?, ?, ?, ?)`
+          ).bind(
+            targetMemberId,
+            actionType === "ban" ? "banned" : "suspended",
+            reason,
+            durationSeconds ? now + durationSeconds : null,
+            now,
+            ctx.senderPubkey
+          ).run();
+          await ps.prepare(
+            `UPDATE od_profiles SET visibility = 'hidden', updated_at = ? WHERE member_id = ?`
+          ).bind(now, targetMemberId).run();
+        }
+        return { response: createEnvelope("moderation.action.result", request.request_id, { action_id: actionId, applied_at: now }) };
+      }
+    };
+    __name(_ModerationService, "ModerationService");
+    ModerationService = _ModerationService;
+  }
+});
+
+// src/protocols/opendating/index.ts
+function initOpenDating(env, db) {
+  console.log("[OpenDating] Initializing protocol core...");
+  initOpenDatingExtension(db);
+  const signers = loadServiceIdentitiesFromEnv(env || {});
+  if (signers.length === 0) {
+    console.warn("[OpenDating] No service identities loaded");
+    return;
+  }
+  const factories = {
+    system: (pk) => odServiceRegistry.register(new SystemService("system", pk)),
+    profile: (pk) => odServiceRegistry.register(new ProfileService("profile", pk, db)),
+    discovery: (pk) => odServiceRegistry.register(new DiscoveryService("discovery", pk, db)),
+    matcher: (pk) => odServiceRegistry.register(new MatcherService("matcher", pk, db)),
+    dm_policy: (pk) => odServiceRegistry.register(new BlockService("dm_policy", pk, db)),
+    moderation: (pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db))
+  };
+  for (const signer of signers) {
+    const factory = factories[signer.role];
+    if (factory) {
+      factory(signer.pubkey);
+    } else {
+      console.warn(`[OpenDating] Unknown service role: ${signer.role}`);
+    }
+  }
+  extensionRegistry.register(openDatingExtension);
+  console.log(`[OpenDating] Initialized with ${signers.length} service(s)`);
+}
+function getOpenDatingNip11Advertisement() {
+  return buildNip11Advertisement(odServiceRegistry.listServices());
+}
+var init_opendating = __esm({
+  "src/protocols/opendating/index.ts"() {
+    "use strict";
+    init_registry();
+    init_extension();
+    init_loader();
+    init_service();
+    init_service2();
+    init_service3();
+    init_service4();
+    init_service5();
+    init_service6();
+    init_registry2();
+    init_capabilities();
+    init_constants();
+    init_envelope();
+    init_gift_wrap();
+    init_encryption();
+    __name(initOpenDating, "initOpenDating");
+    __name(getOpenDatingNip11Advertisement, "getOpenDatingNip11Advertisement");
+  }
+});
 
 // src/relay-worker.ts
-var {
-  relayInfo: relayInfo2,
-  PAY_TO_RELAY_ENABLED: PAY_TO_RELAY_ENABLED2,
-  RELAY_ACCESS_PRICE_SATS: RELAY_ACCESS_PRICE_SATS2,
-  relayNpub: relayNpub2,
-  nip05Users: nip05Users2,
-  enableAntiSpam: enableAntiSpam2,
-  enableGlobalDuplicateCheck: enableGlobalDuplicateCheck2,
-  antiSpamKinds: antiSpamKinds2,
-  checkValidNip05: checkValidNip052,
-  blockedNip05Domains: blockedNip05Domains2,
-  allowedNip05Domains: allowedNip05Domains2,
-  DB_PRUNING_ENABLED: DB_PRUNING_ENABLED2,
-  DB_SIZE_THRESHOLD_GB: DB_SIZE_THRESHOLD_GB2,
-  DB_PRUNE_BATCH_SIZE: DB_PRUNE_BATCH_SIZE2,
-  DB_PRUNE_TARGET_GB: DB_PRUNE_TARGET_GB2,
-  pruneProtectedKinds: pruneProtectedKinds2
-} = config_exports;
-var GLOBAL_MAX_EVENTS = 500;
-var MAX_QUERY_COMPLEXITY = 1e3;
-var CHUNK_SIZE = 500;
+var relay_worker_exports = {};
+__export(relay_worker_exports, {
+  RelayWebSocket: () => RelayWebSocket,
+  calculateQueryComplexity: () => calculateQueryComplexity,
+  default: () => relay_worker_default,
+  hasPaidForRelay: () => hasPaidForRelay,
+  processEvent: () => processEvent,
+  queryEvents: () => queryEvents,
+  verifyEventSignature: () => verifyEventSignature
+});
 async function initializeDatabase(db) {
   const dropSession = db.withSession("first-primary");
   try {
@@ -3169,24 +5711,22 @@ async function initializeDatabase(db) {
     throw error;
   }
 }
-__name(initializeDatabase, "initializeDatabase");
 async function verifyEventSignature(event) {
   try {
-    const signatureBytes = hexToBytes2(event.sig);
+    const signatureBytes = hexToBytes3(event.sig);
     const serializedEventData = serializeEventForSigning(event);
     const messageHashBuffer = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(serializedEventData)
     );
     const messageHash = new Uint8Array(messageHashBuffer);
-    const publicKeyBytes = hexToBytes2(event.pubkey);
+    const publicKeyBytes = hexToBytes3(event.pubkey);
     return schnorr.verify(signatureBytes, messageHash, publicKeyBytes);
   } catch (error) {
     console.error("Error verifying event signature:", error);
     return false;
   }
 }
-__name(verifyEventSignature, "verifyEventSignature");
 function serializeEventForSigning(event) {
   return JSON.stringify([
     0,
@@ -3197,8 +5737,7 @@ function serializeEventForSigning(event) {
     event.content
   ]);
 }
-__name(serializeEventForSigning, "serializeEventForSigning");
-function hexToBytes2(hexString) {
+function hexToBytes3(hexString) {
   if (hexString.length % 2 !== 0)
     throw new Error("Invalid hex string");
   const bytes = new Uint8Array(hexString.length / 2);
@@ -3207,22 +5746,18 @@ function hexToBytes2(hexString) {
   }
   return bytes;
 }
-__name(hexToBytes2, "hexToBytes");
-function bytesToHex2(bytes) {
+function bytesToHex3(bytes) {
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-__name(bytesToHex2, "bytesToHex");
 async function hashContent(event) {
   const contentToHash = enableGlobalDuplicateCheck2 ? JSON.stringify({ kind: event.kind, tags: event.tags, content: event.content }) : JSON.stringify({ pubkey: event.pubkey, kind: event.kind, tags: event.tags, content: event.content });
   const buffer = new TextEncoder().encode(contentToHash);
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  return bytesToHex2(new Uint8Array(hashBuffer));
+  return bytesToHex3(new Uint8Array(hashBuffer));
 }
-__name(hashContent, "hashContent");
 function shouldCheckForDuplicates(kind) {
   return enableAntiSpam2 && antiSpamKinds2.has(kind);
 }
-__name(shouldCheckForDuplicates, "shouldCheckForDuplicates");
 async function hasPaidForRelay(pubkey, env) {
   if (!PAY_TO_RELAY_ENABLED2)
     return true;
@@ -3237,7 +5772,6 @@ async function hasPaidForRelay(pubkey, env) {
     return null;
   }
 }
-__name(hasPaidForRelay, "hasPaidForRelay");
 async function savePaidPubkey(pubkey, env) {
   try {
     const session = env.RELAY_DATABASE.withSession("first-primary");
@@ -3254,7 +5788,6 @@ async function savePaidPubkey(pubkey, env) {
     return false;
   }
 }
-__name(savePaidPubkey, "savePaidPubkey");
 function fetchEventFromFallbackRelay(pubkey) {
   return new Promise((resolve, reject) => {
     const fallbackRelayUrl = "wss://relay.primal.net";
@@ -3320,7 +5853,6 @@ function fetchEventFromFallbackRelay(pubkey) {
     }, 5e3);
   });
 }
-__name(fetchEventFromFallbackRelay, "fetchEventFromFallbackRelay");
 async function fetchKind0EventForPubkey(pubkey, env) {
   try {
     const filters = [{ kinds: [0], authors: [pubkey], limit: 1 }];
@@ -3338,7 +5870,6 @@ async function fetchKind0EventForPubkey(pubkey, env) {
   }
   return null;
 }
-__name(fetchKind0EventForPubkey, "fetchKind0EventForPubkey");
 async function validateNIP05FromKind0(pubkey, env) {
   try {
     const metadataEvent = await fetchKind0EventForPubkey(pubkey, env);
@@ -3359,7 +5890,6 @@ async function validateNIP05FromKind0(pubkey, env) {
     return false;
   }
 }
-__name(validateNIP05FromKind0, "validateNIP05FromKind0");
 async function validateNIP05(nip05Address, pubkey) {
   try {
     const [name, domain] = nip05Address.split("@");
@@ -3392,7 +5922,6 @@ async function validateNIP05(nip05Address, pubkey) {
     return false;
   }
 }
-__name(validateNIP05, "validateNIP05");
 function calculateQueryComplexity(filter) {
   let complexity = 0;
   complexity += (filter.ids?.length || 0) * 1;
@@ -3411,7 +5940,6 @@ function calculateQueryComplexity(filter) {
   }
   return complexity;
 }
-__name(calculateQueryComplexity, "calculateQueryComplexity");
 async function processEvent(event, sessionId, env) {
   try {
     if (event.kind !== 1059 && checkValidNip052 && event.kind !== 0) {
@@ -3433,7 +5961,6 @@ async function processEvent(event, sessionId, env) {
     return { success: false, message: `error: ${error.message}` };
   }
 }
-__name(processEvent, "processEvent");
 async function saveEventToDatabase(event, env) {
   try {
     const cache = caches.default;
@@ -3603,7 +6130,6 @@ async function saveEventToDatabase(event, env) {
     return { success: false, message: `error: ${error.message}` };
   }
 }
-__name(saveEventToDatabase, "saveEventToDatabase");
 async function processDeletionEvent(event, env) {
   console.log(`Processing deletion event ${event.id}`);
   const deletedEventIds = event.tags.filter((tag) => tag[0] === "e").map((tag) => tag[1]);
@@ -3673,7 +6199,6 @@ async function processDeletionEvent(event, env) {
     bookmark: saveResult.bookmark ?? (session.getBookmark() ?? void 0)
   };
 }
-__name(processDeletionEvent, "processDeletionEvent");
 function chunkArray(array, chunkSize) {
   const chunks = [];
   for (let i = 0; i < array.length; i += chunkSize) {
@@ -3681,9 +6206,6 @@ function chunkArray(array, chunkSize) {
   }
   return chunks;
 }
-__name(chunkArray, "chunkArray");
-var EVENT_COLS = "e.id, e.pubkey, e.created_at, e.kind, e.tags, e.content, e.sig";
-var EVENT_COLS_BARE = "id, pubkey, created_at, kind, tags, content, sig";
 function buildCountQuery(filter) {
   const params = [];
   const conditions = [];
@@ -3844,7 +6366,6 @@ function buildCountQuery(filter) {
   }
   return { sql, params };
 }
-__name(buildCountQuery, "buildCountQuery");
 function buildQuery(filter) {
   const params = [];
   const conditions = [];
@@ -4070,7 +6591,6 @@ function buildQuery(filter) {
   params.push(Math.min(filter.limit || 500, 500));
   return { sql, params };
 }
-__name(buildQuery, "buildQuery");
 async function queryDatabaseChunked(filter, bookmark, env) {
   const session = env.RELAY_DATABASE.withSession(bookmark);
   const allRows = /* @__PURE__ */ new Map();
@@ -4175,7 +6695,6 @@ async function queryDatabaseChunked(filter, bookmark, env) {
   console.log(`Found ${events.length} events (chunked)`);
   return { events };
 }
-__name(queryDatabaseChunked, "queryDatabaseChunked");
 async function queryEvents(filters, bookmark, env) {
   try {
     console.log(`Processing query with ${filters.length} filters and bookmark: ${bookmark}`);
@@ -4292,7 +6811,6 @@ async function queryEvents(filters, bookmark, env) {
     return { events: [], bookmark: null };
   }
 }
-__name(queryEvents, "queryEvents");
 function handleRelayInfoRequest(request) {
   const responseInfo = { ...relayInfo2 };
   if (PAY_TO_RELAY_ENABLED2) {
@@ -4301,6 +6819,13 @@ function handleRelayInfoRequest(request) {
     responseInfo.fees = {
       admission: [{ amount: RELAY_ACCESS_PRICE_SATS2 * 1e3, unit: "msats" }]
     };
+  }
+  try {
+    const odAd = getOpenDatingNip11Advertisement();
+    if (odAd && odAd.opendating) {
+      Object.assign(responseInfo, odAd);
+    }
+  } catch (_) {
   }
   return new Response(JSON.stringify(responseInfo), {
     status: 200,
@@ -4312,7 +6837,6 @@ function handleRelayInfoRequest(request) {
     }
   });
 }
-__name(handleRelayInfoRequest, "handleRelayInfoRequest");
 function serveLandingPage() {
   const payToRelaySection = PAY_TO_RELAY_ENABLED2 ? `
     <div class="pay-section" id="paySection">
@@ -4660,7 +7184,6 @@ function serveLandingPage() {
     }
   });
 }
-__name(serveLandingPage, "serveLandingPage");
 async function serveFavicon() {
   const response = await fetch(relayInfo2.icon);
   if (response.ok) {
@@ -4673,7 +7196,6 @@ async function serveFavicon() {
   }
   return new Response(null, { status: 404 });
 }
-__name(serveFavicon, "serveFavicon");
 function handleNIP05Request(url) {
   const name = url.searchParams.get("name");
   if (!name) {
@@ -4701,7 +7223,6 @@ function handleNIP05Request(url) {
     }
   });
 }
-__name(handleNIP05Request, "handleNIP05Request");
 async function handleCheckPayment(request, env) {
   const url = new URL(request.url);
   const pubkey = url.searchParams.get("pubkey");
@@ -4726,7 +7247,6 @@ async function handleCheckPayment(request, env) {
     }
   });
 }
-__name(handleCheckPayment, "handleCheckPayment");
 async function handlePaymentNotification(request, env) {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -4765,7 +7285,6 @@ async function handlePaymentNotification(request, env) {
     });
   }
 }
-__name(handlePaymentNotification, "handlePaymentNotification");
 async function getOptimalDO(cf, env, url) {
   const continent = cf?.continent || "NA";
   const country = cf?.country || "US";
@@ -5090,7 +7609,6 @@ async function getOptimalDO(cf, env, url) {
   console.log(`Fallback to DO: ${fallback.name} (hint: ${fallback.hint})`);
   return { stub, doName: fallback.name };
 }
-__name(getOptimalDO, "getOptimalDO");
 async function getDatabaseSizeBytes(session) {
   try {
     const result = await session.prepare("SELECT 1").run();
@@ -5104,7 +7622,6 @@ async function getDatabaseSizeBytes(session) {
     return 0;
   }
 }
-__name(getDatabaseSizeBytes, "getDatabaseSizeBytes");
 async function pruneOldEvents(session, targetSizeBytes) {
   let totalEventsDeleted = 0;
   let currentSize = await getDatabaseSizeBytes(session);
@@ -5140,251 +7657,355 @@ async function pruneOldEvents(session, targetSizeBytes) {
   }
   return { eventsDeleted: totalEventsDeleted, finalSizeBytes: currentSize };
 }
-__name(pruneOldEvents, "pruneOldEvents");
-var relay_worker_default = {
-  async fetch(request, env, ctx) {
-    try {
-      const url = new URL(request.url);
-      if (request.method === "POST" && url.searchParams.has("notify-zap") && PAY_TO_RELAY_ENABLED2) {
-        return await handlePaymentNotification(request, env);
-      }
-      if (url.pathname === "/api/check-payment" && PAY_TO_RELAY_ENABLED2) {
-        return await handleCheckPayment(request, env);
-      }
-      if (url.pathname === "/") {
-        if (request.headers.get("Upgrade") === "websocket") {
-          const cf = request.cf;
-          const { stub, doName } = await getOptimalDO(cf, env, url);
-          const newUrl = new URL(request.url);
-          newUrl.searchParams.set("region", cf?.region || "unknown");
-          newUrl.searchParams.set("colo", cf?.colo || "unknown");
-          newUrl.searchParams.set("continent", cf?.continent || "unknown");
-          newUrl.searchParams.set("country", cf?.country || "unknown");
-          newUrl.searchParams.set("doName", doName);
-          return stub.fetch(new Request(newUrl, request));
-        } else if (request.headers.get("Accept") === "application/nostr+json") {
-          return handleRelayInfoRequest(request);
-        } else {
-          ctx.waitUntil(
-            initializeDatabase(env.RELAY_DATABASE).catch((e) => console.error("DB init error:", e))
-          );
-          return serveLandingPage();
+var relayInfo2, PAY_TO_RELAY_ENABLED2, RELAY_ACCESS_PRICE_SATS2, relayNpub2, nip05Users2, enableAntiSpam2, enableGlobalDuplicateCheck2, antiSpamKinds2, checkValidNip052, blockedNip05Domains2, allowedNip05Domains2, DB_PRUNING_ENABLED2, DB_SIZE_THRESHOLD_GB2, DB_PRUNE_BATCH_SIZE2, DB_PRUNE_TARGET_GB2, pruneProtectedKinds2, GLOBAL_MAX_EVENTS, MAX_QUERY_COMPLEXITY, CHUNK_SIZE, EVENT_COLS, EVENT_COLS_BARE, relay_worker_default;
+var init_relay_worker = __esm({
+  "src/relay-worker.ts"() {
+    "use strict";
+    init_secp256k1();
+    init_config();
+    init_durable_object();
+    init_opendating();
+    ({
+      relayInfo: relayInfo2,
+      PAY_TO_RELAY_ENABLED: PAY_TO_RELAY_ENABLED2,
+      RELAY_ACCESS_PRICE_SATS: RELAY_ACCESS_PRICE_SATS2,
+      relayNpub: relayNpub2,
+      nip05Users: nip05Users2,
+      enableAntiSpam: enableAntiSpam2,
+      enableGlobalDuplicateCheck: enableGlobalDuplicateCheck2,
+      antiSpamKinds: antiSpamKinds2,
+      checkValidNip05: checkValidNip052,
+      blockedNip05Domains: blockedNip05Domains2,
+      allowedNip05Domains: allowedNip05Domains2,
+      DB_PRUNING_ENABLED: DB_PRUNING_ENABLED2,
+      DB_SIZE_THRESHOLD_GB: DB_SIZE_THRESHOLD_GB2,
+      DB_PRUNE_BATCH_SIZE: DB_PRUNE_BATCH_SIZE2,
+      DB_PRUNE_TARGET_GB: DB_PRUNE_TARGET_GB2,
+      pruneProtectedKinds: pruneProtectedKinds2
+    } = config_exports);
+    GLOBAL_MAX_EVENTS = 500;
+    MAX_QUERY_COMPLEXITY = 1e3;
+    CHUNK_SIZE = 500;
+    __name(initializeDatabase, "initializeDatabase");
+    __name(verifyEventSignature, "verifyEventSignature");
+    __name(serializeEventForSigning, "serializeEventForSigning");
+    __name(hexToBytes3, "hexToBytes");
+    __name(bytesToHex3, "bytesToHex");
+    __name(hashContent, "hashContent");
+    __name(shouldCheckForDuplicates, "shouldCheckForDuplicates");
+    __name(hasPaidForRelay, "hasPaidForRelay");
+    __name(savePaidPubkey, "savePaidPubkey");
+    __name(fetchEventFromFallbackRelay, "fetchEventFromFallbackRelay");
+    __name(fetchKind0EventForPubkey, "fetchKind0EventForPubkey");
+    __name(validateNIP05FromKind0, "validateNIP05FromKind0");
+    __name(validateNIP05, "validateNIP05");
+    __name(calculateQueryComplexity, "calculateQueryComplexity");
+    __name(processEvent, "processEvent");
+    __name(saveEventToDatabase, "saveEventToDatabase");
+    __name(processDeletionEvent, "processDeletionEvent");
+    __name(chunkArray, "chunkArray");
+    EVENT_COLS = "e.id, e.pubkey, e.created_at, e.kind, e.tags, e.content, e.sig";
+    EVENT_COLS_BARE = "id, pubkey, created_at, kind, tags, content, sig";
+    __name(buildCountQuery, "buildCountQuery");
+    __name(buildQuery, "buildQuery");
+    __name(queryDatabaseChunked, "queryDatabaseChunked");
+    __name(queryEvents, "queryEvents");
+    __name(handleRelayInfoRequest, "handleRelayInfoRequest");
+    __name(serveLandingPage, "serveLandingPage");
+    __name(serveFavicon, "serveFavicon");
+    __name(handleNIP05Request, "handleNIP05Request");
+    __name(handleCheckPayment, "handleCheckPayment");
+    __name(handlePaymentNotification, "handlePaymentNotification");
+    __name(getOptimalDO, "getOptimalDO");
+    __name(getDatabaseSizeBytes, "getDatabaseSizeBytes");
+    __name(pruneOldEvents, "pruneOldEvents");
+    relay_worker_default = {
+      async fetch(request, env, ctx) {
+        try {
+          const url = new URL(request.url);
+          if (request.method === "POST" && url.searchParams.has("notify-zap") && PAY_TO_RELAY_ENABLED2) {
+            return await handlePaymentNotification(request, env);
+          }
+          if (url.pathname === "/api/check-payment" && PAY_TO_RELAY_ENABLED2) {
+            return await handleCheckPayment(request, env);
+          }
+          if (url.pathname === "/") {
+            if (request.headers.get("Upgrade") === "websocket") {
+              const cf = request.cf;
+              const { stub, doName } = await getOptimalDO(cf, env, url);
+              const newUrl = new URL(request.url);
+              newUrl.searchParams.set("region", cf?.region || "unknown");
+              newUrl.searchParams.set("colo", cf?.colo || "unknown");
+              newUrl.searchParams.set("continent", cf?.continent || "unknown");
+              newUrl.searchParams.set("country", cf?.country || "unknown");
+              newUrl.searchParams.set("doName", doName);
+              return stub.fetch(new Request(newUrl, request));
+            } else if (request.headers.get("Accept") === "application/nostr+json") {
+              return handleRelayInfoRequest(request);
+            } else {
+              ctx.waitUntil(
+                initializeDatabase(env.RELAY_DATABASE).catch((e) => console.error("DB init error:", e))
+              );
+              ctx.waitUntil(
+                (async () => {
+                  try {
+                    initOpenDating(env, env.RELAY_DATABASE);
+                  } catch (e) {
+                    console.error("OpenDating init error:", e);
+                  }
+                })()
+              );
+              return serveLandingPage();
+            }
+          } else if (url.pathname === "/.well-known/nostr.json") {
+            return handleNIP05Request(url);
+          } else if (url.pathname === "/favicon.ico") {
+            return await serveFavicon();
+          } else {
+            return new Response("Invalid request", { status: 400 });
+          }
+        } catch (error) {
+          console.error("Error in fetch handler:", error);
+          return new Response("Internal Server Error", { status: 500 });
         }
-      } else if (url.pathname === "/.well-known/nostr.json") {
-        return handleNIP05Request(url);
-      } else if (url.pathname === "/favicon.ico") {
-        return await serveFavicon();
-      } else {
-        return new Response("Invalid request", { status: 400 });
-      }
-    } catch (error) {
-      console.error("Error in fetch handler:", error);
-      return new Response("Internal Server Error", { status: 500 });
-    }
-  },
-  // Scheduled handler for 24hr database maintenance (runs daily at 00:00 UTC)
-  async scheduled(event, env, ctx) {
-    console.log("Running scheduled 24hr database maintenance...");
-    try {
-      const session = env.RELAY_DATABASE.withSession("first-primary");
-      if (DB_PRUNING_ENABLED2) {
-        const currentSizeBytes = await getDatabaseSizeBytes(session);
-        const currentSizeGB = currentSizeBytes / (1024 * 1024 * 1024);
-        console.log(`Current database size: ${currentSizeGB.toFixed(2)} GB (threshold: ${DB_SIZE_THRESHOLD_GB2} GB)`);
-        if (currentSizeGB >= DB_SIZE_THRESHOLD_GB2) {
-          console.log(`Database size (${currentSizeGB.toFixed(2)} GB) exceeds threshold (${DB_SIZE_THRESHOLD_GB2} GB). Starting pruning...`);
-          const targetSizeBytes = DB_PRUNE_TARGET_GB2 * 1024 * 1024 * 1024;
-          const pruneResult = await pruneOldEvents(session, targetSizeBytes);
-          console.log(`Pruning completed. Deleted ${pruneResult.eventsDeleted} events. Final size: ${(pruneResult.finalSizeBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`);
-        } else {
-          console.log("Database size is within limits. No pruning needed.");
+      },
+      // Scheduled handler for 24hr database maintenance (runs daily at 00:00 UTC)
+      async scheduled(event, env, ctx) {
+        console.log("Running scheduled 24hr database maintenance...");
+        try {
+          const session = env.RELAY_DATABASE.withSession("first-primary");
+          if (DB_PRUNING_ENABLED2) {
+            const currentSizeBytes = await getDatabaseSizeBytes(session);
+            const currentSizeGB = currentSizeBytes / (1024 * 1024 * 1024);
+            console.log(`Current database size: ${currentSizeGB.toFixed(2)} GB (threshold: ${DB_SIZE_THRESHOLD_GB2} GB)`);
+            if (currentSizeGB >= DB_SIZE_THRESHOLD_GB2) {
+              console.log(`Database size (${currentSizeGB.toFixed(2)} GB) exceeds threshold (${DB_SIZE_THRESHOLD_GB2} GB). Starting pruning...`);
+              const targetSizeBytes = DB_PRUNE_TARGET_GB2 * 1024 * 1024 * 1024;
+              const pruneResult = await pruneOldEvents(session, targetSizeBytes);
+              console.log(`Pruning completed. Deleted ${pruneResult.eventsDeleted} events. Final size: ${(pruneResult.finalSizeBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`);
+            } else {
+              console.log("Database size is within limits. No pruning needed.");
+            }
+          } else {
+            console.log("Database pruning is disabled.");
+          }
+          console.log("Running PRAGMA optimize...");
+          await session.prepare("PRAGMA optimize").run();
+          console.log("PRAGMA optimize completed");
+          console.log("Running ANALYZE on all tables...");
+          await session.prepare("ANALYZE events").run();
+          await session.prepare("ANALYZE tags").run();
+          await session.prepare("ANALYZE event_tags_cache_multi").run();
+          await session.prepare("ANALYZE content_hashes").run();
+          console.log("ANALYZE completed - query planner statistics updated");
+          console.log("Scheduled 24hr database maintenance completed successfully");
+        } catch (error) {
+          console.error("Scheduled maintenance failed:", error);
         }
-      } else {
-        console.log("Database pruning is disabled.");
       }
-      console.log("Running PRAGMA optimize...");
-      await session.prepare("PRAGMA optimize").run();
-      console.log("PRAGMA optimize completed");
-      console.log("Running ANALYZE on all tables...");
-      await session.prepare("ANALYZE events").run();
-      await session.prepare("ANALYZE tags").run();
-      await session.prepare("ANALYZE event_tags_cache_multi").run();
-      await session.prepare("ANALYZE content_hashes").run();
-      console.log("ANALYZE completed - query planner statistics updated");
-      console.log("Scheduled 24hr database maintenance completed successfully");
-    } catch (error) {
-      console.error("Scheduled maintenance failed:", error);
-    }
+    };
   }
-};
+});
 
 // src/durable-object.ts
-var _RelayWebSocket = class _RelayWebSocket {
-  constructor(state, env) {
-    this.processedEvents = /* @__PURE__ */ new Map();
-    // eventId -> timestamp
-    // Query cache for REQ messages
-    this.queryCache = /* @__PURE__ */ new Map();
-    this.QUERY_CACHE_TTL = 6e4;
-    this.MAX_CACHE_SIZE = 100;
-    // Query cache index for efficient invalidation (kind:X, author:Y, etc.)
-    this.queryCacheIndex = /* @__PURE__ */ new Map();
-    // Active queries for deduplication (prevent duplicate work)
-    this.activeQueries = /* @__PURE__ */ new Map();
-    // Payment status cache
-    this.paymentCache = /* @__PURE__ */ new Map();
-    this.PAYMENT_CACHE_TTL = 6e4;
-    // Alarm and cleanup configuration
-    this.IDLE_TIMEOUT = 5 * 60 * 1e3;
-    // 5 minutes
-    this.lastActivityTime = Date.now();
-    this.state = state;
-    this.sessions = /* @__PURE__ */ new Map();
-    this.env = env;
-    this.doId = crypto.randomUUID();
-    this.region = "unknown";
-    this.doName = "unknown";
-    this.processedEvents = /* @__PURE__ */ new Map();
-    this.queryCache = /* @__PURE__ */ new Map();
-    this.queryCacheIndex = /* @__PURE__ */ new Map();
-    this.activeQueries = /* @__PURE__ */ new Map();
-    this.paymentCache = /* @__PURE__ */ new Map();
-    this.lastActivityTime = Date.now();
-  }
-  // Alarm handler - called when scheduled alarm fires
-  async alarm() {
-    console.log(`Alarm triggered for DO ${this.doName}`);
-    const now = Date.now();
-    const idleTime = now - this.lastActivityTime;
-    const activeWebSockets = this.state.getWebSockets();
-    const activeCount = activeWebSockets.length;
-    console.log(`DO ${this.doName} - Active WebSockets: ${activeCount}, Idle time: ${idleTime}ms`);
-    if (activeCount === 0) {
-      console.log(`Cleaning up DO ${this.doName} - no active connections`);
-      await this.cleanup();
-      return;
-    }
-    const nextAlarm = now + this.IDLE_TIMEOUT;
-    await this.state.storage.setAlarm(nextAlarm);
-    console.log(`Next alarm scheduled for DO ${this.doName} in ${this.IDLE_TIMEOUT}ms`);
-  }
-  // Cleanup method to clear caches and sessions
-  async cleanup() {
-    console.log(`Running cleanup for DO ${this.doName}`);
-    this.queryCache.clear();
-    this.queryCacheIndex.clear();
-    this.activeQueries.clear();
-    this.paymentCache.clear();
-    this.processedEvents.clear();
-    this.sessions.clear();
-    await this.cleanupOrphanedSubscriptions();
-    console.log(`Cleanup complete for DO ${this.doName}`);
-  }
-  // Remove orphaned subscription data from storage
-  async cleanupOrphanedSubscriptions() {
-    try {
-      const allKeys = await this.state.storage.list();
-      const activeWebSockets = this.state.getWebSockets();
-      const activeSessionIds = /* @__PURE__ */ new Set();
-      for (const ws of activeWebSockets) {
-        const attachment = ws.deserializeAttachment();
-        if (attachment) {
-          activeSessionIds.add(attachment.sessionId);
+var _RelayWebSocket, RelayWebSocket;
+var init_durable_object = __esm({
+  "src/durable-object.ts"() {
+    "use strict";
+    init_types();
+    init_config();
+    init_relay_worker();
+    init_registry();
+    _RelayWebSocket = class _RelayWebSocket {
+      constructor(state, env) {
+        this.processedEvents = /* @__PURE__ */ new Map();
+        // eventId -> timestamp
+        // Query cache for REQ messages
+        this.queryCache = /* @__PURE__ */ new Map();
+        this.QUERY_CACHE_TTL = 6e4;
+        this.MAX_CACHE_SIZE = 100;
+        // Query cache index for efficient invalidation (kind:X, author:Y, etc.)
+        this.queryCacheIndex = /* @__PURE__ */ new Map();
+        // Active queries for deduplication (prevent duplicate work)
+        this.activeQueries = /* @__PURE__ */ new Map();
+        // Payment status cache
+        this.paymentCache = /* @__PURE__ */ new Map();
+        this.PAYMENT_CACHE_TTL = 6e4;
+        // Alarm and cleanup configuration
+        this.IDLE_TIMEOUT = 5 * 60 * 1e3;
+        // 5 minutes
+        this.lastActivityTime = Date.now();
+        this.state = state;
+        this.sessions = /* @__PURE__ */ new Map();
+        this.env = env;
+        this.doId = crypto.randomUUID();
+        this.region = "unknown";
+        this.doName = "unknown";
+        this.processedEvents = /* @__PURE__ */ new Map();
+        this.queryCache = /* @__PURE__ */ new Map();
+        this.queryCacheIndex = /* @__PURE__ */ new Map();
+        this.activeQueries = /* @__PURE__ */ new Map();
+        this.paymentCache = /* @__PURE__ */ new Map();
+        this.lastActivityTime = Date.now();
+      }
+      // Alarm handler - called when scheduled alarm fires
+      async alarm() {
+        console.log(`Alarm triggered for DO ${this.doName}`);
+        const now = Date.now();
+        const idleTime = now - this.lastActivityTime;
+        const activeWebSockets = this.state.getWebSockets();
+        const activeCount = activeWebSockets.length;
+        console.log(`DO ${this.doName} - Active WebSockets: ${activeCount}, Idle time: ${idleTime}ms`);
+        if (activeCount === 0) {
+          console.log(`Cleaning up DO ${this.doName} - no active connections`);
+          await this.cleanup();
+          return;
+        }
+        const nextAlarm = now + this.IDLE_TIMEOUT;
+        await this.state.storage.setAlarm(nextAlarm);
+        console.log(`Next alarm scheduled for DO ${this.doName} in ${this.IDLE_TIMEOUT}ms`);
+      }
+      // Cleanup method to clear caches and sessions
+      async cleanup() {
+        console.log(`Running cleanup for DO ${this.doName}`);
+        this.queryCache.clear();
+        this.queryCacheIndex.clear();
+        this.activeQueries.clear();
+        this.paymentCache.clear();
+        this.processedEvents.clear();
+        this.sessions.clear();
+        await this.cleanupOrphanedSubscriptions();
+        console.log(`Cleanup complete for DO ${this.doName}`);
+      }
+      // Remove orphaned subscription data from storage
+      async cleanupOrphanedSubscriptions() {
+        try {
+          const allKeys = await this.state.storage.list();
+          const activeWebSockets = this.state.getWebSockets();
+          const activeSessionIds = /* @__PURE__ */ new Set();
+          for (const ws of activeWebSockets) {
+            const attachment = ws.deserializeAttachment();
+            if (attachment) {
+              activeSessionIds.add(attachment.sessionId);
+            }
+          }
+          const keysToDelete = [];
+          for (const [key] of allKeys) {
+            if (key.startsWith("subs:")) {
+              const sessionId = key.substring(5);
+              if (!activeSessionIds.has(sessionId)) {
+                keysToDelete.push(key);
+              }
+            }
+          }
+          if (keysToDelete.length > 0) {
+            await this.state.storage.delete(keysToDelete);
+            console.log(`Cleaned up ${keysToDelete.length} orphaned subscription entries`);
+          }
+        } catch (error) {
+          console.error("Error cleaning up orphaned subscriptions:", error);
         }
       }
-      const keysToDelete = [];
-      for (const [key] of allKeys) {
-        if (key.startsWith("subs:")) {
-          const sessionId = key.substring(5);
-          if (!activeSessionIds.has(sessionId)) {
-            keysToDelete.push(key);
+      // Schedule alarm if one doesn't exist
+      async scheduleAlarmIfNeeded() {
+        const existingAlarm = await this.state.storage.getAlarm();
+        if (existingAlarm === null) {
+          const alarmTime = Date.now() + this.IDLE_TIMEOUT;
+          await this.state.storage.setAlarm(alarmTime);
+          console.log(`Scheduled first alarm for DO ${this.doName}`);
+        }
+      }
+      // Storage helper methods for subscriptions
+      async saveSubscriptions(sessionId, subscriptions) {
+        const key = `subs:${sessionId}`;
+        const data = Array.from(subscriptions.entries());
+        await this.state.storage.put(key, data);
+      }
+      async loadSubscriptions(sessionId) {
+        const key = `subs:${sessionId}`;
+        const data = await this.state.storage.get(key);
+        return new Map(data || []);
+      }
+      async deleteSubscriptions(sessionId) {
+        const key = `subs:${sessionId}`;
+        await this.state.storage.delete(key);
+      }
+      // Payment cache methods
+      async getCachedPaymentStatus(pubkey) {
+        const cached = this.paymentCache.get(pubkey);
+        if (cached && Date.now() - cached.timestamp < this.PAYMENT_CACHE_TTL) {
+          return cached.hasPaid;
+        }
+        if (cached) {
+          this.paymentCache.delete(pubkey);
+        }
+        return null;
+      }
+      setCachedPaymentStatus(pubkey, hasPaid) {
+        this.paymentCache.set(pubkey, {
+          hasPaid,
+          timestamp: Date.now()
+        });
+        if (this.paymentCache.size > 1e3) {
+          const sortedEntries = Array.from(this.paymentCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
+          const toRemove = Math.floor(this.paymentCache.size * 0.2);
+          for (let i = 0; i < toRemove; i++) {
+            this.paymentCache.delete(sortedEntries[i][0]);
           }
         }
       }
-      if (keysToDelete.length > 0) {
-        await this.state.storage.delete(keysToDelete);
-        console.log(`Cleaned up ${keysToDelete.length} orphaned subscription entries`);
+      // Helper to generate global cache key
+      async generateGlobalCacheKey(filters, bookmark) {
+        const cacheData = JSON.stringify({ filters, bookmark });
+        const buffer = new TextEncoder().encode(cacheData);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        return `https://nosflare-query-cache/${hashHex}`;
       }
-    } catch (error) {
-      console.error("Error cleaning up orphaned subscriptions:", error);
-    }
-  }
-  // Schedule alarm if one doesn't exist
-  async scheduleAlarmIfNeeded() {
-    const existingAlarm = await this.state.storage.getAlarm();
-    if (existingAlarm === null) {
-      const alarmTime = Date.now() + this.IDLE_TIMEOUT;
-      await this.state.storage.setAlarm(alarmTime);
-      console.log(`Scheduled first alarm for DO ${this.doName}`);
-    }
-  }
-  // Storage helper methods for subscriptions
-  async saveSubscriptions(sessionId, subscriptions) {
-    const key = `subs:${sessionId}`;
-    const data = Array.from(subscriptions.entries());
-    await this.state.storage.put(key, data);
-  }
-  async loadSubscriptions(sessionId) {
-    const key = `subs:${sessionId}`;
-    const data = await this.state.storage.get(key);
-    return new Map(data || []);
-  }
-  async deleteSubscriptions(sessionId) {
-    const key = `subs:${sessionId}`;
-    await this.state.storage.delete(key);
-  }
-  // Payment cache methods
-  async getCachedPaymentStatus(pubkey) {
-    const cached = this.paymentCache.get(pubkey);
-    if (cached && Date.now() - cached.timestamp < this.PAYMENT_CACHE_TTL) {
-      return cached.hasPaid;
-    }
-    if (cached) {
-      this.paymentCache.delete(pubkey);
-    }
-    return null;
-  }
-  setCachedPaymentStatus(pubkey, hasPaid) {
-    this.paymentCache.set(pubkey, {
-      hasPaid,
-      timestamp: Date.now()
-    });
-    if (this.paymentCache.size > 1e3) {
-      const sortedEntries = Array.from(this.paymentCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
-      const toRemove = Math.floor(this.paymentCache.size * 0.2);
-      for (let i = 0; i < toRemove; i++) {
-        this.paymentCache.delete(sortedEntries[i][0]);
-      }
-    }
-  }
-  // Helper to generate global cache key
-  async generateGlobalCacheKey(filters, bookmark) {
-    const cacheData = JSON.stringify({ filters, bookmark });
-    const buffer = new TextEncoder().encode(cacheData);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-    return `https://nosflare-query-cache/${hashHex}`;
-  }
-  // Query cache methods with deduplication and global caching
-  async getCachedOrQuery(filters, bookmark) {
-    const cacheKey = JSON.stringify({ filters, bookmark });
-    if (this.activeQueries.has(cacheKey)) {
-      console.log("Returning in-flight query result (deduplication)");
-      return await this.activeQueries.get(cacheKey);
-    }
-    try {
-      const globalCache = caches.default;
-      const globalCacheKey = await this.generateGlobalCacheKey(filters, bookmark);
-      const globalCached = await globalCache.match(globalCacheKey);
-      if (globalCached) {
-        const cachedDate = globalCached.headers.get("X-Cache-Time");
-        if (cachedDate && Date.now() - parseInt(cachedDate) > 3e5) {
-          console.log("Global cache entry expired, deleting");
-          await globalCache.delete(globalCacheKey);
-        } else {
-          console.log("Returning globally cached query result");
-          const result = await globalCached.json();
+      // Query cache methods with deduplication and global caching
+      async getCachedOrQuery(filters, bookmark) {
+        const cacheKey = JSON.stringify({ filters, bookmark });
+        if (this.activeQueries.has(cacheKey)) {
+          console.log("Returning in-flight query result (deduplication)");
+          return await this.activeQueries.get(cacheKey);
+        }
+        try {
+          const globalCache = caches.default;
+          const globalCacheKey = await this.generateGlobalCacheKey(filters, bookmark);
+          const globalCached = await globalCache.match(globalCacheKey);
+          if (globalCached) {
+            const cachedDate = globalCached.headers.get("X-Cache-Time");
+            if (cachedDate && Date.now() - parseInt(cachedDate) > 3e5) {
+              console.log("Global cache entry expired, deleting");
+              await globalCache.delete(globalCacheKey);
+            } else {
+              console.log("Returning globally cached query result");
+              const result = await globalCached.json();
+              this.queryCache.set(cacheKey, {
+                result,
+                timestamp: Date.now(),
+                accessCount: 1,
+                lastAccessed: Date.now()
+              });
+              this.addToCacheIndex(cacheKey, filters);
+              return result;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking global cache:", error);
+        }
+        const cached = this.queryCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.QUERY_CACHE_TTL) {
+          console.log("Returning locally cached query result");
+          cached.accessCount++;
+          cached.lastAccessed = Date.now();
+          return cached.result;
+        }
+        const queryPromise = queryEvents(filters, bookmark, this.env);
+        this.activeQueries.set(cacheKey, queryPromise);
+        try {
+          const result = await queryPromise;
           this.queryCache.set(cacheKey, {
             result,
             timestamp: Date.now(),
@@ -5392,812 +8013,809 @@ var _RelayWebSocket = class _RelayWebSocket {
             lastAccessed: Date.now()
           });
           this.addToCacheIndex(cacheKey, filters);
+          if (this.queryCache.size > this.MAX_CACHE_SIZE) {
+            this.cleanupQueryCache();
+          }
+          try {
+            const globalCache = caches.default;
+            const globalCacheKey = await this.generateGlobalCacheKey(filters, bookmark);
+            const response = new Response(JSON.stringify(result), {
+              headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "public, max-age=300",
+                "X-Cache-Time": Date.now().toString()
+              }
+            });
+            await globalCache.put(globalCacheKey, response);
+            console.log("Stored query result in global cache");
+          } catch (error) {
+            console.error("Error storing in global cache:", error);
+          }
           return result;
+        } finally {
+          this.activeQueries.delete(cacheKey);
         }
       }
-    } catch (error) {
-      console.error("Error checking global cache:", error);
-    }
-    const cached = this.queryCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.QUERY_CACHE_TTL) {
-      console.log("Returning locally cached query result");
-      cached.accessCount++;
-      cached.lastAccessed = Date.now();
-      return cached.result;
-    }
-    const queryPromise = queryEvents(filters, bookmark, this.env);
-    this.activeQueries.set(cacheKey, queryPromise);
-    try {
-      const result = await queryPromise;
-      this.queryCache.set(cacheKey, {
-        result,
-        timestamp: Date.now(),
-        accessCount: 1,
-        lastAccessed: Date.now()
-      });
-      this.addToCacheIndex(cacheKey, filters);
-      if (this.queryCache.size > this.MAX_CACHE_SIZE) {
-        this.cleanupQueryCache();
-      }
-      try {
-        const globalCache = caches.default;
-        const globalCacheKey = await this.generateGlobalCacheKey(filters, bookmark);
-        const response = new Response(JSON.stringify(result), {
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "public, max-age=300",
-            "X-Cache-Time": Date.now().toString()
+      cleanupQueryCache() {
+        const now = Date.now();
+        for (const [key, entry] of this.queryCache.entries()) {
+          if (now - entry.timestamp > this.QUERY_CACHE_TTL) {
+            this.queryCache.delete(key);
+            this.removeFromCacheIndex(key);
           }
-        });
-        await globalCache.put(globalCacheKey, response);
-        console.log("Stored query result in global cache");
-      } catch (error) {
-        console.error("Error storing in global cache:", error);
-      }
-      return result;
-    } finally {
-      this.activeQueries.delete(cacheKey);
-    }
-  }
-  cleanupQueryCache() {
-    const now = Date.now();
-    for (const [key, entry] of this.queryCache.entries()) {
-      if (now - entry.timestamp > this.QUERY_CACHE_TTL) {
-        this.queryCache.delete(key);
-        this.removeFromCacheIndex(key);
-      }
-    }
-    if (this.queryCache.size > this.MAX_CACHE_SIZE) {
-      const entries = Array.from(this.queryCache.entries());
-      const scoredEntries = entries.map(([key, entry]) => {
-        const recencyScore = (now - entry.lastAccessed) / 1e3;
-        const frequencyScore = entry.accessCount * 10;
-        const evictionScore = frequencyScore - recencyScore / 60;
-        return { key, score: evictionScore };
-      });
-      scoredEntries.sort((a, b) => a.score - b.score);
-      const toRemove = Math.floor(this.MAX_CACHE_SIZE * 0.2);
-      for (let i = 0; i < toRemove; i++) {
-        const key = scoredEntries[i].key;
-        this.queryCache.delete(key);
-        this.removeFromCacheIndex(key);
-      }
-      console.log(`Evicted ${toRemove} low-scoring cache entries (LFU)`);
-    }
-  }
-  // Add cache entry to index for efficient invalidation
-  addToCacheIndex(cacheKey, filters) {
-    for (const filter of filters) {
-      if (filter.kinds) {
-        for (const kind of filter.kinds) {
-          const indexKey = `kind:${kind}`;
-          if (!this.queryCacheIndex.has(indexKey)) {
-            this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+        }
+        if (this.queryCache.size > this.MAX_CACHE_SIZE) {
+          const entries = Array.from(this.queryCache.entries());
+          const scoredEntries = entries.map(([key, entry]) => {
+            const recencyScore = (now - entry.lastAccessed) / 1e3;
+            const frequencyScore = entry.accessCount * 10;
+            const evictionScore = frequencyScore - recencyScore / 60;
+            return { key, score: evictionScore };
+          });
+          scoredEntries.sort((a, b) => a.score - b.score);
+          const toRemove = Math.floor(this.MAX_CACHE_SIZE * 0.2);
+          for (let i = 0; i < toRemove; i++) {
+            const key = scoredEntries[i].key;
+            this.queryCache.delete(key);
+            this.removeFromCacheIndex(key);
           }
-          this.queryCacheIndex.get(indexKey).add(cacheKey);
+          console.log(`Evicted ${toRemove} low-scoring cache entries (LFU)`);
         }
       }
-      if (filter.authors) {
-        for (const author of filter.authors) {
-          const indexKey = `author:${author}`;
-          if (!this.queryCacheIndex.has(indexKey)) {
-            this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
-          }
-          this.queryCacheIndex.get(indexKey).add(cacheKey);
-        }
-      }
-      for (const [key, values] of Object.entries(filter)) {
-        if (key.startsWith("#") && Array.isArray(values)) {
-          const tagName = key.substring(1);
-          for (const value of values) {
-            const indexKey = `tag:${tagName}:${value}`;
-            if (!this.queryCacheIndex.has(indexKey)) {
-              this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+      // Add cache entry to index for efficient invalidation
+      addToCacheIndex(cacheKey, filters) {
+        for (const filter of filters) {
+          if (filter.kinds) {
+            for (const kind of filter.kinds) {
+              const indexKey = `kind:${kind}`;
+              if (!this.queryCacheIndex.has(indexKey)) {
+                this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+              }
+              this.queryCacheIndex.get(indexKey).add(cacheKey);
             }
-            this.queryCacheIndex.get(indexKey).add(cacheKey);
+          }
+          if (filter.authors) {
+            for (const author of filter.authors) {
+              const indexKey = `author:${author}`;
+              if (!this.queryCacheIndex.has(indexKey)) {
+                this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+              }
+              this.queryCacheIndex.get(indexKey).add(cacheKey);
+            }
+          }
+          for (const [key, values] of Object.entries(filter)) {
+            if (key.startsWith("#") && Array.isArray(values)) {
+              const tagName = key.substring(1);
+              for (const value of values) {
+                const indexKey = `tag:${tagName}:${value}`;
+                if (!this.queryCacheIndex.has(indexKey)) {
+                  this.queryCacheIndex.set(indexKey, /* @__PURE__ */ new Set());
+                }
+                this.queryCacheIndex.get(indexKey).add(cacheKey);
+              }
+            }
           }
         }
       }
-    }
-  }
-  // Remove cache entry from index
-  removeFromCacheIndex(cacheKey) {
-    for (const [indexKey, cacheKeys] of this.queryCacheIndex.entries()) {
-      cacheKeys.delete(cacheKey);
-      if (cacheKeys.size === 0) {
-        this.queryCacheIndex.delete(indexKey);
+      // Remove cache entry from index
+      removeFromCacheIndex(cacheKey) {
+        for (const [indexKey, cacheKeys] of this.queryCacheIndex.entries()) {
+          cacheKeys.delete(cacheKey);
+          if (cacheKeys.size === 0) {
+            this.queryCacheIndex.delete(indexKey);
+          }
+        }
       }
-    }
-  }
-  invalidateRelevantCaches(event) {
-    const keysToInvalidate = /* @__PURE__ */ new Set();
-    const kindKey = `kind:${event.kind}`;
-    if (this.queryCacheIndex.has(kindKey)) {
-      for (const cacheKey of this.queryCacheIndex.get(kindKey)) {
-        keysToInvalidate.add(cacheKey);
-      }
-    }
-    const authorKey = `author:${event.pubkey}`;
-    if (this.queryCacheIndex.has(authorKey)) {
-      for (const cacheKey of this.queryCacheIndex.get(authorKey)) {
-        keysToInvalidate.add(cacheKey);
-      }
-    }
-    for (const tag of event.tags) {
-      if (tag.length >= 2) {
-        const tagKey = `tag:${tag[0]}:${tag[1]}`;
-        if (this.queryCacheIndex.has(tagKey)) {
-          for (const cacheKey of this.queryCacheIndex.get(tagKey)) {
+      invalidateRelevantCaches(event) {
+        const keysToInvalidate = /* @__PURE__ */ new Set();
+        const kindKey = `kind:${event.kind}`;
+        if (this.queryCacheIndex.has(kindKey)) {
+          for (const cacheKey of this.queryCacheIndex.get(kindKey)) {
             keysToInvalidate.add(cacheKey);
           }
         }
-      }
-    }
-    for (const key of keysToInvalidate) {
-      this.queryCache.delete(key);
-      this.removeFromCacheIndex(key);
-    }
-    if (keysToInvalidate.size > 0) {
-      console.log(`Invalidated ${keysToInvalidate.size} local cache entries for event ${event.id} (kind:${event.kind}, author:${event.pubkey.substring(0, 8)}...)`);
-    }
-  }
-  async fetch(request) {
-    const url = new URL(request.url);
-    const urlDoName = url.searchParams.get("doName");
-    if (urlDoName && urlDoName !== "unknown" && _RelayWebSocket.ALLOWED_ENDPOINTS.includes(urlDoName)) {
-      this.doName = urlDoName;
-    }
-    if (url.pathname === "/do-broadcast") {
-      return await this.handleDOBroadcast(request);
-    }
-    const upgradeHeader = request.headers.get("Upgrade");
-    if (!upgradeHeader || upgradeHeader !== "websocket") {
-      return new Response("Expected Upgrade: websocket", { status: 426 });
-    }
-    this.region = url.searchParams.get("region") || this.region || "unknown";
-    const colo = url.searchParams.get("colo") || "default";
-    console.log(`WebSocket connection to DO: ${this.doName} (region: ${this.region}, colo: ${colo})`);
-    const webSocketPair = new WebSocketPair();
-    const [client, server] = Object.values(webSocketPair);
-    const sessionId = crypto.randomUUID();
-    const host = request.headers.get("host") || url.host;
-    const session = {
-      id: sessionId,
-      webSocket: server,
-      subscriptions: /* @__PURE__ */ new Map(),
-      pubkeyRateLimiter: new RateLimiter(PUBKEY_RATE_LIMIT.rate, PUBKEY_RATE_LIMIT.capacity),
-      reqRateLimiter: new RateLimiter(REQ_RATE_LIMIT.rate, REQ_RATE_LIMIT.capacity),
-      bookmark: "first-unconstrained",
-      host,
-      challenge: AUTH_REQUIRED ? this.generateAuthChallenge() : void 0,
-      authenticatedPubkeys: /* @__PURE__ */ new Set()
-    };
-    this.sessions.set(sessionId, session);
-    const attachment = {
-      sessionId,
-      bookmark: session.bookmark,
-      host,
-      doName: this.doName,
-      // NIP-42: Persist auth state for hibernation survival
-      authenticatedPubkeys: [],
-      challenge: session.challenge
-    };
-    server.serializeAttachment(attachment);
-    this.state.acceptWebSocket(server);
-    if (AUTH_REQUIRED && session.challenge) {
-      this.sendAuth(server, session.challenge);
-    }
-    this.lastActivityTime = Date.now();
-    await this.scheduleAlarmIfNeeded();
-    console.log(`New WebSocket session: ${sessionId} on DO ${this.doName}`);
-    return new Response(null, {
-      status: 101,
-      webSocket: client
-    });
-  }
-  // WebSocket Hibernation API handler methods
-  async webSocketMessage(ws, message) {
-    this.lastActivityTime = Date.now();
-    const attachment = ws.deserializeAttachment();
-    if (!attachment) {
-      console.error("No session attachment found");
-      ws.close(1011, "Session not found");
-      return;
-    }
-    let session = this.sessions.get(attachment.sessionId);
-    if (!session) {
-      if (attachment.doName && this.doName === "unknown") {
-        this.doName = attachment.doName;
-      }
-      const subscriptions = await this.loadSubscriptions(attachment.sessionId);
-      const restoredPubkeys = new Set(attachment.authenticatedPubkeys || []);
-      const isAuthenticated = restoredPubkeys.size > 0;
-      session = {
-        id: attachment.sessionId,
-        webSocket: ws,
-        subscriptions,
-        pubkeyRateLimiter: new RateLimiter(PUBKEY_RATE_LIMIT.rate, PUBKEY_RATE_LIMIT.capacity),
-        reqRateLimiter: new RateLimiter(REQ_RATE_LIMIT.rate, REQ_RATE_LIMIT.capacity),
-        bookmark: attachment.bookmark,
-        host: attachment.host,
-        // NIP-42: Restore challenge from attachment, or generate new one if not present
-        challenge: attachment.challenge || (AUTH_REQUIRED ? this.generateAuthChallenge() : void 0),
-        authenticatedPubkeys: restoredPubkeys,
-        // Restore payment status from attachment (survives hibernation)
-        hasPaid: attachment.hasPaid
-      };
-      this.sessions.set(attachment.sessionId, session);
-      if (AUTH_REQUIRED && !isAuthenticated && session.challenge) {
-        this.sendAuth(ws, session.challenge);
-      }
-    }
-    try {
-      let parsedMessage;
-      if (typeof message === "string") {
-        parsedMessage = JSON.parse(message);
-      } else {
-        const decoder = new TextDecoder();
-        const text = decoder.decode(message);
-        parsedMessage = JSON.parse(text);
-      }
-      await this.handleMessage(session, parsedMessage);
-      const updatedAttachment = {
-        sessionId: session.id,
-        bookmark: session.bookmark,
-        host: session.host,
-        doName: this.doName,
-        hasPaid: session.hasPaid,
-        authenticatedPubkeys: Array.from(session.authenticatedPubkeys),
-        challenge: session.challenge
-      };
-      ws.serializeAttachment(updatedAttachment);
-    } catch (error) {
-      console.error("Error handling message:", error);
-      if (error instanceof SyntaxError) {
-        this.sendError(ws, "Invalid JSON format");
-      } else {
-        this.sendError(ws, "Failed to process message");
-      }
-    }
-  }
-  async webSocketClose(ws, code, reason, wasClean) {
-    const attachment = ws.deserializeAttachment();
-    if (attachment) {
-      console.log(`WebSocket closed: ${attachment.sessionId} on DO ${this.doName}`);
-      this.sessions.delete(attachment.sessionId);
-      await this.deleteSubscriptions(attachment.sessionId);
-      const activeWebSockets = this.state.getWebSockets();
-      if (activeWebSockets.length === 0) {
-        await this.state.storage.deleteAlarm();
-        console.log(`Deleted alarm for DO ${this.doName} - no active connections remaining`);
-      }
-    }
-  }
-  async webSocketError(ws, error) {
-    const attachment = ws.deserializeAttachment();
-    if (attachment) {
-      console.error(`WebSocket error for session ${attachment.sessionId}:`, error);
-      this.sessions.delete(attachment.sessionId);
-    }
-  }
-  async handleDOBroadcast(request) {
-    try {
-      const data = await request.json();
-      const { event, sourceDoId } = data;
-      if (this.processedEvents.has(event.id)) {
-        return new Response(JSON.stringify({ success: true, duplicate: true }));
-      }
-      this.processedEvents.set(event.id, Date.now());
-      console.log(`DO ${this.doName} received event ${event.id} from ${sourceDoId}`);
-      this.invalidateRelevantCaches(event);
-      await this.broadcastToLocalSessions(event);
-      const fiveMinutesAgo = Date.now() - 3e5;
-      let cleaned = 0;
-      for (const [eventId, timestamp] of this.processedEvents) {
-        if (timestamp < fiveMinutesAgo) {
-          this.processedEvents.delete(eventId);
-          cleaned++;
-        }
-      }
-      return new Response(JSON.stringify({ success: true }));
-    } catch (error) {
-      console.error("Error handling DO broadcast:", error);
-      return new Response(JSON.stringify({ success: false, error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-  }
-  async handleMessage(session, message) {
-    if (!Array.isArray(message)) {
-      this.sendError(session.webSocket, "Invalid message format: expected JSON array");
-      return;
-    }
-    const [type, ...args] = message;
-    try {
-      switch (type) {
-        case "EVENT":
-          await this.handleEvent(session, args[0]);
-          break;
-        case "REQ":
-          await this.handleReq(session, message);
-          break;
-        case "CLOSE":
-          await this.handleCloseSubscription(session, args[0]);
-          break;
-        case "AUTH":
-          await this.handleAuth(session, args[0]);
-          break;
-        default:
-          this.sendError(session.webSocket, `Unknown message type: ${type}`);
-      }
-    } catch (error) {
-      console.error(`Error handling ${type} message:`, error);
-      this.sendError(session.webSocket, `Failed to process ${type} message`);
-    }
-  }
-  async handleEvent(session, event) {
-    try {
-      if (!event || typeof event !== "object") {
-        this.sendOK(session.webSocket, "", false, "invalid: event object required");
-        return;
-      }
-      if (!event.id || !event.pubkey || !event.sig || !event.created_at || event.kind === void 0 || !Array.isArray(event.tags) || event.content === void 0 || event.content === null) {
-        this.sendOK(session.webSocket, event.id || "", false, "invalid: missing required fields");
-        return;
-      }
-      if (event.kind === 22242) {
-        this.sendOK(session.webSocket, event.id, false, "invalid: kind 22242 events are for authentication only");
-        return;
-      }
-      if (AUTH_REQUIRED) {
-        if (session.authenticatedPubkeys.size === 0) {
-          this.sendOK(session.webSocket, event.id, false, "auth-required: authenticate to publish events");
-          return;
-        }
-        if (event.kind !== 1059 && !session.authenticatedPubkeys.has(event.pubkey)) {
-          this.sendOK(session.webSocket, event.id, false, "restricted: event pubkey does not match authenticated pubkey");
-          return;
-        }
-      }
-      if (!excludedRateLimitKinds.has(event.kind)) {
-        if (!session.pubkeyRateLimiter.removeToken()) {
-          console.log(`Rate limit exceeded for pubkey ${event.pubkey}`);
-          this.sendOK(session.webSocket, event.id, false, "rate-limited: slow down there chief");
-          return;
-        }
-      }
-      const isValidSignature = await verifyEventSignature(event);
-      if (!isValidSignature) {
-        console.error(`Signature verification failed for event ${event.id}`);
-        this.sendOK(session.webSocket, event.id, false, "invalid: signature verification failed");
-        return;
-      }
-      if (PAY_TO_RELAY_ENABLED && event.kind !== 1059) {
-        let hasPaid = await this.getCachedPaymentStatus(event.pubkey);
-        if (hasPaid === null) {
-          hasPaid = await hasPaidForRelay(event.pubkey, this.env);
-          if (hasPaid !== null) {
-            this.setCachedPaymentStatus(event.pubkey, hasPaid);
+        const authorKey = `author:${event.pubkey}`;
+        if (this.queryCacheIndex.has(authorKey)) {
+          for (const cacheKey of this.queryCacheIndex.get(authorKey)) {
+            keysToInvalidate.add(cacheKey);
           }
         }
-        if (hasPaid !== true) {
-          const protocol = "https:";
-          const relayUrl = `${protocol}//${session.host}`;
-          console.error(`Event denied. Pubkey ${event.pubkey} has not paid for relay access.`);
-          this.sendOK(session.webSocket, event.id, false, `blocked: payment required. Visit ${relayUrl} to pay for relay access.`);
-          return;
-        }
-      }
-      if (event.kind !== 1059 && !isPubkeyAllowed(event.pubkey)) {
-        console.error(`Event denied. Pubkey ${event.pubkey} is not allowed.`);
-        this.sendOK(session.webSocket, event.id, false, "blocked: pubkey not allowed");
-        return;
-      }
-      if (!isEventKindAllowed(event.kind)) {
-        console.error(`Event denied. Event kind ${event.kind} is not allowed.`);
-        this.sendOK(session.webSocket, event.id, false, `blocked: event kind ${event.kind} not allowed`);
-        return;
-      }
-      if (containsBlockedContent(event)) {
-        console.error("Event denied. Content contains blocked phrases.");
-        this.sendOK(session.webSocket, event.id, false, "blocked: content contains blocked phrases");
-        return;
-      }
-      for (const tag of event.tags) {
-        if (!isTagAllowed(tag[0])) {
-          console.error(`Event denied. Tag '${tag[0]}' is not allowed.`);
-          this.sendOK(session.webSocket, event.id, false, `blocked: tag '${tag[0]}' not allowed`);
-          return;
-        }
-      }
-      const result = await processEvent(event, session.id, this.env);
-      if (result.bookmark) {
-        session.bookmark = result.bookmark;
-      }
-      if (result.success) {
-        this.sendOK(session.webSocket, event.id, true, result.message);
-        this.processedEvents.set(event.id, Date.now());
-        this.invalidateRelevantCaches(event);
-        console.log(`DO ${this.doName} broadcasting event ${event.id}`);
-        await this.broadcastEvent(event);
-      } else {
-        this.sendOK(session.webSocket, event.id, false, result.message);
-      }
-    } catch (error) {
-      console.error("Error handling event:", error);
-      this.sendOK(session.webSocket, event?.id || "", false, `error: ${error.message}`);
-    }
-  }
-  async handleReq(session, message) {
-    const [_, subscriptionId, ...filters] = message;
-    if (!subscriptionId || typeof subscriptionId !== "string" || subscriptionId === "" || subscriptionId.length > 64) {
-      this.sendError(session.webSocket, "Invalid subscription ID: must be non-empty string of max 64 chars");
-      return;
-    }
-    if (AUTH_REQUIRED && session.authenticatedPubkeys.size === 0) {
-      this.sendClosed(session.webSocket, subscriptionId, "auth-required: authentication required to subscribe");
-      return;
-    }
-    if (!session.reqRateLimiter.removeToken()) {
-      console.error(`REQ rate limit exceeded for subscription: ${subscriptionId}`);
-      this.sendClosed(session.webSocket, subscriptionId, "rate-limited: slow down there chief");
-      return;
-    }
-    if (filters.length === 0) {
-      this.sendClosed(session.webSocket, subscriptionId, "error: at least one filter required");
-      return;
-    }
-    for (const filter of filters) {
-      if (typeof filter !== "object" || filter === null) {
-        this.sendClosed(session.webSocket, subscriptionId, "invalid: filter must be an object");
-        return;
-      }
-      if (filter.ids) {
-        for (const id of filter.ids) {
-          if (!/^[a-f0-9]{64}$/.test(id)) {
-            this.sendClosed(session.webSocket, subscriptionId, `invalid: Invalid event ID format: ${id}`);
-            return;
+        for (const tag of event.tags) {
+          if (tag.length >= 2) {
+            const tagKey = `tag:${tag[0]}:${tag[1]}`;
+            if (this.queryCacheIndex.has(tagKey)) {
+              for (const cacheKey of this.queryCacheIndex.get(tagKey)) {
+                keysToInvalidate.add(cacheKey);
+              }
+            }
           }
         }
-      }
-      if (filter.authors) {
-        for (const author of filter.authors) {
-          if (!/^[a-f0-9]{64}$/.test(author)) {
-            this.sendClosed(session.webSocket, subscriptionId, `invalid: Invalid author pubkey format: ${author}`);
-            return;
-          }
+        for (const key of keysToInvalidate) {
+          this.queryCache.delete(key);
+          this.removeFromCacheIndex(key);
+        }
+        if (keysToInvalidate.size > 0) {
+          console.log(`Invalidated ${keysToInvalidate.size} local cache entries for event ${event.id} (kind:${event.kind}, author:${event.pubkey.substring(0, 8)}...)`);
         }
       }
-      if (filter.kinds) {
-        const blockedKinds = filter.kinds.filter((kind) => !isEventKindAllowed(kind));
-        if (blockedKinds.length > 0) {
-          console.error(`Blocked kinds in subscription: ${blockedKinds.join(", ")}`);
-          this.sendClosed(session.webSocket, subscriptionId, `blocked: kinds ${blockedKinds.join(", ")} not allowed`);
-          return;
+      async fetch(request) {
+        const url = new URL(request.url);
+        const urlDoName = url.searchParams.get("doName");
+        if (urlDoName && urlDoName !== "unknown" && _RelayWebSocket.ALLOWED_ENDPOINTS.includes(urlDoName)) {
+          this.doName = urlDoName;
         }
-      }
-      if (filter.ids && filter.ids.length > 5e3) {
-        this.sendClosed(session.webSocket, subscriptionId, "invalid: too many event IDs (max 5000)");
-        return;
-      }
-      if (filter.limit && filter.limit > 500) {
-        filter.limit = 500;
-      } else if (!filter.limit) {
-        filter.limit = 500;
-      }
-    }
-    session.subscriptions.set(subscriptionId, filters);
-    await this.saveSubscriptions(session.id, session.subscriptions);
-    console.log(`New subscription ${subscriptionId} for session ${session.id} on DO ${this.doName}`);
-    try {
-      const result = await this.getCachedOrQuery(filters, session.bookmark);
-      if (result.bookmark) {
-        session.bookmark = result.bookmark;
-      }
-      for (const event of result.events) {
-        this.sendEvent(session.webSocket, subscriptionId, event);
-      }
-      this.sendEOSE(session.webSocket, subscriptionId);
-    } catch (error) {
-      console.error(`Error processing REQ for subscription ${subscriptionId}:`, error);
-      this.sendClosed(session.webSocket, subscriptionId, "error: could not connect to the database");
-    }
-  }
-  async handleCloseSubscription(session, subscriptionId) {
-    if (!subscriptionId) {
-      this.sendError(session.webSocket, "Invalid subscription ID for CLOSE");
-      return;
-    }
-    const deleted = session.subscriptions.delete(subscriptionId);
-    if (deleted) {
-      await this.saveSubscriptions(session.id, session.subscriptions);
-      console.log(`Closed subscription ${subscriptionId} for session ${session.id} on DO ${this.doName}`);
-      this.sendClosed(session.webSocket, subscriptionId, "Subscription closed");
-    } else {
-      this.sendClosed(session.webSocket, subscriptionId, "Subscription not found");
-    }
-  }
-  // NIP-42: Handle AUTH message from client
-  async handleAuth(session, authEvent) {
-    try {
-      if (!authEvent || typeof authEvent !== "object") {
-        this.sendOK(session.webSocket, "", false, "invalid: auth event object required");
-        return;
-      }
-      if (!authEvent.id || !authEvent.pubkey || !authEvent.sig || !authEvent.created_at || authEvent.kind === void 0 || !Array.isArray(authEvent.tags) || authEvent.content === void 0) {
-        this.sendOK(session.webSocket, authEvent.id || "", false, "invalid: missing required fields");
-        return;
-      }
-      if (authEvent.kind !== 22242) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: auth event must be kind 22242");
-        return;
-      }
-      const isValidSignature = await verifyEventSignature(authEvent);
-      if (!isValidSignature) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: signature verification failed");
-        return;
-      }
-      const now = Math.floor(Date.now() / 1e3);
-      const timeDiff = Math.abs(now - authEvent.created_at);
-      const timeoutSeconds = AUTH_TIMEOUT_MS / 1e3;
-      if (timeDiff > timeoutSeconds) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: auth event created_at is too far from current time");
-        return;
-      }
-      const challengeTag = authEvent.tags.find((tag) => tag[0] === "challenge");
-      if (!challengeTag || !challengeTag[1]) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: missing challenge tag");
-        return;
-      }
-      if (!session.challenge) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: no challenge was issued");
-        return;
-      }
-      if (challengeTag[1] !== session.challenge) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: challenge mismatch");
-        return;
-      }
-      const relayTag = authEvent.tags.find((tag) => tag[0] === "relay");
-      if (!relayTag || !relayTag[1]) {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: missing relay tag");
-        return;
-      }
-      try {
-        const authRelayUrl = new URL(relayTag[1]);
-        const sessionHost = session.host.toLowerCase().replace(/:\d+$/, "");
-        const authHost = authRelayUrl.host.toLowerCase().replace(/:\d+$/, "");
-        if (authHost !== sessionHost) {
-          this.sendOK(session.webSocket, authEvent.id, false, `invalid: relay URL mismatch (expected ${sessionHost})`);
-          return;
+        if (url.pathname === "/do-broadcast") {
+          return await this.handleDOBroadcast(request);
         }
-      } catch {
-        this.sendOK(session.webSocket, authEvent.id, false, "invalid: malformed relay URL");
-        return;
-      }
-      session.authenticatedPubkeys.add(authEvent.pubkey);
-      session.challenge = this.generateAuthChallenge();
-      if (PAY_TO_RELAY_ENABLED) {
-        const paid = await hasPaidForRelay(authEvent.pubkey, this.env);
-        if (paid !== null) {
-          session.hasPaid = paid;
-          this.setCachedPaymentStatus(authEvent.pubkey, paid);
+        const upgradeHeader = request.headers.get("Upgrade");
+        if (!upgradeHeader || upgradeHeader !== "websocket") {
+          return new Response("Expected Upgrade: websocket", { status: 426 });
         }
-      }
-      this.sendOK(session.webSocket, authEvent.id, true, "");
-    } catch (error) {
-      console.error("Error handling AUTH:", error);
-      this.sendOK(session.webSocket, authEvent?.id || "", false, `error: ${error.message}`);
-    }
-  }
-  async broadcastEvent(event) {
-    await this.broadcastToLocalSessions(event);
-    await this.broadcastToOtherDOs(event);
-  }
-  async broadcastToLocalSessions(event) {
-    let broadcastCount = 0;
-    const activeWebSockets = this.state.getWebSockets();
-    for (const ws of activeWebSockets) {
-      const attachment = ws.deserializeAttachment();
-      if (!attachment)
-        continue;
-      let session = this.sessions.get(attachment.sessionId);
-      if (!session) {
-        const subscriptions = await this.loadSubscriptions(attachment.sessionId);
-        session = {
-          id: attachment.sessionId,
-          webSocket: ws,
-          subscriptions,
+        this.region = url.searchParams.get("region") || this.region || "unknown";
+        const colo = url.searchParams.get("colo") || "default";
+        console.log(`WebSocket connection to DO: ${this.doName} (region: ${this.region}, colo: ${colo})`);
+        const webSocketPair = new WebSocketPair();
+        const [client, server] = Object.values(webSocketPair);
+        const sessionId = crypto.randomUUID();
+        const host = request.headers.get("host") || url.host;
+        const session = {
+          id: sessionId,
+          webSocket: server,
+          subscriptions: /* @__PURE__ */ new Map(),
           pubkeyRateLimiter: new RateLimiter(PUBKEY_RATE_LIMIT.rate, PUBKEY_RATE_LIMIT.capacity),
           reqRateLimiter: new RateLimiter(REQ_RATE_LIMIT.rate, REQ_RATE_LIMIT.capacity),
-          bookmark: attachment.bookmark,
-          host: attachment.host,
-          challenge: attachment.challenge || (AUTH_REQUIRED ? this.generateAuthChallenge() : void 0),
-          authenticatedPubkeys: new Set(attachment.authenticatedPubkeys || []),
-          hasPaid: attachment.hasPaid
+          bookmark: "first-unconstrained",
+          host,
+          challenge: AUTH_REQUIRED ? this.generateAuthChallenge() : void 0,
+          authenticatedPubkeys: /* @__PURE__ */ new Set()
         };
-        this.sessions.set(attachment.sessionId, session);
+        this.sessions.set(sessionId, session);
+        const attachment = {
+          sessionId,
+          bookmark: session.bookmark,
+          host,
+          doName: this.doName,
+          // NIP-42: Persist auth state for hibernation survival
+          authenticatedPubkeys: [],
+          challenge: session.challenge
+        };
+        server.serializeAttachment(attachment);
+        this.state.acceptWebSocket(server);
+        if (AUTH_REQUIRED && session.challenge) {
+          this.sendAuth(server, session.challenge);
+        }
+        this.lastActivityTime = Date.now();
+        await this.scheduleAlarmIfNeeded();
+        console.log(`New WebSocket session: ${sessionId} on DO ${this.doName}`);
+        return new Response(null, {
+          status: 101,
+          webSocket: client
+        });
       }
-      for (const [subscriptionId, filters] of session.subscriptions) {
-        if (this.matchesFilters(event, filters)) {
-          try {
-            this.sendEvent(ws, subscriptionId, event);
-            broadcastCount++;
-          } catch (error) {
-            console.error(`Error broadcasting to subscription ${subscriptionId}:`, error);
+      // WebSocket Hibernation API handler methods
+      async webSocketMessage(ws, message) {
+        this.lastActivityTime = Date.now();
+        const attachment = ws.deserializeAttachment();
+        if (!attachment) {
+          console.error("No session attachment found");
+          ws.close(1011, "Session not found");
+          return;
+        }
+        let session = this.sessions.get(attachment.sessionId);
+        if (!session) {
+          if (attachment.doName && this.doName === "unknown") {
+            this.doName = attachment.doName;
+          }
+          const subscriptions = await this.loadSubscriptions(attachment.sessionId);
+          const restoredPubkeys = new Set(attachment.authenticatedPubkeys || []);
+          const isAuthenticated = restoredPubkeys.size > 0;
+          session = {
+            id: attachment.sessionId,
+            webSocket: ws,
+            subscriptions,
+            pubkeyRateLimiter: new RateLimiter(PUBKEY_RATE_LIMIT.rate, PUBKEY_RATE_LIMIT.capacity),
+            reqRateLimiter: new RateLimiter(REQ_RATE_LIMIT.rate, REQ_RATE_LIMIT.capacity),
+            bookmark: attachment.bookmark,
+            host: attachment.host,
+            // NIP-42: Restore challenge from attachment, or generate new one if not present
+            challenge: attachment.challenge || (AUTH_REQUIRED ? this.generateAuthChallenge() : void 0),
+            authenticatedPubkeys: restoredPubkeys,
+            // Restore payment status from attachment (survives hibernation)
+            hasPaid: attachment.hasPaid
+          };
+          this.sessions.set(attachment.sessionId, session);
+          if (AUTH_REQUIRED && !isAuthenticated && session.challenge) {
+            this.sendAuth(ws, session.challenge);
+          }
+        }
+        try {
+          let parsedMessage;
+          if (typeof message === "string") {
+            parsedMessage = JSON.parse(message);
+          } else {
+            const decoder = new TextDecoder();
+            const text = decoder.decode(message);
+            parsedMessage = JSON.parse(text);
+          }
+          await this.handleMessage(session, parsedMessage);
+          const updatedAttachment = {
+            sessionId: session.id,
+            bookmark: session.bookmark,
+            host: session.host,
+            doName: this.doName,
+            hasPaid: session.hasPaid,
+            authenticatedPubkeys: Array.from(session.authenticatedPubkeys),
+            challenge: session.challenge
+          };
+          ws.serializeAttachment(updatedAttachment);
+        } catch (error) {
+          console.error("Error handling message:", error);
+          if (error instanceof SyntaxError) {
+            this.sendError(ws, "Invalid JSON format");
+          } else {
+            this.sendError(ws, "Failed to process message");
           }
         }
       }
-    }
-    if (broadcastCount > 0) {
-      console.log(`Event ${event.id} broadcast to ${broadcastCount} local subscriptions on DO ${this.doName}`);
-    }
-  }
-  async broadcastToOtherDOs(event) {
-    const broadcasts = [];
-    for (const endpoint of _RelayWebSocket.ALLOWED_ENDPOINTS) {
-      if (endpoint === this.doName)
-        continue;
-      broadcasts.push(this.sendToSpecificDO(endpoint, event));
-    }
-    const results = await Promise.allSettled(
-      broadcasts.map((p) => Promise.race([
-        p,
-        new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("Broadcast timeout")), 3e3)
-        )
-      ]))
-    );
-    const successful = results.filter((r) => r.status === "fulfilled").length;
-    console.log(`Event ${event.id} broadcast from DO ${this.doName} to ${successful}/${broadcasts.length} remote DOs`);
-  }
-  async sendToSpecificDO(doName, event) {
-    try {
-      if (!_RelayWebSocket.ALLOWED_ENDPOINTS.includes(doName)) {
-        throw new Error(`Invalid DO name: ${doName}`);
-      }
-      const id = this.env.RELAY_WEBSOCKET.idFromName(doName);
-      const locationHint = _RelayWebSocket.ENDPOINT_HINTS[doName] || "auto";
-      const stub = this.env.RELAY_WEBSOCKET.get(id, { locationHint });
-      const url = new URL("https://internal/do-broadcast");
-      url.searchParams.set("doName", doName);
-      return await stub.fetch(new Request(url.toString(), {
-        method: "POST",
-        body: JSON.stringify({
-          event,
-          sourceDoId: this.doId
-        })
-      }));
-    } catch (error) {
-      console.error(`Failed to broadcast to ${doName}:`, error);
-      throw error;
-    }
-  }
-  matchesFilters(event, filters) {
-    return filters.some((filter) => this.matchesFilter(event, filter));
-  }
-  matchesFilter(event, filter) {
-    if (filter.ids && filter.ids.length > 0 && !filter.ids.includes(event.id)) {
-      return false;
-    }
-    if (filter.authors && filter.authors.length > 0 && !filter.authors.includes(event.pubkey)) {
-      return false;
-    }
-    if (filter.kinds && filter.kinds.length > 0 && !filter.kinds.includes(event.kind)) {
-      return false;
-    }
-    if (filter.since && event.created_at < filter.since) {
-      return false;
-    }
-    if (filter.until && event.created_at > filter.until) {
-      return false;
-    }
-    for (const [key, values] of Object.entries(filter)) {
-      if (key.startsWith("#") && Array.isArray(values) && values.length > 0) {
-        const tagName = key.substring(1);
-        const eventTagValues = event.tags.filter((tag) => tag[0] === tagName).map((tag) => tag[1]);
-        const hasMatch = values.some((v) => eventTagValues.includes(v));
-        if (!hasMatch) {
-          return false;
+      async webSocketClose(ws, code, reason, wasClean) {
+        const attachment = ws.deserializeAttachment();
+        if (attachment) {
+          console.log(`WebSocket closed: ${attachment.sessionId} on DO ${this.doName}`);
+          this.sessions.delete(attachment.sessionId);
+          await this.deleteSubscriptions(attachment.sessionId);
+          const activeWebSockets = this.state.getWebSockets();
+          if (activeWebSockets.length === 0) {
+            await this.state.storage.deleteAlarm();
+            console.log(`Deleted alarm for DO ${this.doName} - no active connections remaining`);
+          }
         }
       }
-    }
-    return true;
+      async webSocketError(ws, error) {
+        const attachment = ws.deserializeAttachment();
+        if (attachment) {
+          console.error(`WebSocket error for session ${attachment.sessionId}:`, error);
+          this.sessions.delete(attachment.sessionId);
+        }
+      }
+      async handleDOBroadcast(request) {
+        try {
+          const data = await request.json();
+          const { event, sourceDoId } = data;
+          if (this.processedEvents.has(event.id)) {
+            return new Response(JSON.stringify({ success: true, duplicate: true }));
+          }
+          this.processedEvents.set(event.id, Date.now());
+          console.log(`DO ${this.doName} received event ${event.id} from ${sourceDoId}`);
+          this.invalidateRelevantCaches(event);
+          await this.broadcastToLocalSessions(event);
+          const fiveMinutesAgo = Date.now() - 3e5;
+          let cleaned = 0;
+          for (const [eventId, timestamp] of this.processedEvents) {
+            if (timestamp < fiveMinutesAgo) {
+              this.processedEvents.delete(eventId);
+              cleaned++;
+            }
+          }
+          return new Response(JSON.stringify({ success: true }));
+        } catch (error) {
+          console.error("Error handling DO broadcast:", error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+      async handleMessage(session, message) {
+        if (!Array.isArray(message)) {
+          this.sendError(session.webSocket, "Invalid message format: expected JSON array");
+          return;
+        }
+        const [type, ...args] = message;
+        try {
+          switch (type) {
+            case "EVENT":
+              await this.handleEvent(session, args[0]);
+              break;
+            case "REQ":
+              await this.handleReq(session, message);
+              break;
+            case "CLOSE":
+              await this.handleCloseSubscription(session, args[0]);
+              break;
+            case "AUTH":
+              await this.handleAuth(session, args[0]);
+              break;
+            default:
+              this.sendError(session.webSocket, `Unknown message type: ${type}`);
+          }
+        } catch (error) {
+          console.error(`Error handling ${type} message:`, error);
+          this.sendError(session.webSocket, `Failed to process ${type} message`);
+        }
+      }
+      async handleEvent(session, event) {
+        try {
+          if (!event || typeof event !== "object") {
+            this.sendOK(session.webSocket, "", false, "invalid: event object required");
+            return;
+          }
+          if (!event.id || !event.pubkey || !event.sig || !event.created_at || event.kind === void 0 || !Array.isArray(event.tags) || event.content === void 0 || event.content === null) {
+            this.sendOK(session.webSocket, event.id || "", false, "invalid: missing required fields");
+            return;
+          }
+          if (event.kind === 22242) {
+            this.sendOK(session.webSocket, event.id, false, "invalid: kind 22242 events are for authentication only");
+            return;
+          }
+          if (AUTH_REQUIRED) {
+            if (session.authenticatedPubkeys.size === 0) {
+              this.sendOK(session.webSocket, event.id, false, "auth-required: authenticate to publish events");
+              return;
+            }
+            if (event.kind !== 1059 && !session.authenticatedPubkeys.has(event.pubkey)) {
+              this.sendOK(session.webSocket, event.id, false, "restricted: event pubkey does not match authenticated pubkey");
+              return;
+            }
+          }
+          if (!excludedRateLimitKinds.has(event.kind)) {
+            if (!session.pubkeyRateLimiter.removeToken()) {
+              console.log(`Rate limit exceeded for pubkey ${event.pubkey}`);
+              this.sendOK(session.webSocket, event.id, false, "rate-limited: slow down there chief");
+              return;
+            }
+          }
+          const isValidSignature = await verifyEventSignature(event);
+          if (!isValidSignature) {
+            console.error(`Signature verification failed for event ${event.id}`);
+            this.sendOK(session.webSocket, event.id, false, "invalid: signature verification failed");
+            return;
+          }
+          if (PAY_TO_RELAY_ENABLED && event.kind !== 1059) {
+            let hasPaid = await this.getCachedPaymentStatus(event.pubkey);
+            if (hasPaid === null) {
+              hasPaid = await hasPaidForRelay(event.pubkey, this.env);
+              if (hasPaid !== null) {
+                this.setCachedPaymentStatus(event.pubkey, hasPaid);
+              }
+            }
+            if (hasPaid !== true) {
+              const protocol = "https:";
+              const relayUrl = `${protocol}//${session.host}`;
+              console.error(`Event denied. Pubkey ${event.pubkey} has not paid for relay access.`);
+              this.sendOK(session.webSocket, event.id, false, `blocked: payment required. Visit ${relayUrl} to pay for relay access.`);
+              return;
+            }
+          }
+          if (event.kind !== 1059 && !isPubkeyAllowed(event.pubkey)) {
+            console.error(`Event denied. Pubkey ${event.pubkey} is not allowed.`);
+            this.sendOK(session.webSocket, event.id, false, "blocked: pubkey not allowed");
+            return;
+          }
+          if (!isEventKindAllowed(event.kind)) {
+            console.error(`Event denied. Event kind ${event.kind} is not allowed.`);
+            this.sendOK(session.webSocket, event.id, false, `blocked: event kind ${event.kind} not allowed`);
+            return;
+          }
+          if (containsBlockedContent(event)) {
+            console.error("Event denied. Content contains blocked phrases.");
+            this.sendOK(session.webSocket, event.id, false, "blocked: content contains blocked phrases");
+            return;
+          }
+          for (const tag of event.tags) {
+            if (!isTagAllowed(tag[0])) {
+              console.error(`Event denied. Tag '${tag[0]}' is not allowed.`);
+              this.sendOK(session.webSocket, event.id, false, `blocked: tag '${tag[0]}' not allowed`);
+              return;
+            }
+          }
+          const relayCtx = {
+            sessionId: session.id,
+            authenticatedPubkey: session.authenticatedPubkeys.size > 0 ? Array.from(session.authenticatedPubkeys)[0] : void 0,
+            relayUrl: `wss://${session.host}`,
+            connection: { userAgent: "websocket" },
+            _env: this.env
+          };
+          const extension = extensionRegistry.findHandler(event, relayCtx);
+          if (extension && extension.handleEvent) {
+            const extResult = await extension.handleEvent(event, relayCtx);
+            if (extResult.handled && extResult.storeNormally === false) {
+              this.sendOK(session.webSocket, event.id, true, extResult.message || "");
+              return;
+            }
+          }
+          const result = await processEvent(event, session.id, this.env);
+          if (result.bookmark) {
+            session.bookmark = result.bookmark;
+          }
+          if (result.success) {
+            this.sendOK(session.webSocket, event.id, true, result.message);
+            this.processedEvents.set(event.id, Date.now());
+            this.invalidateRelevantCaches(event);
+            console.log(`DO ${this.doName} broadcasting event ${event.id}`);
+            await this.broadcastEvent(event);
+          } else {
+            this.sendOK(session.webSocket, event.id, false, result.message);
+          }
+        } catch (error) {
+          console.error("Error handling event:", error);
+          this.sendOK(session.webSocket, event?.id || "", false, `error: ${error.message}`);
+        }
+      }
+      async handleReq(session, message) {
+        const [_, subscriptionId, ...filters] = message;
+        if (!subscriptionId || typeof subscriptionId !== "string" || subscriptionId === "" || subscriptionId.length > 64) {
+          this.sendError(session.webSocket, "Invalid subscription ID: must be non-empty string of max 64 chars");
+          return;
+        }
+        if (AUTH_REQUIRED && session.authenticatedPubkeys.size === 0) {
+          this.sendClosed(session.webSocket, subscriptionId, "auth-required: authentication required to subscribe");
+          return;
+        }
+        if (!session.reqRateLimiter.removeToken()) {
+          console.error(`REQ rate limit exceeded for subscription: ${subscriptionId}`);
+          this.sendClosed(session.webSocket, subscriptionId, "rate-limited: slow down there chief");
+          return;
+        }
+        if (filters.length === 0) {
+          this.sendClosed(session.webSocket, subscriptionId, "error: at least one filter required");
+          return;
+        }
+        for (const filter of filters) {
+          if (typeof filter !== "object" || filter === null) {
+            this.sendClosed(session.webSocket, subscriptionId, "invalid: filter must be an object");
+            return;
+          }
+          if (filter.ids) {
+            for (const id of filter.ids) {
+              if (!/^[a-f0-9]{64}$/.test(id)) {
+                this.sendClosed(session.webSocket, subscriptionId, `invalid: Invalid event ID format: ${id}`);
+                return;
+              }
+            }
+          }
+          if (filter.authors) {
+            for (const author of filter.authors) {
+              if (!/^[a-f0-9]{64}$/.test(author)) {
+                this.sendClosed(session.webSocket, subscriptionId, `invalid: Invalid author pubkey format: ${author}`);
+                return;
+              }
+            }
+          }
+          if (filter.kinds) {
+            const blockedKinds = filter.kinds.filter((kind) => !isEventKindAllowed(kind));
+            if (blockedKinds.length > 0) {
+              console.error(`Blocked kinds in subscription: ${blockedKinds.join(", ")}`);
+              this.sendClosed(session.webSocket, subscriptionId, `blocked: kinds ${blockedKinds.join(", ")} not allowed`);
+              return;
+            }
+          }
+          if (filter.ids && filter.ids.length > 5e3) {
+            this.sendClosed(session.webSocket, subscriptionId, "invalid: too many event IDs (max 5000)");
+            return;
+          }
+          if (filter.limit && filter.limit > 500) {
+            filter.limit = 500;
+          } else if (!filter.limit) {
+            filter.limit = 500;
+          }
+        }
+        session.subscriptions.set(subscriptionId, filters);
+        await this.saveSubscriptions(session.id, session.subscriptions);
+        console.log(`New subscription ${subscriptionId} for session ${session.id} on DO ${this.doName}`);
+        try {
+          const result = await this.getCachedOrQuery(filters, session.bookmark);
+          if (result.bookmark) {
+            session.bookmark = result.bookmark;
+          }
+          for (const event of result.events) {
+            this.sendEvent(session.webSocket, subscriptionId, event);
+          }
+          this.sendEOSE(session.webSocket, subscriptionId);
+        } catch (error) {
+          console.error(`Error processing REQ for subscription ${subscriptionId}:`, error);
+          this.sendClosed(session.webSocket, subscriptionId, "error: could not connect to the database");
+        }
+      }
+      async handleCloseSubscription(session, subscriptionId) {
+        if (!subscriptionId) {
+          this.sendError(session.webSocket, "Invalid subscription ID for CLOSE");
+          return;
+        }
+        const deleted = session.subscriptions.delete(subscriptionId);
+        if (deleted) {
+          await this.saveSubscriptions(session.id, session.subscriptions);
+          console.log(`Closed subscription ${subscriptionId} for session ${session.id} on DO ${this.doName}`);
+          this.sendClosed(session.webSocket, subscriptionId, "Subscription closed");
+        } else {
+          this.sendClosed(session.webSocket, subscriptionId, "Subscription not found");
+        }
+      }
+      // NIP-42: Handle AUTH message from client
+      async handleAuth(session, authEvent) {
+        try {
+          if (!authEvent || typeof authEvent !== "object") {
+            this.sendOK(session.webSocket, "", false, "invalid: auth event object required");
+            return;
+          }
+          if (!authEvent.id || !authEvent.pubkey || !authEvent.sig || !authEvent.created_at || authEvent.kind === void 0 || !Array.isArray(authEvent.tags) || authEvent.content === void 0) {
+            this.sendOK(session.webSocket, authEvent.id || "", false, "invalid: missing required fields");
+            return;
+          }
+          if (authEvent.kind !== 22242) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: auth event must be kind 22242");
+            return;
+          }
+          const isValidSignature = await verifyEventSignature(authEvent);
+          if (!isValidSignature) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: signature verification failed");
+            return;
+          }
+          const now = Math.floor(Date.now() / 1e3);
+          const timeDiff = Math.abs(now - authEvent.created_at);
+          const timeoutSeconds = AUTH_TIMEOUT_MS / 1e3;
+          if (timeDiff > timeoutSeconds) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: auth event created_at is too far from current time");
+            return;
+          }
+          const challengeTag = authEvent.tags.find((tag) => tag[0] === "challenge");
+          if (!challengeTag || !challengeTag[1]) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: missing challenge tag");
+            return;
+          }
+          if (!session.challenge) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: no challenge was issued");
+            return;
+          }
+          if (challengeTag[1] !== session.challenge) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: challenge mismatch");
+            return;
+          }
+          const relayTag = authEvent.tags.find((tag) => tag[0] === "relay");
+          if (!relayTag || !relayTag[1]) {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: missing relay tag");
+            return;
+          }
+          try {
+            const authRelayUrl = new URL(relayTag[1]);
+            const sessionHost = session.host.toLowerCase().replace(/:\d+$/, "");
+            const authHost = authRelayUrl.host.toLowerCase().replace(/:\d+$/, "");
+            if (authHost !== sessionHost) {
+              this.sendOK(session.webSocket, authEvent.id, false, `invalid: relay URL mismatch (expected ${sessionHost})`);
+              return;
+            }
+          } catch {
+            this.sendOK(session.webSocket, authEvent.id, false, "invalid: malformed relay URL");
+            return;
+          }
+          session.authenticatedPubkeys.add(authEvent.pubkey);
+          session.challenge = this.generateAuthChallenge();
+          if (PAY_TO_RELAY_ENABLED) {
+            const paid = await hasPaidForRelay(authEvent.pubkey, this.env);
+            if (paid !== null) {
+              session.hasPaid = paid;
+              this.setCachedPaymentStatus(authEvent.pubkey, paid);
+            }
+          }
+          this.sendOK(session.webSocket, authEvent.id, true, "");
+        } catch (error) {
+          console.error("Error handling AUTH:", error);
+          this.sendOK(session.webSocket, authEvent?.id || "", false, `error: ${error.message}`);
+        }
+      }
+      async broadcastEvent(event) {
+        await this.broadcastToLocalSessions(event);
+        await this.broadcastToOtherDOs(event);
+      }
+      async broadcastToLocalSessions(event) {
+        let broadcastCount = 0;
+        const activeWebSockets = this.state.getWebSockets();
+        for (const ws of activeWebSockets) {
+          const attachment = ws.deserializeAttachment();
+          if (!attachment)
+            continue;
+          let session = this.sessions.get(attachment.sessionId);
+          if (!session) {
+            const subscriptions = await this.loadSubscriptions(attachment.sessionId);
+            session = {
+              id: attachment.sessionId,
+              webSocket: ws,
+              subscriptions,
+              pubkeyRateLimiter: new RateLimiter(PUBKEY_RATE_LIMIT.rate, PUBKEY_RATE_LIMIT.capacity),
+              reqRateLimiter: new RateLimiter(REQ_RATE_LIMIT.rate, REQ_RATE_LIMIT.capacity),
+              bookmark: attachment.bookmark,
+              host: attachment.host,
+              challenge: attachment.challenge || (AUTH_REQUIRED ? this.generateAuthChallenge() : void 0),
+              authenticatedPubkeys: new Set(attachment.authenticatedPubkeys || []),
+              hasPaid: attachment.hasPaid
+            };
+            this.sessions.set(attachment.sessionId, session);
+          }
+          for (const [subscriptionId, filters] of session.subscriptions) {
+            if (this.matchesFilters(event, filters)) {
+              try {
+                this.sendEvent(ws, subscriptionId, event);
+                broadcastCount++;
+              } catch (error) {
+                console.error(`Error broadcasting to subscription ${subscriptionId}:`, error);
+              }
+            }
+          }
+        }
+        if (broadcastCount > 0) {
+          console.log(`Event ${event.id} broadcast to ${broadcastCount} local subscriptions on DO ${this.doName}`);
+        }
+      }
+      async broadcastToOtherDOs(event) {
+        const broadcasts = [];
+        for (const endpoint of _RelayWebSocket.ALLOWED_ENDPOINTS) {
+          if (endpoint === this.doName)
+            continue;
+          broadcasts.push(this.sendToSpecificDO(endpoint, event));
+        }
+        const results = await Promise.allSettled(
+          broadcasts.map((p) => Promise.race([
+            p,
+            new Promise(
+              (_, reject) => setTimeout(() => reject(new Error("Broadcast timeout")), 3e3)
+            )
+          ]))
+        );
+        const successful = results.filter((r) => r.status === "fulfilled").length;
+        console.log(`Event ${event.id} broadcast from DO ${this.doName} to ${successful}/${broadcasts.length} remote DOs`);
+      }
+      async sendToSpecificDO(doName, event) {
+        try {
+          if (!_RelayWebSocket.ALLOWED_ENDPOINTS.includes(doName)) {
+            throw new Error(`Invalid DO name: ${doName}`);
+          }
+          const id = this.env.RELAY_WEBSOCKET.idFromName(doName);
+          const locationHint = _RelayWebSocket.ENDPOINT_HINTS[doName] || "auto";
+          const stub = this.env.RELAY_WEBSOCKET.get(id, { locationHint });
+          const url = new URL("https://internal/do-broadcast");
+          url.searchParams.set("doName", doName);
+          return await stub.fetch(new Request(url.toString(), {
+            method: "POST",
+            body: JSON.stringify({
+              event,
+              sourceDoId: this.doId
+            })
+          }));
+        } catch (error) {
+          console.error(`Failed to broadcast to ${doName}:`, error);
+          throw error;
+        }
+      }
+      matchesFilters(event, filters) {
+        return filters.some((filter) => this.matchesFilter(event, filter));
+      }
+      matchesFilter(event, filter) {
+        if (filter.ids && filter.ids.length > 0 && !filter.ids.includes(event.id)) {
+          return false;
+        }
+        if (filter.authors && filter.authors.length > 0 && !filter.authors.includes(event.pubkey)) {
+          return false;
+        }
+        if (filter.kinds && filter.kinds.length > 0 && !filter.kinds.includes(event.kind)) {
+          return false;
+        }
+        if (filter.since && event.created_at < filter.since) {
+          return false;
+        }
+        if (filter.until && event.created_at > filter.until) {
+          return false;
+        }
+        for (const [key, values] of Object.entries(filter)) {
+          if (key.startsWith("#") && Array.isArray(values) && values.length > 0) {
+            const tagName = key.substring(1);
+            const eventTagValues = event.tags.filter((tag) => tag[0] === tagName).map((tag) => tag[1]);
+            const hasMatch = values.some((v) => eventTagValues.includes(v));
+            if (!hasMatch) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      // NIP-42: Send AUTH challenge to client
+      sendAuth(ws, challenge2) {
+        try {
+          const authMessage = ["AUTH", challenge2];
+          ws.send(JSON.stringify(authMessage));
+        } catch (error) {
+          console.error("Error sending AUTH:", error);
+        }
+      }
+      // NIP-42: Generate a cryptographically secure challenge string
+      generateAuthChallenge() {
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+      sendOK(ws, eventId, status, message) {
+        try {
+          const okMessage = ["OK", eventId, status, message || ""];
+          ws.send(JSON.stringify(okMessage));
+        } catch (error) {
+          console.error("Error sending OK:", error);
+        }
+      }
+      sendError(ws, message) {
+        try {
+          const noticeMessage = ["NOTICE", message];
+          ws.send(JSON.stringify(noticeMessage));
+        } catch (error) {
+          console.error("Error sending NOTICE:", error);
+        }
+      }
+      sendEOSE(ws, subscriptionId) {
+        try {
+          const eoseMessage = ["EOSE", subscriptionId];
+          ws.send(JSON.stringify(eoseMessage));
+        } catch (error) {
+          console.error("Error sending EOSE:", error);
+        }
+      }
+      sendClosed(ws, subscriptionId, message) {
+        try {
+          const closedMessage = ["CLOSED", subscriptionId, message];
+          ws.send(JSON.stringify(closedMessage));
+        } catch (error) {
+          console.error("Error sending CLOSED:", error);
+        }
+      }
+      sendEvent(ws, subscriptionId, event) {
+        try {
+          const eventMessage = ["EVENT", subscriptionId, event];
+          ws.send(JSON.stringify(eventMessage));
+        } catch (error) {
+          console.error("Error sending EVENT:", error);
+        }
+      }
+    };
+    __name(_RelayWebSocket, "RelayWebSocket");
+    // Define allowed endpoints
+    _RelayWebSocket.ALLOWED_ENDPOINTS = [
+      "relay-WNAM-primary",
+      // Western North America
+      "relay-ENAM-primary",
+      // Eastern North America
+      "relay-WEUR-primary",
+      // Western Europe
+      "relay-EEUR-primary",
+      // Eastern Europe
+      "relay-APAC-primary",
+      // Asia-Pacific
+      "relay-OC-primary",
+      // Oceania
+      "relay-SAM-primary",
+      // South America (redirects to enam)
+      "relay-AFR-primary",
+      // Africa (redirects to weur)
+      "relay-ME-primary"
+      // Middle East (redirects to eeur)
+    ];
+    // Map endpoints to their proper location hints
+    _RelayWebSocket.ENDPOINT_HINTS = {
+      "relay-WNAM-primary": "wnam",
+      "relay-ENAM-primary": "enam",
+      "relay-WEUR-primary": "weur",
+      "relay-EEUR-primary": "eeur",
+      "relay-APAC-primary": "apac",
+      "relay-OC-primary": "oc",
+      "relay-SAM-primary": "enam",
+      // SAM redirects to ENAM
+      "relay-AFR-primary": "weur",
+      // AFR redirects to WEUR
+      "relay-ME-primary": "eeur"
+      // ME redirects to EEUR
+    };
+    RelayWebSocket = _RelayWebSocket;
   }
-  // NIP-42: Send AUTH challenge to client
-  sendAuth(ws, challenge2) {
-    try {
-      const authMessage = ["AUTH", challenge2];
-      ws.send(JSON.stringify(authMessage));
-    } catch (error) {
-      console.error("Error sending AUTH:", error);
-    }
-  }
-  // NIP-42: Generate a cryptographically secure challenge string
-  generateAuthChallenge() {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-  sendOK(ws, eventId, status, message) {
-    try {
-      const okMessage = ["OK", eventId, status, message || ""];
-      ws.send(JSON.stringify(okMessage));
-    } catch (error) {
-      console.error("Error sending OK:", error);
-    }
-  }
-  sendError(ws, message) {
-    try {
-      const noticeMessage = ["NOTICE", message];
-      ws.send(JSON.stringify(noticeMessage));
-    } catch (error) {
-      console.error("Error sending NOTICE:", error);
-    }
-  }
-  sendEOSE(ws, subscriptionId) {
-    try {
-      const eoseMessage = ["EOSE", subscriptionId];
-      ws.send(JSON.stringify(eoseMessage));
-    } catch (error) {
-      console.error("Error sending EOSE:", error);
-    }
-  }
-  sendClosed(ws, subscriptionId, message) {
-    try {
-      const closedMessage = ["CLOSED", subscriptionId, message];
-      ws.send(JSON.stringify(closedMessage));
-    } catch (error) {
-      console.error("Error sending CLOSED:", error);
-    }
-  }
-  sendEvent(ws, subscriptionId, event) {
-    try {
-      const eventMessage = ["EVENT", subscriptionId, event];
-      ws.send(JSON.stringify(eventMessage));
-    } catch (error) {
-      console.error("Error sending EVENT:", error);
-    }
-  }
-};
-__name(_RelayWebSocket, "RelayWebSocket");
-// Define allowed endpoints
-_RelayWebSocket.ALLOWED_ENDPOINTS = [
-  "relay-WNAM-primary",
-  // Western North America
-  "relay-ENAM-primary",
-  // Eastern North America
-  "relay-WEUR-primary",
-  // Western Europe
-  "relay-EEUR-primary",
-  // Eastern Europe
-  "relay-APAC-primary",
-  // Asia-Pacific
-  "relay-OC-primary",
-  // Oceania
-  "relay-SAM-primary",
-  // South America (redirects to enam)
-  "relay-AFR-primary",
-  // Africa (redirects to weur)
-  "relay-ME-primary"
-  // Middle East (redirects to eeur)
-];
-// Map endpoints to their proper location hints
-_RelayWebSocket.ENDPOINT_HINTS = {
-  "relay-WNAM-primary": "wnam",
-  "relay-ENAM-primary": "enam",
-  "relay-WEUR-primary": "weur",
-  "relay-EEUR-primary": "eeur",
-  "relay-APAC-primary": "apac",
-  "relay-OC-primary": "oc",
-  "relay-SAM-primary": "enam",
-  // SAM redirects to ENAM
-  "relay-AFR-primary": "weur",
-  // AFR redirects to WEUR
-  "relay-ME-primary": "eeur"
-  // ME redirects to EEUR
-};
-var RelayWebSocket = _RelayWebSocket;
+});
+
+// src/index.ts
+init_durable_object();
+init_relay_worker();
 export {
   RelayWebSocket,
   relay_worker_default as default
@@ -6224,4 +8842,7 @@ export {
 
 @noble/curves/esm/secp256k1.js:
   (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/ciphers/utils.js:
+  (*! noble-ciphers - MIT License (c) 2023 Paul Miller (paulmillr.com) *)
 */

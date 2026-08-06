@@ -2,6 +2,7 @@ import { schnorr } from "@noble/curves/secp256k1.js";
 import { Env, NostrEvent, NostrFilter, QueryResult, NostrMessage, Nip05Response } from './types';
 import * as config from './config';
 import { RelayWebSocket } from './durable-object';
+import { initOpenDating, getOpenDatingNip11Advertisement } from './protocols/opendating/index.js';
 
 // Import config values
 const {
@@ -1733,7 +1734,7 @@ async function queryEvents(filters: NostrFilter[], bookmark: string, env: Env): 
 }
 
 function handleRelayInfoRequest(request: Request): Response {
-  const responseInfo = { ...relayInfo };
+  const responseInfo: Record<string, unknown> = { ...relayInfo };
 
   if (PAY_TO_RELAY_ENABLED) {
     const url = new URL(request.url);
@@ -1741,6 +1742,16 @@ function handleRelayInfoRequest(request: Request): Response {
     responseInfo.fees = {
       admission: [{ amount: RELAY_ACCESS_PRICE_SATS * 1000, unit: "msats" }]
     };
+  }
+
+  // Add OpenDating advertisement if services are loaded
+  try {
+    const odAd = getOpenDatingNip11Advertisement();
+    if (odAd && odAd.opendating) {
+      Object.assign(responseInfo, odAd);
+    }
+  } catch (_) {
+    // OpenDating not initialized — skip advertisement
   }
 
   return new Response(JSON.stringify(responseInfo), {
@@ -2510,6 +2521,18 @@ export default {
             initializeDatabase(env.RELAY_DATABASE)
               .catch(e => console.error("DB init error:", e))
           );
+
+          // Initialize OpenDating protocol (non-blocking)
+          ctx.waitUntil(
+            (async () => {
+              try {
+                initOpenDating(env as any, env.RELAY_DATABASE);
+              } catch (e) {
+                console.error("OpenDating init error:", e);
+              }
+            })()
+          );
+
           return serveLandingPage();
         }
       } else if (url.pathname === "/.well-known/nostr.json") {
