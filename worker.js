@@ -4372,17 +4372,17 @@ ${text.slice(0, 2e3)}
 """` }
       ],
       max_tokens: 256,
-      temperature: 0,
-      response_format: { type: "json_object" }
+      temperature: 0
     });
-    const parsed = JSON.parse(
-      response.response || response.choices?.[0]?.message?.content || "{}"
-    );
+    let raw = response.response ?? response.choices?.[0]?.message?.content ?? "{}";
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const action = parsed.action;
+    const recommendation = action === "flag" ? "flag" : action === "block" ? "block" : "allow";
     return {
-      passed: parsed.action === "allow",
-      flags: parsed.categories || [],
+      passed: recommendation === "allow",
+      flags: Array.isArray(parsed.categories) ? parsed.categories : [],
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
-      recommendation: parsed.action || "allow",
+      recommendation,
       explanation: parsed.reason || "No explanation provided"
     };
   } catch (err) {
@@ -4397,24 +4397,23 @@ var SYSTEM_PROMPT;
 var init_moderation = __esm({
   "src/cloudflare/moderation.ts"() {
     "use strict";
-    SYSTEM_PROMPT = `You are a content moderation classifier for a dating app. Analyze the text and classify it.
+    SYSTEM_PROMPT = `You are a content moderation classifier. Output ONLY a JSON object, no other text.
 
-Return ONLY a JSON object with these fields:
 {
-  "is_harmful": boolean,
-  "categories": string[],  // zero or more of: "harassment", "hate_speech", "sexual_content", "spam", "violence", "personal_info", "self_harm", "underage", "impersonation", "commercial"
-  "confidence": number,   // 0.0 to 1.0
-  "action": "allow" | "flag" | "block",
-  "reason": string        // one sentence explaining the decision
+  "is_harmful": false,
+  "categories": [],
+  "confidence": 0.95,
+  "action": "allow",
+  "reason": "brief explanation"
 }
 
-Rules:
-- "block" = clearly violates policies (harassment, hate speech, explicit sexual content, underage content, doxxing)
-- "flag" = potentially problematic, needs human review (ambiguous, mildly suggestive)
-- "allow" = clearly safe, normal dating profile content
-- Dating-appropriate content (flirting, describing oneself, relationship preferences) is ALLOWED
-- Sexual orientation, gender identity discussion is ALLOWED
-- Mentioning wanting a relationship, dating preferences is ALLOWED`;
+RULES:
+- "action" is "allow", "flag", or "block"
+- "categories" is a list: harassment, hate_speech, sexual_content, spam, violence, personal_info, self_harm, underage, impersonation, commercial
+- Dating-appropriate content (flirting, describing oneself, relationship preferences, sexual orientation, gender identity) is ALLOWED
+- Only BLOCK: harassment, hate speech, underage content, doxxing, explicit sexual content
+- FLAG borderline cases that need human review
+- "confidence" is 0.0 to 1.0`;
     __name(moderateContent, "moderateContent");
     __name(shouldBlock, "shouldBlock");
   }
