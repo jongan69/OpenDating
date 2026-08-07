@@ -275,15 +275,25 @@ export const openDatingExtension: RelayExtension = {
         // Moderation blocked this content — return error to client
         const errMsg = (modErr as Error).message || 'Content rejected by moderation';
         const env = (context as any)._env;
+        let rejection: NostrEvent | null = null;
         if (env) {
           const errorEnvelope = createErrorEnvelope(
             envelope.request_id,
             'content_rejected',
             errMsg,
           );
-          await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env);
+          rejection = await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env);
         }
-        return { handled: true, storeNormally: false, message: errMsg };
+        // The rejection has to be broadcast like any other reply. Persisting
+        // it alone left the client waiting out its full timeout, so a blocked
+        // profile surfaced as "request timed out" instead of telling the
+        // member what was wrong with what they wrote.
+        return {
+          handled: true,
+          storeNormally: false,
+          message: errMsg,
+          publish: rejection ? [rejection] : undefined,
+        };
       }
     }
 

@@ -4591,15 +4591,21 @@ var init_extension = __esm({
           } catch (modErr) {
             const errMsg = modErr.message || "Content rejected by moderation";
             const env2 = context._env;
+            let rejection = null;
             if (env2) {
               const errorEnvelope = createErrorEnvelope(
                 envelope.request_id,
                 "content_rejected",
                 errMsg
               );
-              await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env2);
+              rejection = await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env2);
             }
-            return { handled: true, storeNormally: false, message: errMsg };
+            return {
+              handled: true,
+              storeNormally: false,
+              message: errMsg,
+              publish: rejection ? [rejection] : void 0
+            };
           }
         }
         const transportCtx = {
