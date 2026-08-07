@@ -167,6 +167,11 @@ class LiveClient {
 
       const rumorJson = nip44Decrypt(seal.content, this.privkey, seal.pubkey);
       const rumor = JSON.parse(rumorJson);
+
+      if (rumor.kind === 14) {
+        this.deliverDM(seal.pubkey, rumor.content);
+        return;
+      }
       if (rumor.kind !== 78) return;
 
       const envelope = JSON.parse(rumor.content) as Envelope;
@@ -217,6 +222,51 @@ class LiveClient {
     return response;
   }
 
+  /**
+   * Send a NIP-17 direct message. Two wraps, matching the mobile client: one
+   * to the recipient, one to ourselves, since the recipient's copy is
+   * encrypted to them alone and would otherwise be unrecoverable after a
+   * restart.
+   */
+  async sendDM(recipientPubkey: string, text: string): Promise<void> {
+    const rumor = JSON.stringify({
+      text,
+      to: recipientPubkey,
+      created_at: Math.floor(Date.now() / 1000),
+    });
+    for (const audience of [recipientPubkey, this.pubkey]) {
+      const { giftWrap } = await buildGiftWrap(
+        14, rumor, this.privkey, this.pubkey, audience,
+      );
+      this.ws?.send(JSON.stringify(['EVENT', giftWrap]));
+    }
+  }
+
+  /** Resolve when a kind-14 DM arrives, or reject on timeout. */
+  waitForDM(timeoutMs = 25_000): Promise<{ from: string; text: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('No DM received')), timeoutMs);
+      this.dmWaiter = (msg) => {
+        clearTimeout(timer);
+        resolve(msg);
+      };
+    });
+  }
+
+  private dmWaiter: ((m: { from: string; text: string }) => void) | null = null;
+
+  /** Called from onGiftWrap for kind-14 rumors. */
+  private deliverDM(from: string, content: string): void {
+    let text = content;
+    try {
+      const parsed = JSON.parse(content) as { text?: string };
+      if (typeof parsed.text === 'string') text = parsed.text;
+    } catch {
+      /* bare text */
+    }
+    this.dmWaiter?.({ from, text });
+  }
+
   close(): void {
     for (const [, p] of this.pending) clearTimeout(p.timer);
     this.ws?.close();
@@ -230,8 +280,52 @@ function arg(name: string, fallback = ''): string {
   return i !== -1 ? process.argv[i + 1] : fallback;
 }
 
+/**
+ * Two matched members exchange a NIP-17 message.
+ * Messages are pure relay transport (kind 1059) — no service is involved —
+ * so this checks the relay stores and forwards gift wraps between members.
+ */
+async function runDmTest(): Promise<void> {
+  const { derivePublicKey } = await import('../src/protocols/opendating/crypto/service-signer.js');
+  const aPriv = arg('from', '1111111111111111111111111111111111111111111111111111111111111111');
+  const bPriv = arg('to', '2222222222222222222222222222222222222222222222222222222222222222');
+  const a = new LiveClient(aPriv, derivePublicKey(aPriv));
+  const b = new LiveClient(bPriv, derivePublicKey(bPriv));
+
+  console.log(`  sender    ${a.pubkey.substring(0, 16)}…`);
+  console.log(`  recipient ${b.pubkey.substring(0, 16)}…\n`);
+
+  await Promise.all([a.connect(), b.connect()]);
+  await new Promise((r) => setTimeout(r, 3000)); // NIP-42 + subscription
+
+  const waiting = b.waitForDM();
+  const text = `hello from the harness at ${new Date().toISOString()}`;
+  log('sending DM', text.substring(0, 40) + '…');
+  await a.sendDM(b.pubkey, text);
+
+  try {
+    const received = await waiting;
+    log('received', `"${received.text.substring(0, 40)}…"`);
+    log('sender verified', received.from === a.pubkey ? 'yes' : `NO (got ${received.from.substring(0, 12)}…)`);
+    console.log('\n✅ NIP-17 delivery works\n');
+  } catch (err) {
+    console.error(`\n❌ ${(err as Error).message} — messaging is broken\n`);
+    process.exitCode = 1;
+  } finally {
+    a.close();
+    b.close();
+    setTimeout(() => process.exit(process.exitCode ?? 0), 250);
+  }
+}
+
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'verify';
+
+  if (command === 'dm') {
+    console.log('\nOpenDating live client — dm\n');
+    await runDmTest();
+    return;
+  }
 
   const privkey = arg('key') || generateKeypair().privateKey;
   const { derivePublicKey } = await import('../src/protocols/opendating/crypto/service-signer.js');
