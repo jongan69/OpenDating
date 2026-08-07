@@ -20,9 +20,11 @@ import {
   generateKeypair,
   nip44Decrypt,
   signEvent,
+  bytesToHex,
 } from '../src/protocols/opendating/crypto/encryption.js';
 import { buildGiftWrap } from '../src/protocols/opendating/crypto/gift-wrap.js';
 import { createEnvelope } from '../src/protocols/opendating/protocol/envelope.js';
+import { sha256 } from '@noble/hashes/sha256';
 
 const RELAY_WS = process.env.OD_RELAY_WS ?? 'wss://opendating-relay.jonathang132298.workers.dev';
 const RELAY_HTTP = process.env.OD_RELAY_HTTP ?? 'https://opendating-relay.jonathang132298.workers.dev';
@@ -318,12 +320,129 @@ async function runDmTest(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Blossom upload
+// ---------------------------------------------------------------------------
+
+/** Minimal valid 1×1 white PNG — 68 bytes, valid image. */
+const MINI_PNG = Uint8Array.from([
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+  0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+  0x00, 0x00, 0x03, 0x00, 0x01, 0x1C, 0xF0, 0x02, 0x0F, 0x00, 0x00, 0x00,
+  0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+]);
+
+async function runUpload(): Promise<void> {
+  const fs = await import('node:fs');
+  const privkey = arg('key') || generateKeypair().privateKey;
+  const { derivePublicKey } = await import('../src/protocols/opendating/crypto/service-signer.js');
+  const pubkey = derivePublicKey(privkey);
+  const filePath = arg('file', '');
+  const shouldCleanup = process.argv.includes('--delete');
+
+  const bytes = filePath
+    ? fs.readFileSync(filePath)
+    : MINI_PNG;
+  const hash = bytesToHex(sha256(bytes));
+
+  console.log(`\nOpenDating live client — upload${shouldCleanup ? ' (then delete)' : ''}`);
+  console.log(`  pubkey  ${pubkey}`);
+  console.log(`  file    ${filePath || '<embedded 1×1 PNG>'}`);
+  console.log(`  size    ${bytes.length} bytes`);
+  console.log(`  hash    ${hash}\n`);
+
+  // Build kind-24242 authorization event (BUD-01)
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = {
+    pubkey,
+    created_at: now,
+    kind: 24242,
+    tags: [
+      ['t', 'upload'],
+      ['expiration', String(now + 300)],
+      ['x', hash],
+    ],
+    content: '',
+  };
+  const { id, sig } = signEvent(unsigned as any, privkey);
+  const authEvent = { ...unsigned, id, sig };
+  const authHeader = `Nostr ${btoa(JSON.stringify(authEvent))}`;
+
+  // Upload
+  log('upload', 'PUT /upload');
+  const putRes = await fetch(`${RELAY_HTTP}/upload`, {
+    method: 'PUT',
+    headers: {
+      Authorization: authHeader,
+      'Content-Type': 'image/png',
+      'Content-Length': String(bytes.length),
+    },
+    body: bytes,
+  });
+
+  if (putRes.status !== 201) {
+    const errBody = await putRes.text().catch(() => '');
+    throw new Error(`Upload failed: HTTP ${putRes.status} ${errBody}`);
+  }
+
+  const descriptor = await putRes.json() as { url: string; sha256: string; size: number; type: string };
+  log('stored', `${descriptor.url} (${descriptor.size}B ${descriptor.type})`);
+
+  // Verify retrieval
+  log('fetch', `GET ${descriptor.url}`);
+  const getRes = await fetch(descriptor.url);
+  if (getRes.status !== 200) {
+    throw new Error(`GET failed: HTTP ${getRes.status}`);
+  }
+  const fetched = new Uint8Array(await getRes.arrayBuffer());
+  if (fetched.length !== bytes.length) {
+    throw new Error(`Size mismatch: stored ${bytes.length}, fetched ${fetched.length}`);
+  }
+  for (let i = 0; i < bytes.length; i++) {
+    if (fetched[i] !== bytes[i]) throw new Error(`Byte mismatch at offset ${i}`);
+  }
+  log('verified', `bytes match (${fetched.length}B)`);
+
+  // Verify HEAD
+  const headRes = await fetch(descriptor.url, { method: 'HEAD' });
+  if (headRes.status !== 200) throw new Error(`HEAD failed: HTTP ${headRes.status}`);
+  log('head', '200 OK');
+
+  // Cleanup
+  if (shouldCleanup) {
+    const delUnsigned = {
+      pubkey, created_at: now, kind: 24242,
+      tags: [['t', 'delete'], ['expiration', String(now + 300)], ['x', hash]],
+      content: '',
+    };
+    const delSigned = signEvent(delUnsigned as any, privkey);
+    const delAuth = `Nostr ${btoa(JSON.stringify({ ...delUnsigned, id: delSigned.id, sig: delSigned.sig }))}`;
+    const delRes = await fetch(`${RELAY_HTTP}/${hash}`, {
+      method: 'DELETE', headers: { Authorization: delAuth },
+    });
+    if (delRes.status !== 200) {
+      console.log(`  delete ${delRes.status} (non-fatal)`);
+    } else {
+      log('deleted', hash);
+    }
+  }
+
+  console.log('\n✅ Blossom upload works\n');
+}
+
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'verify';
 
   if (command === 'dm') {
     console.log('\nOpenDating live client — dm\n');
     await runDmTest();
+    return;
+  }
+
+  if (command === 'upload') {
+    await runUpload();
     return;
   }
 

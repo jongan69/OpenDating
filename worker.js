@@ -5194,6 +5194,59 @@ var init_membership = __esm({
         }
       }
       /**
+       * Batch-recover pubkeys for a page of candidates.
+       *
+       * One D1 round trip instead of N — the hot path in discovery. Decryption
+       * is still per-row (AES-GCM) but that is CPU-bound and parallelisable.
+       */
+      async getPubkeysByMemberIds(memberIds) {
+        const result = /* @__PURE__ */ new Map();
+        if (memberIds.length === 0)
+          return result;
+        const placeholders = memberIds.map(() => "?").join(",");
+        const session = this.db.withSession("first-unconstrained");
+        const rows = await session.prepare(
+          `SELECT member_id, encrypted_pubkey FROM od_members
+        WHERE member_id IN (${placeholders}) AND status = 'active'`
+        ).bind(...memberIds).all();
+        const dk = await this.ensureDataKey();
+        for (const row of rows.results ?? []) {
+          try {
+            const pubkey = await decryptString(row.encrypted_pubkey, dk);
+            result.set(row.member_id, pubkey);
+          } catch {
+          }
+        }
+        return result;
+      }
+      /**
+       * Batch-decrypt profile content for a page of candidates.
+       *
+       * One D1 round trip instead of N. Decryption per row, CPU-bound.
+       */
+      async getProfileContentsByMemberIds(memberIds) {
+        const result = /* @__PURE__ */ new Map();
+        if (memberIds.length === 0)
+          return result;
+        const placeholders = memberIds.map(() => "?").join(",");
+        const session = this.db.withSession("first-unconstrained");
+        const rows = await session.prepare(
+          `SELECT member_id, encrypted_profile_payload FROM od_profiles
+        WHERE member_id IN (${placeholders})`
+        ).bind(...memberIds).all();
+        const dk = await this.ensureDataKey();
+        for (const row of rows.results ?? []) {
+          const blob = row.encrypted_profile_payload;
+          if (typeof blob !== "string" || blob.length === 0)
+            continue;
+          try {
+            result.set(row.member_id, JSON.parse(await decryptString(blob, dk)));
+          } catch {
+          }
+        }
+        return result;
+      }
+      /**
        * Mirror a member's filterable attributes into the discovery index.
        *
        * `od_discovery_index` is the denormalised table discovery scans, so it has
@@ -5419,6 +5472,15 @@ var init_service2 = __esm({
 });
 
 // src/protocols/opendating/services/discovery/service.ts
+function encodeBase64url(input) {
+  return btoa(input).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeBase64url(input) {
+  let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4)
+    base64 += "=";
+  return atob(base64);
+}
 function clampAge(value, fallback) {
   if (typeof value !== "number" || !Number.isFinite(value))
     return fallback;
@@ -5578,6 +5640,16 @@ var init_service3 = __esm({
           CANDIDATE_BATCH_SIZE
         );
         const now = Math.floor(Date.now() / 1e3);
+        let cursorAfter = null;
+        if (typeof payload.cursor === "string" && payload.cursor) {
+          try {
+            const decoded = JSON.parse(decodeBase64url(payload.cursor));
+            if (typeof decoded.granted_at === "number" && typeof decoded.candidate_id === "string") {
+              cursorAfter = decoded;
+            }
+          } catch {
+          }
+        }
         const quota = await this.consumeQuota(memberId, now);
         if (quota.exhausted) {
           return { response: createErrorEnvelope(
@@ -5594,7 +5666,7 @@ var init_service3 = __esm({
             "Set your location before discovering people nearby"
           ) };
         }
-        let granted = await this.loadExistingGrants(memberId, now, limit);
+        let granted = await this.loadExistingGrants(memberId, now, limit, cursorAfter);
         if (granted.length < limit) {
           const fresh = await this.generateGrants(
             memberId,
@@ -5607,10 +5679,18 @@ var init_service3 = __esm({
         const candidates = await this.hydrate(granted);
         const served = quota.servedToday + candidates.length;
         await this.recordServed(memberId, served, quota.resetAt, now);
+        let nextCursor = null;
+        if (candidates.length >= limit && granted.length > 0) {
+          const last = granted[granted.length - 1];
+          nextCursor = encodeBase64url(JSON.stringify({
+            granted_at: last.granted_at ?? now,
+            candidate_id: last.candidate_id
+          }));
+        }
         return {
           response: createEnvelope("discovery.get_candidates.result", request.request_id, {
             candidates,
-            cursor: null,
+            cursor: nextCursor,
             remaining_today: Math.max(MAX_DAILY_CANDIDATES - served, 0)
           })
         };
@@ -5651,10 +5731,19 @@ var init_service3 = __esm({
           }
         };
       }
-      async loadExistingGrants(memberId, now, limit) {
+      async loadExistingGrants(memberId, now, limit, cursorAfter) {
         const session = this.db.withSession("first-unconstrained");
+        if (cursorAfter) {
+          const rows2 = await session.prepare(
+            `SELECT candidate_id, grant_token, distance_bucket, granted_at FROM od_candidate_grants
+          WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
+            AND (granted_at < ? OR (granted_at = ? AND candidate_id > ?))
+          ORDER BY granted_at DESC, candidate_id ASC LIMIT ?`
+          ).bind(memberId, now, cursorAfter.granted_at, cursorAfter.granted_at, cursorAfter.candidate_id, limit).all();
+          return rows2.results ?? [];
+        }
         const rows = await session.prepare(
-          `SELECT candidate_id, grant_token, distance_bucket FROM od_candidate_grants
+          `SELECT candidate_id, grant_token, distance_bucket, granted_at FROM od_candidate_grants
         WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
         ORDER BY granted_at DESC LIMIT ?`
         ).bind(memberId, now, limit).all();
@@ -5729,7 +5818,8 @@ var init_service3 = __esm({
             collected.push({
               candidate_id: raw.member_id,
               grant_token: grantToken(memberId, raw.member_id, now),
-              distance_bucket: tier.bucket
+              distance_bucket: tier.bucket,
+              granted_at: now
             });
             if (collected.length >= want)
               break;
@@ -5767,14 +5857,23 @@ var init_service3 = __esm({
        * The pubkey has to be returned — a like is addressed to `target_pubkey`
        * and a direct message is encrypted to it, so a pseudonymous member id
        * alone leaves the viewer unable to act on anyone they are shown.
+       *
+       * Batch-hydrates in 2 D1 queries regardless of page size (was 2N).
        */
       async hydrate(grants) {
+        if (grants.length === 0)
+          return [];
+        const memberIds = [...new Set(grants.map((g) => g.candidate_id))];
+        const [pubkeyMap, profileMap] = await Promise.all([
+          this.membership.getPubkeysByMemberIds(memberIds),
+          this.membership.getProfileContentsByMemberIds(memberIds)
+        ]);
         const out = [];
         for (const grant of grants) {
-          const pubkey = await this.membership.getPubkeyByMemberId(grant.candidate_id);
+          const pubkey = pubkeyMap.get(grant.candidate_id);
           if (!pubkey)
             continue;
-          const content = await this.membership.getProfileContentByMemberId(grant.candidate_id);
+          const content = profileMap.get(grant.candidate_id);
           if (!content)
             continue;
           out.push({
@@ -5818,6 +5917,8 @@ var init_service3 = __esm({
     };
     __name(_DiscoveryService, "DiscoveryService");
     DiscoveryService = _DiscoveryService;
+    __name(encodeBase64url, "encodeBase64url");
+    __name(decodeBase64url, "decodeBase64url");
     __name(clampAge, "clampAge");
     __name(grantToken, "grantToken");
     __name(publicProfile, "publicProfile");
@@ -5832,7 +5933,7 @@ function deterministicMatchId(pubkeyA, pubkeyB) {
 function intentId(fromPubkey, toPubkey, type) {
   return bytesToHex2(sha2562(new TextEncoder().encode(fromPubkey + toPubkey + type)));
 }
-var LIKE_EXPIRY_SEC, _MatcherService, MatcherService;
+var LIKE_EXPIRY_SEC, MAX_DAILY_LIKES, DAY_SEC2, _MatcherService, MatcherService;
 var init_service4 = __esm({
   "src/protocols/opendating/services/matcher/service.ts"() {
     "use strict";
@@ -5841,6 +5942,8 @@ var init_service4 = __esm({
     init_sha256();
     init_encryption();
     LIKE_EXPIRY_SEC = 90 * 24 * 60 * 60;
+    MAX_DAILY_LIKES = 30;
+    DAY_SEC2 = 24 * 60 * 60;
     __name(deterministicMatchId, "deterministicMatchId");
     __name(intentId, "intentId");
     _MatcherService = class _MatcherService {
@@ -5873,13 +5976,54 @@ var init_service4 = __esm({
           return { response: createErrorEnvelope(request.request_id, "invalid_envelope", "Invalid target") };
         }
         const targetMemberId = this.membership.getMemberId(targetPubkey);
-        const iid = intentId(ctx.senderPubkey, targetPubkey, "like");
+        const candidateGrant = payload.candidate_grant;
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
+        if (candidateGrant) {
+          const grant = await session.prepare(
+            `SELECT grant_token FROM od_candidate_grants
+          WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
+            AND (expires_at IS NULL OR expires_at > ?)`
+          ).bind(memberId, targetMemberId, candidateGrant, now).first();
+          if (!grant) {
+            return { response: createErrorEnvelope(
+              request.request_id,
+              "invalid_candidate_grant",
+              "No valid grant found \u2014 this profile may no longer be available"
+            ) };
+          }
+        }
+        const likeQuota = await session.prepare(
+          `SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?`
+        ).bind(memberId).first();
+        const likesSent = likeQuota?.daily_likes_sent ?? 0;
+        const likeResetAt = likeQuota?.daily_reset_at ?? 0;
+        if (now < likeResetAt && likesSent >= MAX_DAILY_LIKES) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "rate_limited",
+            "Daily like limit reached"
+          ) };
+        }
+        const iid = intentId(ctx.senderPubkey, targetPubkey, "like");
         await session.prepare(
           `INSERT OR IGNORE INTO od_intents (id, from_member_id, to_member_id, intent_type, state, created_at, expires_at)
        VALUES (?, ?, ?, 'like', 'active', ?, ?)`
         ).bind(iid, memberId, targetMemberId, now, now + LIKE_EXPIRY_SEC).run();
+        const newResetAt = now >= likeResetAt ? now + DAY_SEC2 : likeResetAt;
+        await session.prepare(
+          `INSERT INTO od_discovery_quotas (member_id, daily_candidates_served, daily_likes_sent, daily_reset_at, updated_at)
+       VALUES (?, 0, 1, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         daily_likes_sent = CASE WHEN daily_reset_at < ? THEN 1 ELSE daily_likes_sent + 1 END,
+         daily_reset_at = CASE WHEN daily_reset_at < ? THEN ? ELSE daily_reset_at END,
+         updated_at = ?`
+        ).bind(memberId, newResetAt, now, now, newResetAt, now, now).run();
+        if (candidateGrant) {
+          await session.prepare(
+            `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
+          ).bind(memberId, targetMemberId).run();
+        }
         const reciprocal = await session.prepare(
           `SELECT id FROM od_intents
        WHERE from_member_id = ? AND to_member_id = ? AND intent_type = 'like' AND state = 'active'`

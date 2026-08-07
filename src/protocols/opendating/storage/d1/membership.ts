@@ -478,6 +478,62 @@ export class D1MembershipStore {
   }
 
   /**
+   * Batch-recover pubkeys for a page of candidates.
+   *
+   * One D1 round trip instead of N — the hot path in discovery. Decryption
+   * is still per-row (AES-GCM) but that is CPU-bound and parallelisable.
+   */
+  async getPubkeysByMemberIds(memberIds: string[]): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (memberIds.length === 0) return result;
+
+    const placeholders = memberIds.map(() => '?').join(',');
+    const session = this.db.withSession('first-unconstrained');
+    const rows = await session.prepare(
+      `SELECT member_id, encrypted_pubkey FROM od_members
+        WHERE member_id IN (${placeholders}) AND status = 'active'`
+    ).bind(...memberIds).all();
+
+    const dk = await this.ensureDataKey();
+    for (const row of (rows.results ?? []) as unknown as { member_id: string; encrypted_pubkey: string }[]) {
+      try {
+        const pubkey = await decryptString(row.encrypted_pubkey, dk);
+        result.set(row.member_id, pubkey);
+      } catch { /* skip unreadable rows */ }
+    }
+    return result;
+  }
+
+  /**
+   * Batch-decrypt profile content for a page of candidates.
+   *
+   * One D1 round trip instead of N. Decryption per row, CPU-bound.
+   */
+  async getProfileContentsByMemberIds(
+    memberIds: string[],
+  ): Promise<Map<string, ProfileContentInput>> {
+    const result = new Map<string, ProfileContentInput>();
+    if (memberIds.length === 0) return result;
+
+    const placeholders = memberIds.map(() => '?').join(',');
+    const session = this.db.withSession('first-unconstrained');
+    const rows = await session.prepare(
+      `SELECT member_id, encrypted_profile_payload FROM od_profiles
+        WHERE member_id IN (${placeholders})`
+    ).bind(...memberIds).all();
+
+    const dk = await this.ensureDataKey();
+    for (const row of (rows.results ?? []) as unknown as { member_id: string; encrypted_profile_payload: string }[]) {
+      const blob = row.encrypted_profile_payload;
+      if (typeof blob !== 'string' || blob.length === 0) continue;
+      try {
+        result.set(row.member_id, JSON.parse(await decryptString(blob, dk)) as ProfileContentInput);
+      } catch { /* skip unreadable rows */ }
+    }
+    return result;
+  }
+
+  /**
    * Mirror a member's filterable attributes into the discovery index.
    *
    * `od_discovery_index` is the denormalised table discovery scans, so it has

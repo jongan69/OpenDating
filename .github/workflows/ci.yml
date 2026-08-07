@@ -16,7 +16,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Matches the version used for local development. Node 20 is
+          # deprecated on GitHub-hosted runners.
+          node-version: '22'
           cache: 'npm'
 
       - run: npm ci
@@ -27,14 +29,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Unit tests
-        run: npm run test:unit
-
-      - name: Security tests
-        run: npm run test:security
-
-      - name: Protocol tests
-        run: npm run test:protocol
+      # The whole suite in one step. This previously ran three directory-scoped
+      # scripts, which between them skipped tests/opendating entirely — the
+      # majority of the protocol coverage. A single `npm test` cannot drift out
+      # of sync when a new test directory is added.
+      - name: Tests
+        run: npm test
 
       - name: Verify build output
         run: |

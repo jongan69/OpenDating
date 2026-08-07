@@ -193,6 +193,17 @@ export class DiscoveryService implements OpenDatingService {
     );
     const now = Math.floor(Date.now() / 1000);
 
+    // Decode pagination cursor
+    let cursorAfter: { granted_at: number; candidate_id: string } | null = null;
+    if (typeof payload.cursor === 'string' && payload.cursor) {
+      try {
+        const decoded = JSON.parse(decodeBase64url(payload.cursor));
+        if (typeof decoded.granted_at === 'number' && typeof decoded.candidate_id === 'string') {
+          cursorAfter = decoded;
+        }
+      } catch { /* invalid cursor — start fresh */ }
+    }
+
     const quota = await this.consumeQuota(memberId, now);
     if (quota.exhausted) {
       return { response: createErrorEnvelope(request.request_id, 'discovery_quota_exhausted',
@@ -207,7 +218,7 @@ export class DiscoveryService implements OpenDatingService {
 
     // Re-serve any grants still in flight before minting new ones, so a
     // dropped response does not burn the candidates it was carrying.
-    let granted = await this.loadExistingGrants(memberId, now, limit);
+    let granted = await this.loadExistingGrants(memberId, now, limit, cursorAfter);
 
     if (granted.length < limit) {
       const fresh = await this.generateGrants(
@@ -220,10 +231,20 @@ export class DiscoveryService implements OpenDatingService {
     const served = quota.servedToday + candidates.length;
     await this.recordServed(memberId, served, quota.resetAt, now);
 
+    // Build next cursor — null signals end of deck
+    let nextCursor: string | null = null;
+    if (candidates.length >= limit && granted.length > 0) {
+      const last = granted[granted.length - 1];
+      nextCursor = encodeBase64url(JSON.stringify({
+        granted_at: last.granted_at ?? now,
+        candidate_id: last.candidate_id,
+      }));
+    }
+
     return {
       response: createEnvelope('discovery.get_candidates.result', request.request_id, {
         candidates,
-        cursor: null,
+        cursor: nextCursor,
         remaining_today: Math.max(MAX_DAILY_CANDIDATES - served, 0),
       }),
     };
@@ -278,10 +299,20 @@ export class DiscoveryService implements OpenDatingService {
     memberId: string,
     now: number,
     limit: number,
+    cursorAfter?: { granted_at: number; candidate_id: string } | null,
   ): Promise<GrantRow[]> {
     const session = this.db.withSession('first-unconstrained');
+    if (cursorAfter) {
+      const rows = await session.prepare(
+        `SELECT candidate_id, grant_token, distance_bucket, granted_at FROM od_candidate_grants
+          WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
+            AND (granted_at < ? OR (granted_at = ? AND candidate_id > ?))
+          ORDER BY granted_at DESC, candidate_id ASC LIMIT ?`
+      ).bind(memberId, now, cursorAfter.granted_at, cursorAfter.granted_at, cursorAfter.candidate_id, limit).all();
+      return (rows.results as unknown as GrantRow[]) ?? [];
+    }
     const rows = await session.prepare(
-      `SELECT candidate_id, grant_token, distance_bucket FROM od_candidate_grants
+      `SELECT candidate_id, grant_token, distance_bucket, granted_at FROM od_candidate_grants
         WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
         ORDER BY granted_at DESC LIMIT ?`
     ).bind(memberId, now, limit).all();
@@ -369,6 +400,7 @@ export class DiscoveryService implements OpenDatingService {
           candidate_id: raw.member_id,
           grant_token: grantToken(memberId, raw.member_id, now),
           distance_bucket: tier.bucket,
+          granted_at: now,
         });
         if (collected.length >= want) break;
       }
@@ -410,16 +442,25 @@ export class DiscoveryService implements OpenDatingService {
    * The pubkey has to be returned — a like is addressed to `target_pubkey`
    * and a direct message is encrypted to it, so a pseudonymous member id
    * alone leaves the viewer unable to act on anyone they are shown.
+   *
+   * Batch-hydrates in 2 D1 queries regardless of page size (was 2N).
    */
   private async hydrate(grants: GrantRow[]): Promise<unknown[]> {
+    if (grants.length === 0) return [];
+
+    const memberIds = [...new Set(grants.map((g) => g.candidate_id))];
+    const [pubkeyMap, profileMap] = await Promise.all([
+      this.membership.getPubkeysByMemberIds(memberIds),
+      this.membership.getProfileContentsByMemberIds(memberIds),
+    ]);
+
     const out: unknown[] = [];
-
     for (const grant of grants) {
-      const pubkey = await this.membership.getPubkeyByMemberId(grant.candidate_id);
-      if (!pubkey) continue; // Deleted between grant and hydrate.
+      const pubkey = pubkeyMap.get(grant.candidate_id);
+      if (!pubkey) continue;
 
-      const content = await this.membership.getProfileContentByMemberId(grant.candidate_id);
-      if (!content) continue; // No profile content — nothing worth showing.
+      const content = profileMap.get(grant.candidate_id);
+      if (!content) continue;
 
       out.push({
         pubkey,
@@ -428,7 +469,6 @@ export class DiscoveryService implements OpenDatingService {
         candidate_grant: grant.grant_token,
       });
     }
-
     return out;
   }
 
@@ -484,6 +524,17 @@ interface GrantRow {
   candidate_id: string;
   grant_token: string;
   distance_bucket: string;
+  granted_at: number;
+}
+
+function encodeBase64url(input: string): string {
+  return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeBase64url(input: string): string {
+  let base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  return atob(base64);
 }
 
 export function clampAge(value: unknown, fallback: number): number {

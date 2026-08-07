@@ -12,6 +12,8 @@ import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '../../crypto/encryption.js';
 
 const LIKE_EXPIRY_SEC = 90 * 24 * 60 * 60; // 90 days
+const MAX_DAILY_LIKES = 30;
+const DAY_SEC = 24 * 60 * 60;
 
 function deterministicMatchId(pubkeyA: string, pubkeyB: string): string {
   const sorted = [pubkeyA, pubkeyB].sort();
@@ -58,15 +60,60 @@ export class MatcherService implements OpenDatingService {
     }
 
     const targetMemberId = this.membership.getMemberId(targetPubkey);
-    const iid = intentId(ctx.senderPubkey, targetPubkey, 'like');
+    const candidateGrant = payload.candidate_grant as string | undefined;
     const now = Math.floor(Date.now() / 1000);
     const session = this.db.withSession('first-primary');
+
+    // Verify the viewer holds a valid grant — without this anyone could like
+    // any pubkey they could name, defeating the anti-enumeration design.
+    if (!candidateGrant) {
+      return { response: createErrorEnvelope(request.request_id, 'invalid_candidate_grant',
+        'This profile is no longer available.') };
+    }
+    const grant = await session.prepare(
+      `SELECT grant_token FROM od_candidate_grants
+        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
+          AND (expires_at IS NULL OR expires_at > ?)`
+    ).bind(memberId, targetMemberId, candidateGrant, now).first();
+    if (!grant) {
+      return { response: createErrorEnvelope(request.request_id, 'invalid_candidate_grant',
+        'No valid grant found — this profile may no longer be available') };
+    }
+
+    // Enforce daily like quota
+    const likeQuota = await session.prepare(
+      `SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?`
+    ).bind(memberId).first() as Record<string, unknown> | null;
+    const likesSent = (likeQuota?.daily_likes_sent as number) ?? 0;
+    const likeResetAt = (likeQuota?.daily_reset_at as number) ?? 0;
+    if (now < likeResetAt && likesSent >= MAX_DAILY_LIKES) {
+      return { response: createErrorEnvelope(request.request_id, 'rate_limited',
+        'Daily like limit reached') };
+    }
+
+    const iid = intentId(ctx.senderPubkey, targetPubkey, 'like');
 
     // Record the intent
     await session.prepare(
       `INSERT OR IGNORE INTO od_intents (id, from_member_id, to_member_id, intent_type, state, created_at, expires_at)
        VALUES (?, ?, ?, 'like', 'active', ?, ?)`
     ).bind(iid, memberId, targetMemberId, now, now + LIKE_EXPIRY_SEC).run();
+
+    // Increment like quota (atomic, handles rollover)
+    const newResetAt = now >= likeResetAt ? now + DAY_SEC : likeResetAt;
+    await session.prepare(
+      `INSERT INTO od_discovery_quotas (member_id, daily_candidates_served, daily_likes_sent, daily_reset_at, updated_at)
+       VALUES (?, 0, 1, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         daily_likes_sent = CASE WHEN daily_reset_at < ? THEN 1 ELSE daily_likes_sent + 1 END,
+         daily_reset_at = CASE WHEN daily_reset_at < ? THEN ? ELSE daily_reset_at END,
+         updated_at = ?`
+    ).bind(memberId, newResetAt, now, now, newResetAt, now, now).run();
+
+    // Consume the grant — one-time use
+    await session.prepare(
+      `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
+    ).bind(memberId, targetMemberId).run();
 
     // Check for reciprocal match
     const reciprocal = await session.prepare(
