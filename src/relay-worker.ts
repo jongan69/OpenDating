@@ -1778,8 +1778,8 @@ function serveLandingPage(): Response {
   const payToRelaySection = PAY_TO_RELAY_ENABLED ? `
     <div class="pay-section" id="paySection">
       <p style="margin-bottom: 1rem;">Pay to access this relay:</p>
-      <button id="payButton" class="pay-button" data-npub="${relayNpub}" data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://sendit.nosflare.com" data-sats-amount="${RELAY_ACCESS_PRICE_SATS}">
-        <img src="https://nosflare.com/images/pwb-button-min.png" alt="Pay with Bitcoin" style="height: 60px;">
+      <button id="payButton" class="pay-button" data-npub="${relayNpub}" data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://opendating-relay.jonathang132298.workers.dev" data-sats-amount="${RELAY_ACCESS_PRICE_SATS}">
+        <img src="images/pwb-button-min.png" alt="Pay with Bitcoin" style="height: 60px;">
       </button>
       <p class="price-info">${RELAY_ACCESS_PRICE_SATS.toLocaleString()} sats</p>
     </div>
@@ -1807,7 +1807,7 @@ function serveLandingPage(): Response {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A serverless Nostr relay through Cloudflare Worker and D1 database" />
-    <title>Nosflare - Nostr Relay</title>
+    <title>OpenDating — Privacy-First Decentralized Dating</title>
     <style>
         * {
             margin: 0;
@@ -1983,7 +1983,7 @@ function serveLandingPage(): Response {
 </head>
 <body>
     <div class="container">
-        <img src="https://nosflare.com/images/nosflare.png" alt="Nosflare Logo" class="logo">
+        <img src="images/brand-mark-coral.svg" alt="OpenDating" class="logo">
         <p class="tagline">A serverless Nostr relay powered by Cloudflare</p>
         
         ${payToRelaySection}
@@ -2000,7 +2000,7 @@ function serveLandingPage(): Response {
         </div>
         
         <div class="links">
-            <a href="https://github.com/Spl0itable/nosflare" class="link" target="_blank">GitHub</a>
+            <a href="https://github.com/jongan69/OpenDating" class="link" target="_blank">GitHub</a>
             <a href="https://nostr.com" class="link" target="_blank">Learn about Nostr</a>
         </div>
     </div>
@@ -2084,7 +2084,7 @@ function serveLandingPage(): Response {
 
         async function initPayment() {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/gh/Spl0itable/nosflare@main/nostr-zap.js';
+            script.src = 'nostr-zap.js';
             script.onload = () => {
                 if (window.nostrZap) {
                     window.nostrZap.initTargets('#payButton');

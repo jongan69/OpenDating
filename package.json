@@ -1,7 +1,33 @@
 {
-  "name": "nosflare",
+  "name": "opendating",
   "version": "0.1.0",
-  "description": "A serverless Nostr relay for Cloudflare Workers",
+  "description": "OpenDating protocol — privacy-first decentralized dating on Nostr. Reference relay (Cloudflare Workers + D1 + Durable Objects), protocol npm package, and client integration specification.",
+  "keywords": [
+    "opendating",
+    "nostr",
+    "relay",
+    "dating",
+    "privacy",
+    "decentralized",
+    "cloudflare-workers",
+    "d1",
+    "durable-objects",
+    "nip-44",
+    "nip-59",
+    "nip-17",
+    "end-to-end-encrypted",
+    "self-sovereign",
+    "protocol"
+  ],
+  "homepage": "https://github.com/jongan69/OpenDating#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jongan69/OpenDating.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jongan69/OpenDating/issues"
+  },
+  "author": "OpenDating",
   "main": "worker.js",
   "type": "module",
   "scripts": {

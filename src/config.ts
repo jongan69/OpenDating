@@ -25,7 +25,7 @@ export const relayInfo: RelayInfo = {
   supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 17, 20, 33, 42, 44, 56, 59, 62, 78],
   software: "https://github.com/jongan69/OpenDating",
   version: "0.1.0",
-  icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
+  icon: "https://raw.githubusercontent.com/jongan69/OpenDating/main/images/lockup-coral.png",
 
   // Optional fields (uncomment as needed):
   // banner: "https://example.com/banner.jpg",

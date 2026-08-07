@@ -262,7 +262,7 @@ export class RelayWebSocket implements DurableObject {
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return `https://nosflare-query-cache/${hashHex}`;
+    return `https://opendating-query-cache/${hashHex}`;
   }
 
   // Query cache methods with deduplication and global caching
