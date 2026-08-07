@@ -104,4 +104,14 @@ export interface ExtensionResult {
   storeNormally?: boolean;
   /** Message to return in OK response */
   message?: string;
+  /**
+   * Events the extension produced that must reach live subscribers.
+   *
+   * An extension runs inside the Durable Object but has no handle on it, so
+   * it cannot push to open WebSockets itself. Persisting a reply is not
+   * enough: a client waiting on a REQ subscription never re-queries, so a
+   * stored-but-unbroadcast response looks exactly like no response at all.
+   * The DO broadcasts whatever is returned here.
+   */
+  publish?: NostrEvent[];
 }

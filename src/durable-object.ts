@@ -13,6 +13,7 @@ import {
 } from './config';
 import { verifyEventSignature, hasPaidForRelay, processEvent, queryEvents } from './relay-worker';
 import { extensionRegistry } from './relay/services/registry.js';
+import { initOpenDating } from './protocols/opendating/index.js';
 import { runHousekeeperTick } from './cloudflare/housekeeper.js';
 
 // Session attachment data structure (minimal - auth state stored in session)
@@ -108,6 +109,19 @@ export class RelayWebSocket implements DurableObject {
     this.activeQueries = new Map();
     this.paymentCache = new Map();
     this.lastActivityTime = Date.now();
+
+    // A Durable Object is a separate isolate from the Worker's fetch handler,
+    // with its own copy of module state. Without this the extension registry
+    // here is empty: OpenDating gift wraps arrive over the WebSocket, no
+    // extension claims them, and they are stored as ordinary events while the
+    // client waits for a response that is never sent. NIP-11 still advertised
+    // every service, because that document is served by the Worker isolate,
+    // which does initialise — so the relay looked healthy while nothing worked.
+    try {
+      initOpenDating(env as any, env.RELAY_DATABASE);
+    } catch (e) {
+      console.error('[OpenDating] DO init error:', e);
+    }
   }
 
   // Alarm handler - called when scheduled alarm fires
@@ -899,6 +913,17 @@ export class RelayWebSocket implements DurableObject {
 
       if (extension && extension.handleEvent) {
         const extResult = await extension.handleEvent(event, relayCtx);
+
+        // Deliver anything the extension produced to live subscribers. The
+        // extension persists its reply but cannot reach open WebSockets, and
+        // a client waiting on a REQ never re-queries — so without this a
+        // service response is stored and then silently never arrives.
+        if (extResult.publish?.length) {
+          for (const produced of extResult.publish) {
+            await this.broadcastEvent(produced);
+          }
+        }
+
         if (extResult.handled && extResult.storeNormally === false) {
           this.sendOK(session.webSocket, event.id, true, extResult.message || "");
           return;

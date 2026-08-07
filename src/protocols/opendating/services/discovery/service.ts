@@ -321,9 +321,21 @@ export class DiscoveryService implements OpenDatingService {
         ? ` AND di.gender_category IN (${viewer.prefs.genders.map(() => '?').join(',')})`
         : '';
 
+      // Binding order must track the placeholders below exactly: cell, age
+      // range, optional genders, then memberId once for each of the five
+      // exclusion clauses (self, seen, blocked-by-me, blocking-me, granted),
+      // then the grant-expiry cutoff and the row limit.
       const binds: unknown[] = [cell, viewer.prefs.ageMin, viewer.prefs.ageMax];
       if (viewer.prefs.genders) binds.push(...viewer.prefs.genders);
-      binds.push(memberId, memberId, memberId, memberId, now, want - collected.length);
+      binds.push(
+        memberId, // di.member_id != ?
+        memberId, // od_seen_candidates.viewer_id = ?
+        memberId, // od_blocks.blocker_member_id = ?
+        memberId, // od_blocks.blocked_member_id = ?
+        memberId, // od_candidate_grants.viewer_id = ?
+        now,
+        want - collected.length,
+      );
 
       const rows = await session.prepare(
         `SELECT di.member_id, di.age, di.gender_category, di.intent_category

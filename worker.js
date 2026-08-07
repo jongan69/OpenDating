@@ -4486,7 +4486,7 @@ async function sendResponse(envelope, senderPubkey, servicePubkey, env) {
     const signer = serviceIdentityRegistry.getSigner(servicePubkey);
     if (!signer) {
       logger.error("Cannot send response \u2014 no signer for service", { servicePubkey: servicePubkey.substring(0, 8) });
-      return;
+      return null;
     }
     const responseJson = JSON.stringify(envelope);
     const { giftWrap } = await buildServiceResponseGiftWrap(
@@ -4506,11 +4506,13 @@ async function sendResponse(envelope, senderPubkey, servicePubkey, env) {
         recipient: senderPubkey.substring(0, 8)
       });
     }
+    return giftWrap;
   } catch (error2) {
     logger.error("Failed to send OpenDating response", {
       error: error2.message,
       type: envelope.type
     });
+    return null;
   }
 }
 async function screenProfileContent(envelope, senderPubkey, context) {
@@ -4619,13 +4621,12 @@ var init_extension = __esm({
           idempotencyStore ? (spk, sp, rid, type) => idempotencyStore.record(spk, sp, rid, type) : void 0
         );
         const env = context._env;
-        if (env) {
-          await sendResponse(result.envelope, senderPubkey, servicePubkey, env);
-        }
+        const responseEvent = env ? await sendResponse(result.envelope, senderPubkey, servicePubkey, env) : null;
         return {
           handled: true,
           storeNormally: false,
-          message: result.success ? "" : result.envelope.type === "system.error" ? "error" : ""
+          message: result.success ? "" : result.envelope.type === "system.error" ? "error" : "",
+          publish: responseEvent ? [responseEvent] : void 0
         };
       },
       async authorizeQuery(_filters, _context) {
@@ -5678,7 +5679,20 @@ var init_service3 = __esm({
           const binds = [cell, viewer.prefs.ageMin, viewer.prefs.ageMax];
           if (viewer.prefs.genders)
             binds.push(...viewer.prefs.genders);
-          binds.push(memberId, memberId, memberId, memberId, now, want - collected.length);
+          binds.push(
+            memberId,
+            // di.member_id != ?
+            memberId,
+            // od_seen_candidates.viewer_id = ?
+            memberId,
+            // od_blocks.blocker_member_id = ?
+            memberId,
+            // od_blocks.blocked_member_id = ?
+            memberId,
+            // od_candidate_grants.viewer_id = ?
+            now,
+            want - collected.length
+          );
           const rows = await session.prepare(
             `SELECT di.member_id, di.age, di.gender_category, di.intent_category
            FROM od_discovery_index di
@@ -6188,6 +6202,8 @@ var init_service7 = __esm({
 
 // src/protocols/opendating/index.ts
 function initOpenDating(env, db) {
+  if (initialized)
+    return;
   console.log("[OpenDating] Initializing protocol core...");
   try {
     initMembershipKeys(env || {});
@@ -6219,11 +6235,13 @@ function initOpenDating(env, db) {
     }
   }
   extensionRegistry.register(openDatingExtension);
+  initialized = true;
   console.log(`[OpenDating] Initialized with ${signers.length} service(s)`);
 }
 function getOpenDatingNip11Advertisement() {
   return buildNip11Advertisement(odServiceRegistry.listServices());
 }
+var initialized;
 var init_opendating = __esm({
   "src/protocols/opendating/index.ts"() {
     "use strict";
@@ -6244,6 +6262,7 @@ var init_opendating = __esm({
     init_envelope();
     init_gift_wrap();
     init_encryption();
+    initialized = false;
     __name(initOpenDating, "initOpenDating");
     __name(getOpenDatingNip11Advertisement, "getOpenDatingNip11Advertisement");
   }
@@ -9176,6 +9195,7 @@ var init_durable_object = __esm({
     init_config();
     init_relay_worker();
     init_registry();
+    init_opendating();
     init_housekeeper();
     _RelayWebSocket = class _RelayWebSocket {
       constructor(state, env) {
@@ -9208,6 +9228,11 @@ var init_durable_object = __esm({
         this.activeQueries = /* @__PURE__ */ new Map();
         this.paymentCache = /* @__PURE__ */ new Map();
         this.lastActivityTime = Date.now();
+        try {
+          initOpenDating(env, env.RELAY_DATABASE);
+        } catch (e) {
+          console.error("[OpenDating] DO init error:", e);
+        }
       }
       // Alarm handler - called when scheduled alarm fires
       async alarm() {
@@ -9789,6 +9814,11 @@ var init_durable_object = __esm({
           const extension = extensionRegistry.findHandler(event, relayCtx);
           if (extension && extension.handleEvent) {
             const extResult = await extension.handleEvent(event, relayCtx);
+            if (extResult.publish?.length) {
+              for (const produced of extResult.publish) {
+                await this.broadcastEvent(produced);
+              }
+            }
             if (extResult.handled && extResult.storeNormally === false) {
               this.sendOK(session.webSocket, event.id, true, extResult.message || "");
               return;

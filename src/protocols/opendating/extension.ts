@@ -144,12 +144,12 @@ async function sendResponse(
   senderPubkey: string,
   servicePubkey: string,
   env: any,
-): Promise<void> {
+): Promise<NostrEvent | null> {
   try {
     const signer = serviceIdentityRegistry.getSigner(servicePubkey);
     if (!signer) {
       logger.error('Cannot send response — no signer for service', { servicePubkey: servicePubkey.substring(0, 8) });
-      return;
+      return null;
     }
 
     // Build the response gift wrap
@@ -162,9 +162,8 @@ async function sendResponse(
       senderPubkey,
     );
 
-    // Publish through the relay's event processing pipeline
+    // Persist so a client that reconnects can still fetch the reply.
     if (env.RELAY_DATABASE) {
-      // Use the existing relay event processing
       const { processEvent } = await import('../../relay-worker.js');
       await processEvent(giftWrap, 'opendating-service-response', env);
       logger.info('Published OpenDating response', {
@@ -173,11 +172,16 @@ async function sendResponse(
         recipient: senderPubkey.substring(0, 8),
       });
     }
+
+    // Returned for live broadcast. Persistence alone leaves the requester
+    // waiting on a subscription that never fires.
+    return giftWrap as unknown as NostrEvent;
   } catch (error) {
     logger.error('Failed to send OpenDating response', {
       error: (error as Error).message,
       type: envelope.type,
     });
+    return null;
   }
 }
 
@@ -311,15 +315,16 @@ export const openDatingExtension: RelayExtension = {
     // Send response back to the requesting user
     // Use a type assertion for env since the DO has it
     const env = (context as any)._env;
-    if (env) {
-      await sendResponse(result.envelope, senderPubkey, servicePubkey, env);
-    }
+    const responseEvent = env
+      ? await sendResponse(result.envelope, senderPubkey, servicePubkey, env)
+      : null;
 
     // Always claim as handled (don't store normally — gift wraps are transport)
     return {
       handled: true,
       storeNormally: false,
       message: result.success ? '' : (result.envelope.type === 'system.error' ? 'error' : ''),
+      publish: responseEvent ? [responseEvent] : undefined,
     };
   },
 

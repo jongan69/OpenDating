@@ -15,7 +15,22 @@ import { odServiceRegistry } from './services/registry.js';
 import { initMembershipKeys } from './storage/d1/membership.js';
 import { buildNip11Advertisement } from './protocol/capabilities.js';
 
+/**
+ * Guard against double registration.
+ *
+ * The Worker and each Durable Object are separate isolates with their own
+ * module state, so both must initialise — but within one isolate a second
+ * call would throw from extensionRegistry.register().
+ */
+let initialized = false;
+
+/** True once this isolate has a usable OpenDating stack. */
+export function isOpenDatingInitialized(): boolean {
+  return initialized;
+}
+
 export function initOpenDating(env: Record<string, any>, db: D1Database): void {
+  if (initialized) return;
   console.log('[OpenDating] Initializing protocol core...');
 
   // Key material first: member pseudonymity and pubkey encryption at rest both
@@ -58,6 +73,7 @@ export function initOpenDating(env: Record<string, any>, db: D1Database): void {
   }
 
   extensionRegistry.register(openDatingExtension);
+  initialized = true;
   console.log(`[OpenDating] Initialized with ${signers.length} service(s)`);
 }
 
