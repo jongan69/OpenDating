@@ -1,0 +1,1 @@
+{"version":3,"file":"version.d.ts","sourceRoot":"","sources":["../../src/protocol/version.ts"],"names":[],"mappings":"AAOA;;GAEG;AACH,wBAAgB,kBAAkB,CAAC,OAAO,EAAE,MAAM,GAAG,OAAO,CAE3D;AAED;;GAEG;AACH,wBAAgB,oBAAoB,CAAC,QAAQ,EAAE,MAAM,GAAG,OAAO,CAE9D;AAED;;;GAGG;AACH,wBAAgB,gBAAgB,CAAC,cAAc,EAAE,MAAM,EAAE,GAAG,MAAM,GAAG,IAAI,CAQxE;AAED;;GAEG;AACH,wBAAgB,gBAAgB,IAAI,MAAM,CAEzC"}

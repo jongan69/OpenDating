@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendating.org/schemas/0.1/system-capabilities-result.schema.json",
+  "title": "System Capabilities Result",
+  "description": "Service capabilities response. EXPERIMENTAL 0.1.",
+  "allOf": [
+    { "$ref": "./envelope.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "system.capabilities.result" },
+    "payload": {
+      "type": "object",
+      "required": ["versions", "services", "features"],
+      "properties": {
+        "versions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "pubkey"],
+            "properties": {
+              "role": { "type": "string" },
+              "pubkey": { "type": "string" },
+              "supported_types": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

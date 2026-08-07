@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendating.org/schemas/0.1/envelope.schema.json",
+  "title": "OpenDating Envelope",
+  "description": "Base envelope for all OpenDating application messages. EXPERIMENTAL 0.1.",
+  "type": "object",
+  "required": ["protocol", "version", "type", "request_id", "created_at", "payload"],
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "const": "opendating",
+      "description": "Machine-readable protocol identifier"
+    },
+    "version": {
+      "type": "string",
+      "description": "Protocol version (semver-compatible)"
+    },
+    "type": {
+      "type": "string",
+      "description": "Message type in dot-notation (e.g., system.ping)"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Cryptographically random request identifier"
+    },
+    "created_at": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unix timestamp in seconds"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Message-type-specific payload"
+    }
+  },
+  "additionalProperties": false
+}

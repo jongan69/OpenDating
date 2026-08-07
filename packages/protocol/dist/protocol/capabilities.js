@@ -1,0 +1,36 @@
+/**
+ * OpenDating Capabilities
+ *
+ * Service capability reporting for protocol discovery.
+ */
+import { SUPPORTED_VERSIONS, OD_FEATURES } from './constants.js';
+/**
+ * Build a capabilities result for a set of services.
+ */
+export function buildCapabilities(services) {
+    return {
+        versions: [...SUPPORTED_VERSIONS],
+        services: services.map(s => ({
+            role: s.role,
+            pubkey: s.pubkey,
+            supported_types: s.supportedTypes,
+        })),
+        features: [...OD_FEATURES],
+    };
+}
+/**
+ * Build a NIP-11 OpenDating advertisement object.
+ */
+export function buildNip11Advertisement(services) {
+    const serviceMap = {};
+    for (const s of services) {
+        serviceMap[s.role] = { pubkey: s.pubkey };
+    }
+    return {
+        opendating: {
+            versions: [...SUPPORTED_VERSIONS],
+            services: serviceMap,
+        },
+    };
+}
+//# sourceMappingURL=capabilities.js.map

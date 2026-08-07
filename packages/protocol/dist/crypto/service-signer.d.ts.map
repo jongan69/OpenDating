@@ -1,0 +1,1 @@
+{"version":3,"file":"service-signer.d.ts","sourceRoot":"","sources":["../../src/crypto/service-signer.ts"],"names":[],"mappings":"AAMA,MAAM,WAAW,cAAc;IAC7B,UAAU,EAAE,MAAM,CAAC;IACnB,SAAS,EAAE,MAAM,CAAC;CACnB;AAED,wBAAgB,eAAe,CAAC,aAAa,EAAE,MAAM,GAAG,MAAM,CAI7D;AAED,wBAAgB,kBAAkB,CAAC,aAAa,EAAE,MAAM,GAAG,MAAM,GAAG,IAAI,CASvE;AAED,wBAAgB,oBAAoB,CAAC,aAAa,EAAE,MAAM,GAAG,cAAc,CAM1E"}

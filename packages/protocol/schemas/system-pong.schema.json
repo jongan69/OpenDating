@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendating.org/schemas/0.1/system-pong.schema.json",
+  "title": "System Pong",
+  "description": "System pong response. EXPERIMENTAL 0.1.",
+  "allOf": [
+    { "$ref": "./envelope.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "system.pong" },
+    "payload": {
+      "type": "object",
+      "required": ["server_time", "protocol_version"],
+      "properties": {
+        "server_time": { "type": "integer" },
+        "protocol_version": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
