@@ -4,6 +4,15 @@ import * as config from './config';
 import { RelayWebSocket } from './durable-object';
 import { initOpenDating, getOpenDatingNip11Advertisement } from './protocols/opendating/index.js';
 
+// Lazy-init OpenDating once
+let odInitialized = false;
+function ensureODInit(env: Env): void {
+  if (!odInitialized) {
+    try { initOpenDating(env as any, env.RELAY_DATABASE); odInitialized = true; }
+    catch (e) { console.error("OpenDating init error:", e); }
+  }
+}
+
 // Import config values
 const {
   relayInfo,
@@ -2514,6 +2523,7 @@ export default {
 
           return stub.fetch(new Request(newUrl, request));
         } else if (request.headers.get("Accept") === "application/nostr+json") {
+          ensureODInit(env);
           return handleRelayInfoRequest(request);
         } else {
           // Initialize database in background

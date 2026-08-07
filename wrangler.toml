@@ -1,5 +1,5 @@
 # Change name if you feel like it
-name = "nosflare"
+name = "opendating-relay"
 compatibility_date = "2025-01-04"
 main = "worker.js"
 
@@ -9,23 +9,19 @@ name = "RELAY_WEBSOCKET"
 class_name = "RelayWebSocket"
 
 # D1 Database binding
-# Important! Change name and id settings to your own
 [[d1_databases]]
 binding = "RELAY_DATABASE"
-database_name = "nostr-relay"
-database_id = "ba4f97db-cc23-4ea0-b7da-cf8ddc3d84ef"
+database_name = "opendating-relay"
+database_id = "1151d852-890b-4e31-8ee2-74ee3564e0c1"
 
-# Cron trigger for 24hr database maintenance
-[triggers]
-crons = ["0 0 * * *"]
+# Cron trigger disabled (free plan limit reached)
+# Enable manually for paid plans:
+# [triggers]
+# crons = ["0 0 * * *"]
 
-# CPU limits (lower to 10 if not on paid Workers plan)
-[limits]
-cpu_ms = 300000
-
-# Enable logs (off by default, but can enable)
+# Enable logs
 [observability.logs]
-enabled = false
+enabled = true
 
 # Durable Object migration with SQLite storage backend
 [[migrations]]

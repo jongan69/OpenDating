@@ -117,14 +117,14 @@ var init_config = __esm({
     AUTH_REQUIRED = true;
     AUTH_TIMEOUT_MS = 6e4;
     relayInfo = {
-      name: "Nosflare",
-      description: "A serverless Nostr relay through Cloudflare Worker and D1 database",
-      pubkey: "d49a9023a21dba1b3c8306ca369bf3243d8b44b8f0b6d1196607f7b0990fa8df",
-      contact: "lux@fed.wtf",
-      // Only NIPs verified as implemented (see docs/BASELINE.md)
-      supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 20, 33, 42],
-      software: "https://github.com/Spl0itable/nosflare",
-      version: "7.9.45",
+      name: "OpenDating Reference Relay",
+      description: "OpenDating v0.1 \u2014 private dating protocol on Nostr",
+      pubkey: "991dad84451dc04e5dbbf77037a96e89f9d5f9b8e6678f403bc10ebbcfa9bbbe",
+      contact: "jonathang132298@gmail.com",
+      // Only NIPs verified as implemented
+      supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 17, 20, 33, 42, 44, 56, 59, 62, 78],
+      software: "https://github.com/jongan69/OpenDating",
+      version: "0.1.0",
       icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
       // Optional fields (uncomment as needed):
       // banner: "https://example.com/banner.jpg",
@@ -5599,6 +5599,16 @@ __export(relay_worker_exports, {
   queryEvents: () => queryEvents,
   verifyEventSignature: () => verifyEventSignature
 });
+function ensureODInit(env) {
+  if (!odInitialized) {
+    try {
+      initOpenDating(env, env.RELAY_DATABASE);
+      odInitialized = true;
+    } catch (e) {
+      console.error("OpenDating init error:", e);
+    }
+  }
+}
 async function initializeDatabase(db) {
   const dropSession = db.withSession("first-primary");
   try {
@@ -7789,7 +7799,7 @@ async function pruneOldEvents(session, targetSizeBytes) {
   }
   return { eventsDeleted: totalEventsDeleted, finalSizeBytes: currentSize };
 }
-var relayInfo2, PAY_TO_RELAY_ENABLED2, RELAY_ACCESS_PRICE_SATS2, relayNpub2, nip05Users2, enableAntiSpam2, enableGlobalDuplicateCheck2, antiSpamKinds2, checkValidNip052, blockedNip05Domains2, allowedNip05Domains2, DB_PRUNING_ENABLED2, DB_SIZE_THRESHOLD_GB2, DB_PRUNE_BATCH_SIZE2, DB_PRUNE_TARGET_GB2, pruneProtectedKinds2, GLOBAL_MAX_EVENTS, MAX_QUERY_COMPLEXITY, CHUNK_SIZE, EVENT_COLS, EVENT_COLS_BARE, relay_worker_default;
+var odInitialized, relayInfo2, PAY_TO_RELAY_ENABLED2, RELAY_ACCESS_PRICE_SATS2, relayNpub2, nip05Users2, enableAntiSpam2, enableGlobalDuplicateCheck2, antiSpamKinds2, checkValidNip052, blockedNip05Domains2, allowedNip05Domains2, DB_PRUNING_ENABLED2, DB_SIZE_THRESHOLD_GB2, DB_PRUNE_BATCH_SIZE2, DB_PRUNE_TARGET_GB2, pruneProtectedKinds2, GLOBAL_MAX_EVENTS, MAX_QUERY_COMPLEXITY, CHUNK_SIZE, EVENT_COLS, EVENT_COLS_BARE, relay_worker_default;
 var init_relay_worker = __esm({
   "src/relay-worker.ts"() {
     "use strict";
@@ -7797,6 +7807,8 @@ var init_relay_worker = __esm({
     init_config();
     init_durable_object();
     init_opendating();
+    odInitialized = false;
+    __name(ensureODInit, "ensureODInit");
     ({
       relayInfo: relayInfo2,
       PAY_TO_RELAY_ENABLED: PAY_TO_RELAY_ENABLED2,
@@ -7873,6 +7885,7 @@ var init_relay_worker = __esm({
               newUrl.searchParams.set("doName", doName);
               return stub.fetch(new Request(newUrl, request));
             } else if (request.headers.get("Accept") === "application/nostr+json") {
+              ensureODInit(env);
               return handleRelayInfoRequest(request);
             } else {
               ctx.waitUntil(

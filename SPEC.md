@@ -10,8 +10,8 @@
 | Item | Value |
 |------|-------|
 | **Protocol** | `opendating` / `0.1` |
-| **Relay URL** | `wss://relay.example.com` *(replace with deployed URL)* |
-| **HTTP Info** | `https://relay.example.com` — `Accept: application/nostr+json` |
+| **Relay URL** | `wss://opendating-relay.jonathang132298.workers.dev` |
+| **HTTP Info** | `https://opendating-relay.jonathang132298.workers.dev` — `Accept: application/nostr+json` |
 | **NPM Package** | `opendating-protocol@0.1.0` |
 | **Repository** | `github.com/jongan69/OpenDating` |
 | **Release Tag** | `opendating-v0.1.0` |
