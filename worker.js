@@ -125,7 +125,7 @@ var init_config = __esm({
       supported_nips: [1, 2, 5, 9, 11, 12, 15, 16, 17, 20, 33, 42, 44, 56, 59, 62, 78],
       software: "https://github.com/jongan69/OpenDating",
       version: "0.1.0",
-      icon: "https://raw.githubusercontent.com/Spl0itable/nosflare/main/images/flare.png",
+      icon: "https://raw.githubusercontent.com/jongan69/OpenDating/main/images/lockup-coral.png",
       // Optional fields (uncomment as needed):
       // banner: "https://example.com/banner.jpg",
       // privacy_policy: "https://example.com/privacy-policy.html",
@@ -4555,17 +4555,29 @@ function loadServiceIdentity(role, privateKeyHex) {
   console.log(`Loaded service identity: ${role} (pubkey: ${publicKey.substring(0, 8)}...)`);
   return signer;
 }
+function secretNameForRole(role) {
+  return `OD_${role.toUpperCase()}_SERVICE_PRIVKEY`;
+}
 function loadServiceIdentitiesFromEnv(env) {
   const signers = [];
-  const systemKey = env.OD_SYSTEM_SERVICE_PRIVKEY;
-  if (systemKey && systemKey.length > 0) {
-    try {
-      signers.push(loadServiceIdentity("system", systemKey));
-    } catch (err) {
-      console.error("Failed to load system service identity:", err.message);
+  const missing = [];
+  for (const role of LOADABLE_SERVICE_ROLES) {
+    const secretName = secretNameForRole(role);
+    const key = env[secretName];
+    if (!key || key.length === 0) {
+      missing.push(role);
+      continue;
     }
-  } else {
-    console.warn("OD_SYSTEM_SERVICE_PRIVKEY not set \u2014 OpenDating system service will not be available");
+    try {
+      signers.push(loadServiceIdentity(role, key));
+    } catch (err) {
+      console.error(`Failed to load "${role}" service identity:`, err.message);
+    }
+  }
+  if (missing.length > 0) {
+    console.warn(
+      `[OpenDating] Not loaded (secret unset): ${missing.join(", ")}. Set with: wrangler secret put ${secretNameForRole(missing[0])}`
+    );
   }
   return signers;
 }
@@ -4594,6 +4606,7 @@ function getSupportedTypesForRole(role) {
       return [];
   }
 }
+var LOADABLE_SERVICE_ROLES;
 var init_loader = __esm({
   "src/protocols/opendating/identities/loader.ts"() {
     "use strict";
@@ -4601,6 +4614,16 @@ var init_loader = __esm({
     init_encryption();
     init_registry3();
     __name(loadServiceIdentity, "loadServiceIdentity");
+    LOADABLE_SERVICE_ROLES = [
+      "system",
+      "profile",
+      "discovery",
+      "matcher",
+      "dm_policy",
+      "moderation",
+      "deletion"
+    ];
+    __name(secretNameForRole, "secretNameForRole");
     __name(loadServiceIdentitiesFromEnv, "loadServiceIdentitiesFromEnv");
     __name(getServiceIdentitiesForCapabilities, "getServiceIdentitiesForCapabilities");
     __name(getSupportedTypesForRole, "getSupportedTypesForRole");
@@ -4696,13 +4719,53 @@ var init_service = __esm({
 });
 
 // src/protocols/opendating/storage/d1/membership.ts
-function getIndexKey() {
-  const devKey = "opendating-index-key-v1-dev-only-00000000000000";
-  return new TextEncoder().encode(devKey);
+function profileCompleteness(content) {
+  let score = 0;
+  if (content.display_name && String(content.display_name).trim())
+    score += 25;
+  if (typeof content.age === "number")
+    score += 15;
+  if (content.gender)
+    score += 10;
+  if (content.bio && String(content.bio).trim().length >= 20)
+    score += 20;
+  if (Array.isArray(content.photos) && content.photos.length > 0)
+    score += 20;
+  if (Array.isArray(content.interests) && content.interests.length >= 3)
+    score += 10;
+  return Math.min(score, 100);
+}
+function initMembershipKeys(env) {
+  const indexSecret = env.OD_INDEX_KEY_V1;
+  const dataSecret = env.OD_DATA_KEY_V1;
+  const allowDev = env.OD_ALLOW_DEV_KEYS === "true";
+  if (indexSecret && dataSecret) {
+    if (indexSecret.length < 32 || dataSecret.length < 32) {
+      throw new Error(
+        "OD_INDEX_KEY_V1 and OD_DATA_KEY_V1 must each be at least 32 characters."
+      );
+    }
+    _indexKey = new TextEncoder().encode(indexSecret);
+    _dataKeyRaw = new TextEncoder().encode(dataSecret);
+    _usingDevKeys = false;
+    return;
+  }
+  if (!allowDev) {
+    throw new Error(
+      "OD_INDEX_KEY_V1 and OD_DATA_KEY_V1 are required. Generate them with `npm run opendating:keys:generate` and set them with `wrangler secret put`. For local development only, set OD_ALLOW_DEV_KEYS=true."
+    );
+  }
+  console.warn(
+    "[OpenDating] SECURITY: using published development key material. Member IDs are reversible and stored pubkeys are readable. Never run this configuration with real users."
+  );
+  _indexKey = new TextEncoder().encode(DEV_INDEX_KEY);
+  _dataKeyRaw = new TextEncoder().encode(DEV_DATA_KEY);
+  _usingDevKeys = true;
 }
 function indexKey() {
-  if (!_indexKey)
-    _indexKey = getIndexKey();
+  if (!_indexKey) {
+    throw new Error("Membership keys not initialised \u2014 call initMembershipKeys(env) first.");
+  }
   return _indexKey;
 }
 function deriveMemberId(pubkey) {
@@ -4710,9 +4773,9 @@ function deriveMemberId(pubkey) {
   const msg = hexToBytes2(pubkey);
   return bytesToHex2(hmac(sha2562, key, msg));
 }
-async function encryptPubkey(pubkey, dataKey) {
+async function encryptString(plaintext, dataKey) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(pubkey);
+  const encoded = new TextEncoder().encode(plaintext);
   const ct = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     dataKey,
@@ -4723,7 +4786,7 @@ async function encryptPubkey(pubkey, dataKey) {
   combined.set(new Uint8Array(ct), iv.length);
   return bytesToHex2(combined);
 }
-async function decryptPubkey(encryptedHex, dataKey) {
+async function decryptString(encryptedHex, dataKey) {
   const combined = hexToBytes2(encryptedHex);
   const iv = combined.slice(0, 12);
   const ct = combined.slice(12);
@@ -4735,28 +4798,35 @@ async function decryptPubkey(encryptedHex, dataKey) {
   return new TextDecoder().decode(pt);
 }
 async function getDataKey() {
-  const devKeyBytes = new TextEncoder().encode("opendating-data-key-v1-dev-only-000000");
+  if (!_dataKeyRaw) {
+    throw new Error("Membership keys not initialised \u2014 call initMembershipKeys(env) first.");
+  }
   return crypto.subtle.importKey(
     "raw",
-    devKeyBytes.slice(0, 32),
+    _dataKeyRaw.slice(0, 32),
     { name: "AES-GCM" },
     false,
     ["encrypt", "decrypt"]
   );
 }
-var _indexKey, _D1MembershipStore, D1MembershipStore;
+var DEV_INDEX_KEY, DEV_DATA_KEY, _indexKey, _dataKeyRaw, _usingDevKeys, _D1MembershipStore, D1MembershipStore;
 var init_membership = __esm({
   "src/protocols/opendating/storage/d1/membership.ts"() {
     "use strict";
     init_hmac();
     init_sha256();
     init_encryption();
-    __name(getIndexKey, "getIndexKey");
+    __name(profileCompleteness, "profileCompleteness");
+    DEV_INDEX_KEY = "opendating-index-key-v1-dev-only-00000000000000";
+    DEV_DATA_KEY = "opendating-data-key-v1-dev-only-000000";
     _indexKey = null;
+    _dataKeyRaw = null;
+    _usingDevKeys = false;
+    __name(initMembershipKeys, "initMembershipKeys");
     __name(indexKey, "indexKey");
     __name(deriveMemberId, "deriveMemberId");
-    __name(encryptPubkey, "encryptPubkey");
-    __name(decryptPubkey, "decryptPubkey");
+    __name(encryptString, "encryptString");
+    __name(decryptString, "decryptString");
     __name(getDataKey, "getDataKey");
     _D1MembershipStore = class _D1MembershipStore {
       constructor(db) {
@@ -4783,7 +4853,7 @@ var init_membership = __esm({
         if (!row)
           return null;
         const dk = await this.ensureDataKey();
-        const pubkeyDecrypted = await decryptPubkey(row.encrypted_pubkey, dk);
+        const pubkeyDecrypted = await decryptString(row.encrypted_pubkey, dk);
         return {
           memberId: row.member_id,
           pubkey: pubkeyDecrypted,
@@ -4800,7 +4870,7 @@ var init_membership = __esm({
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
         const dk = await this.ensureDataKey();
-        const encryptedPubkey = await encryptPubkey(pubkey, dk);
+        const encryptedPubkey = await encryptString(pubkey, dk);
         await session.prepare(
           `INSERT OR IGNORE INTO od_members
        (member_id, encrypted_pubkey, status, trust_tier, protocol_version, created_at, updated_at)
@@ -4902,13 +4972,140 @@ var init_membership = __esm({
           updatedAt: row.updated_at
         };
       }
-      async updateProfileEventId(pubkey, eventId) {
+      /**
+       * Store the member's profile content.
+       *
+       * The content blob is encrypted at rest under the data key; only the few
+       * fields discovery filters on (age, gender, intent) are denormalised into
+       * columns, so a database dump exposes coarse buckets rather than bios,
+       * names, and photos.
+       *
+       * This replaces the old `updateProfileEventId`, which took an event id and
+       * silently discarded it — profiles had no content at all as a result.
+       */
+      async updateProfileContent(pubkey, content) {
+        const memberId = this.getMemberId(pubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        const dk = await this.ensureDataKey();
+        const encrypted = await encryptString(JSON.stringify(content), dk);
+        const age = typeof content.age === "number" ? content.age : null;
+        const gender = typeof content.gender === "string" ? content.gender : null;
+        const intent = typeof content.relationship_intent === "string" ? content.relationship_intent : null;
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT INTO od_profiles
+         (member_id, profile_version, encrypted_profile_payload, age, gender_category,
+          relationship_intent, visibility_state, completeness, created_at, updated_at)
+       VALUES (?, 1, ?, ?, ?, ?, 'discoverable', ?, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         profile_version = od_profiles.profile_version + 1,
+         encrypted_profile_payload = excluded.encrypted_profile_payload,
+         age = excluded.age,
+         gender_category = excluded.gender_category,
+         relationship_intent = excluded.relationship_intent,
+         completeness = excluded.completeness,
+         updated_at = excluded.updated_at`
+        ).bind(
+          memberId,
+          encrypted,
+          age,
+          gender,
+          intent,
+          profileCompleteness(content),
+          now,
+          now
+        ).run();
+      }
+      /**
+       * Recover a member's real pubkey from their pseudonymous id.
+       *
+       * Member ids are one-way (HMAC), so this is the only path back. It exists
+       * because acting on a candidate is impossible without it: a like is
+       * addressed to `target_pubkey` and a direct message is NIP-44 encrypted to
+       * that key. Callers must only use it for members the viewer holds a grant
+       * for — it is the boundary where pseudonymity is deliberately traded for a
+       * usable product, so widening its use widens who is identifiable.
+       */
+      async getPubkeyByMemberId(memberId) {
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          `SELECT encrypted_pubkey FROM od_members WHERE member_id = ? AND status = 'active'`
+        ).bind(memberId).first();
+        if (typeof row?.encrypted_pubkey !== "string")
+          return null;
+        try {
+          const dk = await this.ensureDataKey();
+          return await decryptString(row.encrypted_pubkey, dk);
+        } catch {
+          return null;
+        }
+      }
+      /** Read back a member's own decrypted profile content. */
+      async getProfileContent(pubkey) {
+        return this.getProfileContentByMemberId(this.getMemberId(pubkey));
+      }
+      /**
+       * Decrypt a member's profile content by member id — used by discovery to
+       * build the cards granted viewers see.
+       */
+      async getProfileContentByMemberId(memberId) {
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          "SELECT encrypted_profile_payload FROM od_profiles WHERE member_id = ?"
+        ).bind(memberId).first();
+        const blob = row?.encrypted_profile_payload;
+        if (typeof blob !== "string" || blob.length === 0)
+          return null;
+        try {
+          const dk = await this.ensureDataKey();
+          return JSON.parse(await decryptString(blob, dk));
+        } catch {
+          return null;
+        }
+      }
+      /**
+       * Mirror a member's filterable attributes into the discovery index.
+       *
+       * `od_discovery_index` is the denormalised table discovery scans, so it has
+       * to be refreshed whenever profile content, visibility, or location change.
+       * Geo cells are left untouched here — only the discovery service knows them,
+       * and it writes them on location update.
+       */
+      async syncDiscoveryIndex(pubkey) {
         const memberId = this.getMemberId(pubkey);
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
+        const row = await session.prepare(
+          `SELECT p.age, p.gender_category, p.relationship_intent, p.visibility_state,
+              m.status, m.trust_tier
+         FROM od_members m LEFT JOIN od_profiles p ON p.member_id = m.member_id
+        WHERE m.member_id = ?`
+        ).bind(memberId).first();
+        if (!row)
+          return;
+        const visible = row.status === "active" && row.visibility_state === "discoverable" ? 1 : 0;
         await session.prepare(
-          "UPDATE od_profiles SET updated_at = ? WHERE member_id = ?"
-        ).bind(now, memberId).run();
+          `INSERT INTO od_discovery_index
+         (member_id, age, gender_category, intent_category, visible, trust_tier,
+          activity_bucket, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'recently', ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         age = excluded.age,
+         gender_category = excluded.gender_category,
+         intent_category = excluded.intent_category,
+         visible = excluded.visible,
+         trust_tier = excluded.trust_tier,
+         activity_bucket = excluded.activity_bucket,
+         updated_at = excluded.updated_at`
+        ).bind(
+          memberId,
+          row.age ?? null,
+          row.gender_category ?? null,
+          row.relationship_intent ?? null,
+          visible,
+          row.trust_tier ?? 0,
+          now
+        ).run();
       }
       async setVisibility(pubkey, visibility) {
         const memberId = this.getMemberId(pubkey);
@@ -4931,12 +5128,48 @@ var init_membership = __esm({
 });
 
 // src/protocols/opendating/services/profile/service.ts
-var _ProfileService, ProfileService;
+function validateProfileContent(profile) {
+  if (typeof profile !== "object" || profile === null || Array.isArray(profile)) {
+    return "profile must be an object";
+  }
+  const p = profile;
+  const name = typeof p.display_name === "string" ? p.display_name.trim() : "";
+  if (name.length === 0)
+    return "display_name is required";
+  if (name.length > 80)
+    return "display_name must be 80 characters or fewer";
+  if (p.age !== void 0) {
+    if (typeof p.age !== "number" || !Number.isInteger(p.age)) {
+      return "age must be a whole number";
+    }
+    if (p.age < MIN_AGE)
+      return `age must be at least ${MIN_AGE}`;
+    if (p.age > MAX_AGE)
+      return `age must be ${MAX_AGE} or under`;
+  }
+  if (p.bio !== void 0 && typeof p.bio === "string" && p.bio.length > MAX_BIO_LENGTH) {
+    return `bio must be ${MAX_BIO_LENGTH} characters or fewer`;
+  }
+  if (p.interests !== void 0 && (!Array.isArray(p.interests) || p.interests.length > MAX_INTERESTS)) {
+    return `interests must be an array of at most ${MAX_INTERESTS} items`;
+  }
+  if (p.photos !== void 0 && (!Array.isArray(p.photos) || p.photos.length > MAX_PHOTOS)) {
+    return `photos must be an array of at most ${MAX_PHOTOS} items`;
+  }
+  return null;
+}
+var MIN_AGE, MAX_AGE, MAX_BIO_LENGTH, MAX_INTERESTS, MAX_PHOTOS, _ProfileService, ProfileService;
 var init_service2 = __esm({
   "src/protocols/opendating/services/profile/service.ts"() {
     "use strict";
     init_envelope();
     init_membership();
+    MIN_AGE = 18;
+    MAX_AGE = 120;
+    MAX_BIO_LENGTH = 2e3;
+    MAX_INTERESTS = 30;
+    MAX_PHOTOS = 9;
+    __name(validateProfileContent, "validateProfileContent");
     _ProfileService = class _ProfileService {
       constructor(role, pubkey, db) {
         this.role = role;
@@ -4982,20 +5215,46 @@ var init_service2 = __esm({
           created_at: member.createdAt
         }) };
       }
+      /**
+       * Store the member's profile content.
+       *
+       * This used to accept the request and discard it — profiles existed as
+       * membership rows with no name, bio, or photos, so a card had nothing to
+       * render. Content now persists (encrypted at rest) and the denormalised
+       * filter columns are mirrored into the discovery index so the member
+       * becomes findable.
+       */
       async handleUpdate(request, ctx) {
         await this.membership.ensureMember(ctx.senderPubkey);
+        const payload = request.payload;
+        const profile = payload.profile;
+        if (profile === void 0) {
+          const now2 = Math.floor(Date.now() / 1e3);
+          return { response: createEnvelope("profile.update.result", request.request_id, { updated_at: now2 }) };
+        }
+        const invalid = validateProfileContent(profile);
+        if (invalid) {
+          return { response: createErrorEnvelope(request.request_id, "invalid_profile", invalid) };
+        }
+        await this.membership.updateProfileContent(ctx.senderPubkey, profile);
+        await this.membership.syncDiscoveryIndex(ctx.senderPubkey);
         const now = Math.floor(Date.now() / 1e3);
-        return { response: createEnvelope("profile.update.result", request.request_id, { updated_at: now }) };
+        return { response: createEnvelope("profile.update.result", request.request_id, {
+          completeness: profileCompleteness(profile),
+          updated_at: now
+        }) };
       }
       async handleGet(request, ctx) {
         const member = await this.membership.getMember(ctx.senderPubkey);
         if (!member)
           return { response: createErrorEnvelope(request.request_id, "unauthorized", "No membership") };
         const profile = await this.membership.getProfile(ctx.senderPubkey);
+        const content = await this.membership.getProfileContent(ctx.senderPubkey);
         return { response: createEnvelope("profile.get.result", request.request_id, {
           member_id: member.memberId,
           status: member.status,
           trust_tier: member.trustTier,
+          profile: content,
           visibility: profile?.visibilityState || "hidden",
           completeness: profile?.completeness || 0,
           created_at: member.createdAt,
@@ -5004,10 +5263,12 @@ var init_service2 = __esm({
       }
       async handlePause(request, ctx) {
         await this.membership.pauseMember(ctx.senderPubkey);
+        await this.membership.syncDiscoveryIndex(ctx.senderPubkey);
         return { response: createEnvelope("profile.pause.result", request.request_id, { paused_at: Math.floor(Date.now() / 1e3) }) };
       }
       async handleResume(request, ctx) {
         await this.membership.resumeMember(ctx.senderPubkey);
+        await this.membership.syncDiscoveryIndex(ctx.senderPubkey);
         return { response: createEnvelope("profile.resume.result", request.request_id, { resumed_at: Math.floor(Date.now() / 1e3) }) };
       }
       async handleDelete(request, ctx) {
@@ -5018,6 +5279,7 @@ var init_service2 = __esm({
         const payload = request.payload;
         const vis = payload.visibility;
         await this.membership.setVisibility(ctx.senderPubkey, vis);
+        await this.membership.syncDiscoveryIndex(ctx.senderPubkey);
         return { response: createEnvelope("visibility.update.result", request.request_id, { updated_at: Math.floor(Date.now() / 1e3) }) };
       }
     };
@@ -5027,15 +5289,45 @@ var init_service2 = __esm({
 });
 
 // src/protocols/opendating/services/discovery/service.ts
-var MAX_DAILY_CANDIDATES, CANDIDATE_BATCH_SIZE, CANDIDATE_GRANT_TTL, _DiscoveryService, DiscoveryService;
+function clampAge(value, fallback) {
+  if (typeof value !== "number" || !Number.isFinite(value))
+    return fallback;
+  return Math.min(Math.max(Math.round(value), 18), 120);
+}
+function grantToken(viewerId, candidateId, now) {
+  return bytesToHex2(
+    sha2562(new TextEncoder().encode(`${viewerId}:${candidateId}:${now}`))
+  ).substring(0, 32);
+}
+function publicProfile(content) {
+  return {
+    display_name: content.display_name ?? "",
+    age: content.age,
+    gender: content.gender,
+    bio: content.bio,
+    interests: Array.isArray(content.interests) ? content.interests.slice(0, 30) : [],
+    relationship_intent: content.relationship_intent,
+    prompts: Array.isArray(content.prompts) ? content.prompts.slice(0, 5) : [],
+    photos: Array.isArray(content.photos) ? content.photos.slice(0, 9) : []
+  };
+}
+var MAX_DAILY_CANDIDATES, CANDIDATE_BATCH_SIZE, CANDIDATE_GRANT_TTL, DAY_SEC, GEO_TIERS, _DiscoveryService, DiscoveryService;
 var init_service3 = __esm({
   "src/protocols/opendating/services/discovery/service.ts"() {
     "use strict";
     init_envelope();
     init_membership();
+    init_sha256();
+    init_encryption();
     MAX_DAILY_CANDIDATES = 50;
     CANDIDATE_BATCH_SIZE = 20;
     CANDIDATE_GRANT_TTL = 24 * 60 * 60;
+    DAY_SEC = 24 * 60 * 60;
+    GEO_TIERS = [
+      { column: "geo_cell_p5", precision: 5, bucket: "nearby" },
+      { column: "geo_cell_p4", precision: 4, bucket: "within 10 mi" },
+      { column: "geo_cell_p3", precision: 3, bucket: "10-50 mi" }
+    ];
     _DiscoveryService = class _DiscoveryService {
       constructor(role, pubkey, db) {
         this.role = role;
@@ -5050,104 +5342,342 @@ var init_service3 = __esm({
         const member = await this.membership.ensureMember(ctx.senderPubkey);
         switch (request.type) {
           case "discovery.update_location":
-            return this.updateLocation(member.memberId, request);
+            return this.updateLocation(ctx.senderPubkey, member.memberId, request);
           case "discovery.get_candidates":
             return this.getCandidates(member.memberId, request);
           case "discovery.update_preferences":
-            return this.updatePreferences(member.memberId, request);
+            return this.updatePreferences(ctx.senderPubkey, member.memberId, request);
           default:
             throw new Error(`Discovery service does not support: ${request.type}`);
         }
       }
-      async updateLocation(memberId, request) {
+      // -------------------------------------------------------------------------
+      // Location
+      // -------------------------------------------------------------------------
+      async updateLocation(pubkey, memberId, request) {
         const payload = request.payload;
         const geohashPrefix = payload.geohash_prefix;
-        const countryCode = payload.country_code;
-        if (!geohashPrefix || geohashPrefix.length < 3 || geohashPrefix.length > 6) {
+        if (typeof geohashPrefix !== "string" || geohashPrefix.length < 3 || geohashPrefix.length > 6) {
           return { response: createErrorEnvelope(
             request.request_id,
             "invalid_envelope",
             "geohash_prefix must be 3-6 characters (coarse location only)"
           ) };
         }
-        const session = this.db.withSession("first-primary");
+        if (!/^[0-9bcdefghjkmnpqrstuvwxyz]+$/.test(geohashPrefix)) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_envelope",
+            "geohash_prefix contains characters outside the geohash alphabet"
+          ) };
+        }
         const now = Math.floor(Date.now() / 1e3);
+        const session = this.db.withSession("first-primary");
         await session.prepare(
-          `INSERT OR REPLACE INTO od_locations (member_id, geohash_prefix, geohash_prefix_short, country_code, updated_at)
-       VALUES (?, ?, ?, ?, ?)`
-        ).bind(memberId, geohashPrefix, geohashPrefix.substring(0, 2), countryCode || null, now).run();
+          `INSERT INTO od_discovery_index
+         (member_id, geo_cell_p5, geo_cell_p4, geo_cell_p3, visible, trust_tier, activity_bucket, updated_at)
+       VALUES (?, ?, ?, ?, 0, 0, 'recently', ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         geo_cell_p5 = excluded.geo_cell_p5,
+         geo_cell_p4 = excluded.geo_cell_p4,
+         geo_cell_p3 = excluded.geo_cell_p3,
+         activity_bucket = 'recently',
+         updated_at = excluded.updated_at`
+        ).bind(
+          memberId,
+          geohashPrefix.substring(0, 5),
+          geohashPrefix.substring(0, 4),
+          geohashPrefix.substring(0, 3),
+          now
+        ).run();
+        await this.membership.syncDiscoveryIndex(pubkey);
         return { response: createEnvelope("discovery.update_location.result", request.request_id, { updated_at: now }) };
       }
+      // -------------------------------------------------------------------------
+      // Preferences
+      // -------------------------------------------------------------------------
+      async updatePreferences(pubkey, memberId, request) {
+        const payload = request.payload;
+        const now = Math.floor(Date.now() / 1e3);
+        const ageMin = clampAge(payload.min_age, 18);
+        const ageMax = clampAge(payload.max_age, 99);
+        if (ageMin > ageMax) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_envelope",
+            "min_age must not exceed max_age"
+          ) };
+        }
+        const genders = Array.isArray(payload.genders) ? payload.genders.filter((g) => typeof g === "string") : null;
+        const intent = typeof payload.intent === "string" ? payload.intent : null;
+        const maxDistanceKm = typeof payload.max_distance_km === "number" && payload.max_distance_km > 0 ? Math.min(Math.round(payload.max_distance_km), 500) : 100;
+        const session = this.db.withSession("first-primary");
+        await session.prepare(
+          `INSERT INTO od_discovery_prefs
+         (member_id, age_min, age_max, max_distance_km, genders, intent, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         age_min = excluded.age_min,
+         age_max = excluded.age_max,
+         max_distance_km = excluded.max_distance_km,
+         genders = excluded.genders,
+         intent = excluded.intent,
+         updated_at = excluded.updated_at`
+        ).bind(
+          memberId,
+          ageMin,
+          ageMax,
+          maxDistanceKm,
+          genders && genders.length > 0 ? JSON.stringify(genders) : null,
+          intent,
+          now
+        ).run();
+        await session.prepare(
+          `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND grant_type = 'discovery'`
+        ).bind(memberId).run();
+        await this.membership.syncDiscoveryIndex(pubkey);
+        return { response: createEnvelope("discovery.update_preferences.result", request.request_id, { updated_at: now }) };
+      }
+      // -------------------------------------------------------------------------
+      // Candidates
+      // -------------------------------------------------------------------------
       async getCandidates(memberId, request) {
         const payload = request.payload;
-        const cursor = payload.cursor;
-        const limit = Math.min(payload.limit || CANDIDATE_BATCH_SIZE, CANDIDATE_BATCH_SIZE);
-        const session = this.db.withSession("first-unconstrained");
+        const limit = Math.min(
+          typeof payload.limit === "number" ? payload.limit : CANDIDATE_BATCH_SIZE,
+          CANDIDATE_BATCH_SIZE
+        );
         const now = Math.floor(Date.now() / 1e3);
-        const quota = await session.prepare(
-          "SELECT * FROM od_discovery_quotas WHERE member_id = ?"
-        ).bind(memberId).first();
-        if (quota) {
-          if (now > quota.daily_reset_at) {
-            const ps = this.db.withSession("first-primary");
-            await ps.prepare(
-              "UPDATE od_discovery_quotas SET daily_candidates_served = 0, daily_reset_at = ? WHERE member_id = ?"
-            ).bind(now + 86400, memberId).run();
-          } else if (quota.daily_candidates_served >= MAX_DAILY_CANDIDATES) {
-            return { response: createErrorEnvelope(
-              request.request_id,
-              "rate_limited",
-              `Daily discovery limit reached (${MAX_DAILY_CANDIDATES})`
-            ) };
-          }
+        const quota = await this.consumeQuota(memberId, now);
+        if (quota.exhausted) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "discovery_quota_exhausted",
+            `Daily discovery limit reached (${MAX_DAILY_CANDIDATES})`
+          ) };
         }
-        const grants = await session.prepare(
-          `SELECT candidate_id, distance_bucket FROM od_candidate_grants
-       WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
-       ORDER BY granted_at DESC LIMIT ?`
-        ).bind(memberId, now, limit).all();
-        if (grants.results.length > 0) {
-          const candidates = grants.results.map((r) => ({
-            candidate_id: r.candidate_id,
-            distance_bucket: r.distance_bucket
-          }));
-          return {
-            response: createEnvelope("discovery.get_candidates.result", request.request_id, {
-              candidates,
-              cursor: null,
-              remaining_today: MAX_DAILY_CANDIDATES - (quota?.daily_candidates_served || 0)
-            })
-          };
+        const viewer = await this.loadViewer(memberId);
+        if (!viewer) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_location",
+            "Set your location before discovering people nearby"
+          ) };
         }
+        let granted = await this.loadExistingGrants(memberId, now, limit);
+        if (granted.length < limit) {
+          const fresh = await this.generateGrants(
+            memberId,
+            viewer,
+            limit - granted.length,
+            now
+          );
+          granted = [...granted, ...fresh];
+        }
+        const candidates = await this.hydrate(granted);
+        const served = quota.servedToday + candidates.length;
+        await this.recordServed(memberId, served, quota.resetAt, now);
         return {
           response: createEnvelope("discovery.get_candidates.result", request.request_id, {
-            candidates: [],
+            candidates,
             cursor: null,
-            remaining_today: MAX_DAILY_CANDIDATES - (quota?.daily_candidates_served || 0),
-            message: "No candidates available. Update your location and preferences to discover new people."
+            remaining_today: Math.max(MAX_DAILY_CANDIDATES - served, 0)
           })
         };
       }
-      async updatePreferences(memberId, request) {
-        const payload = request.payload;
-        const now = Math.floor(Date.now() / 1e3);
+      /** Read the viewer's own index row and preferences. */
+      async loadViewer(memberId) {
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          `SELECT geo_cell_p5, geo_cell_p4, geo_cell_p3 FROM od_discovery_index WHERE member_id = ?`
+        ).bind(memberId).first();
+        if (!row || !row.geo_cell_p3)
+          return null;
+        const prefRow = await session.prepare(
+          `SELECT age_min, age_max, max_distance_km, genders, intent
+         FROM od_discovery_prefs WHERE member_id = ?`
+        ).bind(memberId).first();
+        let genders = null;
+        if (typeof prefRow?.genders === "string") {
+          try {
+            const parsed = JSON.parse(prefRow.genders);
+            if (Array.isArray(parsed) && parsed.length > 0)
+              genders = parsed;
+          } catch {
+          }
+        }
+        return {
+          cells: {
+            geo_cell_p5: row.geo_cell_p5 ?? null,
+            geo_cell_p4: row.geo_cell_p4 ?? null,
+            geo_cell_p3: row.geo_cell_p3 ?? null
+          },
+          prefs: {
+            ageMin: clampAge(prefRow?.age_min, 18),
+            ageMax: clampAge(prefRow?.age_max, 99),
+            maxDistanceKm: typeof prefRow?.max_distance_km === "number" ? prefRow.max_distance_km : 100,
+            genders,
+            intent: typeof prefRow?.intent === "string" ? prefRow.intent : null
+          }
+        };
+      }
+      async loadExistingGrants(memberId, now, limit) {
+        const session = this.db.withSession("first-unconstrained");
+        const rows = await session.prepare(
+          `SELECT candidate_id, grant_token, distance_bucket FROM od_candidate_grants
+        WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
+        ORDER BY granted_at DESC LIMIT ?`
+        ).bind(memberId, now, limit).all();
+        return rows.results ?? [];
+      }
+      /**
+       * Find new candidates and grant the viewer permission to see them.
+       *
+       * Widens outward through the geohash tiers, excluding at the SQL layer:
+       * the viewer themselves, anyone invisible, anyone already granted or
+       * already seen, and blocks in either direction.
+       */
+      async generateGrants(memberId, viewer, want, now) {
+        const collected = [];
+        const excluded = /* @__PURE__ */ new Set([memberId]);
+        const session = this.db.withSession("first-unconstrained");
+        const maxPrecision = viewer.prefs.maxDistanceKm <= 10 ? 5 : viewer.prefs.maxDistanceKm <= 50 ? 4 : 3;
+        for (const tier of GEO_TIERS) {
+          if (collected.length >= want)
+            break;
+          if (tier.precision < maxPrecision)
+            break;
+          const cell = viewer.cells[tier.column];
+          if (!cell)
+            continue;
+          const genderFilter = viewer.prefs.genders ? ` AND di.gender_category IN (${viewer.prefs.genders.map(() => "?").join(",")})` : "";
+          const binds = [cell, viewer.prefs.ageMin, viewer.prefs.ageMax];
+          if (viewer.prefs.genders)
+            binds.push(...viewer.prefs.genders);
+          binds.push(memberId, memberId, memberId, memberId, now, want - collected.length);
+          const rows = await session.prepare(
+            `SELECT di.member_id, di.age, di.gender_category, di.intent_category
+           FROM od_discovery_index di
+           JOIN od_members m ON m.member_id = di.member_id
+          WHERE di.${tier.column} = ?
+            AND di.visible = 1
+            AND m.status = 'active'
+            AND di.age IS NOT NULL
+            AND di.age BETWEEN ? AND ?
+            ${genderFilter}
+            AND di.member_id != ?
+            AND di.member_id NOT IN (SELECT candidate_id FROM od_seen_candidates WHERE viewer_id = ?)
+            AND di.member_id NOT IN (
+              SELECT blocked_member_id FROM od_blocks WHERE blocker_member_id = ?
+              UNION
+              SELECT blocker_member_id FROM od_blocks WHERE blocked_member_id = ?
+            )
+            AND di.member_id NOT IN (
+              SELECT candidate_id FROM od_candidate_grants
+               WHERE viewer_id = ? AND (expires_at IS NULL OR expires_at > ?)
+            )
+          ORDER BY di.trust_tier DESC, di.updated_at DESC
+          LIMIT ?`
+          ).bind(...binds).all();
+          for (const raw of rows.results ?? []) {
+            if (excluded.has(raw.member_id))
+              continue;
+            excluded.add(raw.member_id);
+            collected.push({
+              candidate_id: raw.member_id,
+              grant_token: grantToken(memberId, raw.member_id, now),
+              distance_bucket: tier.bucket
+            });
+            if (collected.length >= want)
+              break;
+          }
+        }
+        if (collected.length > 0) {
+          await this.persistGrants(memberId, collected, now);
+        }
+        return collected;
+      }
+      async persistGrants(memberId, grants, now) {
+        const session = this.db.withSession("first-primary");
+        const expiresAt = now + CANDIDATE_GRANT_TTL;
+        const statements = grants.flatMap((g) => [
+          session.prepare(
+            `INSERT OR REPLACE INTO od_candidate_grants
+           (viewer_id, candidate_id, grant_token, grant_type, distance_bucket, geo_precision, granted_at, expires_at)
+         VALUES (?, ?, ?, 'discovery', ?, NULL, ?, ?)`
+          ).bind(memberId, g.candidate_id, g.grant_token, g.distance_bucket, now, expiresAt),
+          // Mark as seen at grant time rather than on like/pass. A pass is a
+          // purely local gesture the client never reports, so recording here is
+          // what stops the same faces cycling back round tomorrow. Grants expire
+          // after a day; this ledger does not.
+          session.prepare(
+            `INSERT OR IGNORE INTO od_seen_candidates (viewer_id, candidate_id, seen_at)
+         VALUES (?, ?, ?)`
+          ).bind(memberId, g.candidate_id, now)
+        ]);
+        await session.batch(statements);
+      }
+      /**
+       * Turn grants into the cards a client can actually render: real pubkey,
+       * decrypted profile content, coarse distance, and the grant token.
+       *
+       * The pubkey has to be returned — a like is addressed to `target_pubkey`
+       * and a direct message is encrypted to it, so a pseudonymous member id
+       * alone leaves the viewer unable to act on anyone they are shown.
+       */
+      async hydrate(grants) {
+        const out = [];
+        for (const grant of grants) {
+          const pubkey = await this.membership.getPubkeyByMemberId(grant.candidate_id);
+          if (!pubkey)
+            continue;
+          const content = await this.membership.getProfileContentByMemberId(grant.candidate_id);
+          if (!content)
+            continue;
+          out.push({
+            pubkey,
+            profile: publicProfile(content),
+            distance_bucket: grant.distance_bucket,
+            candidate_grant: grant.grant_token
+          });
+        }
+        return out;
+      }
+      // -------------------------------------------------------------------------
+      // Quota
+      // -------------------------------------------------------------------------
+      async consumeQuota(memberId, now) {
+        const session = this.db.withSession("first-unconstrained");
+        const row = await session.prepare(
+          "SELECT daily_candidates_served, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?"
+        ).bind(memberId).first();
+        if (!row)
+          return { exhausted: false, servedToday: 0, resetAt: now + DAY_SEC };
+        const resetAt = row.daily_reset_at ?? 0;
+        if (now > resetAt) {
+          return { exhausted: false, servedToday: 0, resetAt: now + DAY_SEC };
+        }
+        const served = row.daily_candidates_served ?? 0;
+        return { exhausted: served >= MAX_DAILY_CANDIDATES, servedToday: served, resetAt };
+      }
+      async recordServed(memberId, served, resetAt, now) {
         const session = this.db.withSession("first-primary");
         await session.prepare(
-          `INSERT OR REPLACE INTO od_discovery_prefs (member_id, max_distance_km, min_age, max_age, intent, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-        ).bind(
-          memberId,
-          payload.max_distance_km || 100,
-          payload.min_age || 18,
-          payload.max_age || 99,
-          payload.intent || "dating",
-          now
-        ).run();
-        return { response: createEnvelope("discovery.update_preferences.result", request.request_id, { updated_at: now }) };
+          `INSERT INTO od_discovery_quotas
+         (member_id, daily_candidates_served, daily_likes_sent, daily_reset_at, updated_at)
+       VALUES (?, ?, 0, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET
+         daily_candidates_served = excluded.daily_candidates_served,
+         daily_reset_at = excluded.daily_reset_at,
+         updated_at = excluded.updated_at`
+        ).bind(memberId, served, resetAt, now).run();
       }
     };
     __name(_DiscoveryService, "DiscoveryService");
     DiscoveryService = _DiscoveryService;
+    __name(clampAge, "clampAge");
+    __name(grantToken, "grantToken");
+    __name(publicProfile, "publicProfile");
   }
 });
 
@@ -5535,6 +6065,12 @@ var init_service7 = __esm({
 // src/protocols/opendating/index.ts
 function initOpenDating(env, db) {
   console.log("[OpenDating] Initializing protocol core...");
+  try {
+    initMembershipKeys(env || {});
+  } catch (err) {
+    console.error("[OpenDating] Refusing to start:", err.message);
+    return;
+  }
   initOpenDatingExtension(db);
   const signers = loadServiceIdentitiesFromEnv(env || {});
   if (signers.length === 0) {
@@ -5578,6 +6114,7 @@ var init_opendating = __esm({
     init_service6();
     init_service7();
     init_registry2();
+    init_membership();
     init_capabilities();
     init_constants();
     init_envelope();
@@ -6983,8 +7520,8 @@ function serveLandingPage() {
   const payToRelaySection = PAY_TO_RELAY_ENABLED2 ? `
     <div class="pay-section" id="paySection">
       <p style="margin-bottom: 1rem;">Pay to access this relay:</p>
-      <button id="payButton" class="pay-button" data-npub="${relayNpub2}" data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://sendit.nosflare.com" data-sats-amount="${RELAY_ACCESS_PRICE_SATS2}">
-        <img src="https://nosflare.com/images/pwb-button-min.png" alt="Pay with Bitcoin" style="height: 60px;">
+      <button id="payButton" class="pay-button" data-npub="${relayNpub2}" data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://opendating-relay.jonathang132298.workers.dev" data-sats-amount="${RELAY_ACCESS_PRICE_SATS2}">
+        <img src="images/pwb-button-min.png" alt="Pay with Bitcoin" style="height: 60px;">
       </button>
       <p class="price-info">${RELAY_ACCESS_PRICE_SATS2.toLocaleString()} sats</p>
     </div>
@@ -7011,7 +7548,7 @@ function serveLandingPage() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A serverless Nostr relay through Cloudflare Worker and D1 database" />
-    <title>Nosflare - Nostr Relay</title>
+    <title>OpenDating \u2014 Privacy-First Decentralized Dating</title>
     <style>
         * {
             margin: 0;
@@ -7187,7 +7724,7 @@ function serveLandingPage() {
 </head>
 <body>
     <div class="container">
-        <img src="https://nosflare.com/images/nosflare.png" alt="Nosflare Logo" class="logo">
+        <img src="images/brand-mark-coral.svg" alt="OpenDating" class="logo">
         <p class="tagline">A serverless Nostr relay powered by Cloudflare</p>
         
         ${payToRelaySection}
@@ -7204,7 +7741,7 @@ function serveLandingPage() {
         </div>
         
         <div class="links">
-            <a href="https://github.com/Spl0itable/nosflare" class="link" target="_blank">GitHub</a>
+            <a href="https://github.com/jongan69/OpenDating" class="link" target="_blank">GitHub</a>
             <a href="https://nostr.com" class="link" target="_blank">Learn about Nostr</a>
         </div>
     </div>
@@ -7288,7 +7825,7 @@ function serveLandingPage() {
 
         async function initPayment() {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/gh/Spl0itable/nosflare@main/nostr-zap.js';
+            script.src = 'nostr-zap.js';
             script.onload = () => {
                 if (window.nostrZap) {
                     window.nostrZap.initTargets('#payButton');
@@ -8106,7 +8643,7 @@ var init_durable_object = __esm({
         const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-        return `https://nosflare-query-cache/${hashHex}`;
+        return `https://opendating-query-cache/${hashHex}`;
       }
       // Query cache methods with deduplication and global caching
       async getCachedOrQuery(filters, bookmark) {

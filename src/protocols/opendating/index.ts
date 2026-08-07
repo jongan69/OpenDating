@@ -12,10 +12,22 @@ import { BlockService } from './services/block/service.js';
 import { ModerationService } from './services/moderation/service.js';
 import { DeletionService } from './services/deletion/service.js';
 import { odServiceRegistry } from './services/registry.js';
+import { initMembershipKeys } from './storage/d1/membership.js';
 import { buildNip11Advertisement } from './protocol/capabilities.js';
 
 export function initOpenDating(env: Record<string, any>, db: D1Database): void {
   console.log('[OpenDating] Initializing protocol core...');
+
+  // Key material first: member pseudonymity and pubkey encryption at rest both
+  // depend on it, so nothing may touch membership storage until it is loaded.
+  // A misconfigured deploy throws here rather than silently persisting member
+  // records that anyone could de-anonymise.
+  try {
+    initMembershipKeys(env || {});
+  } catch (err) {
+    console.error('[OpenDating] Refusing to start:', (err as Error).message);
+    return;
+  }
 
   initOpenDatingExtension(db);
   const signers = loadServiceIdentitiesFromEnv(env || {});

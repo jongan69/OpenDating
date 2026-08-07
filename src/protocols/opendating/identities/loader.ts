@@ -41,32 +41,67 @@ export function loadServiceIdentity(
 }
 
 /**
+ * Roles this relay can run, in the order they are reported.
+ *
+ * A role becomes active purely by having its secret set, so an operator can
+ * roll services out one at a time. `verification` and `media` are declared in
+ * the protocol but have no service implementation yet, so they are not
+ * listed — advertising them would promise capabilities the relay cannot serve.
+ */
+export const LOADABLE_SERVICE_ROLES = [
+  'system',
+  'profile',
+  'discovery',
+  'matcher',
+  'dm_policy',
+  'moderation',
+  'deletion',
+] as const;
+
+export type LoadableServiceRole = (typeof LOADABLE_SERVICE_ROLES)[number];
+
+/** Secret name carrying the private key for a role. */
+export function secretNameForRole(role: string): string {
+  return `OD_${role.toUpperCase()}_SERVICE_PRIVKEY`;
+}
+
+/**
  * Load service identities from environment secrets.
- * Each service role looks for OD_<ROLE>_SERVICE_PRIVKEY in environment.
+ * Each role looks for OD_<ROLE>_SERVICE_PRIVKEY in the environment.
  *
  * Example:
  *   OD_SYSTEM_SERVICE_PRIVKEY=<hex private key>
+ *   OD_PROFILE_SERVICE_PRIVKEY=<hex private key>
  */
 export function loadServiceIdentitiesFromEnv(env: {
   [key: string]: string | undefined;
 }): ServiceSigner[] {
   const signers: ServiceSigner[] = [];
+  const missing: string[] = [];
 
-  // System service (the only active service in V0.1)
-  const systemKey = env.OD_SYSTEM_SERVICE_PRIVKEY;
-  if (systemKey && systemKey.length > 0) {
-    try {
-      signers.push(loadServiceIdentity('system', systemKey));
-    } catch (err) {
-      console.error('Failed to load system service identity:', (err as Error).message);
+  for (const role of LOADABLE_SERVICE_ROLES) {
+    const secretName = secretNameForRole(role);
+    const key = env[secretName];
+
+    if (!key || key.length === 0) {
+      missing.push(role);
+      continue;
     }
-  } else {
-    console.warn('OD_SYSTEM_SERVICE_PRIVKEY not set — OpenDating system service will not be available');
+
+    try {
+      signers.push(loadServiceIdentity(role as OpenDatingServiceRole, key));
+    } catch (err) {
+      // One bad key must not cost the roles that are configured correctly.
+      console.error(`Failed to load "${role}" service identity:`, (err as Error).message);
+    }
   }
 
-  // Future: load additional service identities
-  // const profileKey = env.OD_PROFILE_SERVICE_PRIVKEY;
-  // if (profileKey) signers.push(loadServiceIdentity('profile', profileKey));
+  if (missing.length > 0) {
+    console.warn(
+      `[OpenDating] Not loaded (secret unset): ${missing.join(', ')}. ` +
+        `Set with: wrangler secret put ${secretNameForRole(missing[0])}`,
+    );
+  }
 
   return signers;
 }

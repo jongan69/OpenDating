@@ -1,39 +1,68 @@
 #!/usr/bin/env node
 /**
- * OpenDating Development Key Generator
+ * OpenDating Key Generator
  *
- * Generates test service keypairs for local development.
- * WARNING: Development only. Never commit generated secret material.
+ * Generates the service signing keypairs and the two storage keys the relay
+ * needs. Output is secret material — never commit it, and never paste it
+ * anywhere but `wrangler secret put` or a local, git-ignored `.dev.vars`.
  *
- * Usage: npx tsx scripts/opendating-keys-generate.ts
+ * Usage:
+ *   npx tsx scripts/opendating-keys-generate.ts            # all secrets
+ *   npx tsx scripts/opendating-keys-generate.ts --commands # ready-to-run wrangler
  */
 import { generateKeypair } from '../src/protocols/opendating/crypto/encryption.js';
+import { LOADABLE_SERVICE_ROLES, secretNameForRole } from '../src/protocols/opendating/identities/loader.js';
+import { randomBytes } from 'node:crypto';
 
-console.log('==========================================');
-console.log('  OpenDating Development Key Generator');
-console.log('  DEVELOPMENT ONLY — DO NOT USE IN PROD');
-console.log('==========================================');
-console.log('');
+const asCommands = process.argv.includes('--commands');
 
-// System service
-const system = generateKeypair();
-console.log('# System Service');
-console.log(`OD_SYSTEM_SERVICE_PRIVKEY=${system.privateKey}`);
-console.log(`OD_SYSTEM_SERVICE_PUBKEY=${system.publicKey}`);
-console.log('');
+/** Storage keys are opaque strings; 48 base64 chars comfortably clears the 32-char floor. */
+function storageKey(): string {
+  return randomBytes(36).toString('base64url');
+}
 
-// Future services (keys generated for reference, not used in V0.1)
-const profile = generateKeypair();
-console.log('# Profile Service (future)');
-console.log(`# OD_PROFILE_SERVICE_PRIVKEY=${profile.privateKey}`);
-console.log(`# OD_PROFILE_SERVICE_PUBKEY=${profile.publicKey}`);
-console.log('');
+const secrets: { name: string; value: string; note: string }[] = [];
 
-console.log('==========================================');
-console.log('Add these to your .dev.vars file:');
-console.log('');
-console.log(`OD_SYSTEM_SERVICE_PRIVKEY=${system.privateKey}`);
-console.log('==========================================');
-console.log('');
-console.log('WARNING: These are DEVELOPMENT keys.');
-console.log('For production, use: wrangler secret put OD_SYSTEM_SERVICE_PRIVKEY');
+for (const role of LOADABLE_SERVICE_ROLES) {
+  const kp = generateKeypair();
+  secrets.push({
+    name: secretNameForRole(role),
+    value: kp.privateKey,
+    note: `${role} service — pubkey ${kp.publicKey}`,
+  });
+}
+
+secrets.push({
+  name: 'OD_INDEX_KEY_V1',
+  value: storageKey(),
+  note: 'HMAC key for pseudonymous member IDs — rotating it orphans every existing member row',
+});
+secrets.push({
+  name: 'OD_DATA_KEY_V1',
+  value: storageKey(),
+  note: 'AES-GCM key for pubkeys and profile content at rest — rotating it makes existing rows unreadable',
+});
+
+if (asCommands) {
+  console.log('# Run each line, pasting the value when prompted.');
+  console.log('# Values are printed below the command for copying.');
+  console.log('');
+  for (const s of secrets) {
+    console.log(`# ${s.note}`);
+    console.log(`npx wrangler secret put ${s.name}`);
+    console.log(`#   ${s.value}`);
+    console.log('');
+  }
+} else {
+  console.log('# OpenDating secrets — DO NOT COMMIT');
+  console.log('# Local dev: save as .dev.vars (git-ignored)');
+  console.log('# Production: npx wrangler secret put <NAME>');
+  console.log('');
+  for (const s of secrets) {
+    console.log(`# ${s.note}`);
+    console.log(`${s.name}=${s.value}`);
+  }
+  console.log('');
+  console.log('# Local development only — never set in production:');
+  console.log('# OD_ALLOW_DEV_KEYS=true');
+}
