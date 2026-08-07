@@ -4351,6 +4351,75 @@ var init_logger = __esm({
   }
 });
 
+// src/cloudflare/moderation.ts
+async function moderateContent(ai, text, category) {
+  if (!ai) {
+    console.log(`[moderation] AI binding absent \u2014 allowing ${category} content without screening`);
+    return { passed: true, flags: [], confidence: 0, recommendation: "allow", explanation: "AI moderation not configured" };
+  }
+  if (!text || text.trim().length < 2) {
+    return { passed: true, flags: [], confidence: 1, recommendation: "allow", explanation: "Content too short to screen" };
+  }
+  try {
+    const response = await ai.run("@cf/meta/llama-3.2-3b-instruct", {
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `Category: ${category}
+
+Content to classify:
+"""
+${text.slice(0, 2e3)}
+"""` }
+      ],
+      max_tokens: 256,
+      temperature: 0,
+      response_format: { type: "json_object" }
+    });
+    const parsed = JSON.parse(
+      response.response || response.choices?.[0]?.message?.content || "{}"
+    );
+    return {
+      passed: parsed.action === "allow",
+      flags: parsed.categories || [],
+      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
+      recommendation: parsed.action || "allow",
+      explanation: parsed.reason || "No explanation provided"
+    };
+  } catch (err) {
+    console.error(`[moderation] AI call failed for ${category}:`, err);
+    return { passed: true, flags: [], confidence: 0, recommendation: "allow", explanation: `Moderation error: ${String(err).slice(0, 100)}` };
+  }
+}
+function shouldBlock(result) {
+  return result.recommendation === "block" && result.confidence >= 0.85;
+}
+var SYSTEM_PROMPT;
+var init_moderation = __esm({
+  "src/cloudflare/moderation.ts"() {
+    "use strict";
+    SYSTEM_PROMPT = `You are a content moderation classifier for a dating app. Analyze the text and classify it.
+
+Return ONLY a JSON object with these fields:
+{
+  "is_harmful": boolean,
+  "categories": string[],  // zero or more of: "harassment", "hate_speech", "sexual_content", "spam", "violence", "personal_info", "self_harm", "underage", "impersonation", "commercial"
+  "confidence": number,   // 0.0 to 1.0
+  "action": "allow" | "flag" | "block",
+  "reason": string        // one sentence explaining the decision
+}
+
+Rules:
+- "block" = clearly violates policies (harassment, hate speech, explicit sexual content, underage content, doxxing)
+- "flag" = potentially problematic, needs human review (ambiguous, mildly suggestive)
+- "allow" = clearly safe, normal dating profile content
+- Dating-appropriate content (flirting, describing oneself, relationship preferences) is ALLOWED
+- Sexual orientation, gender identity discussion is ALLOWED
+- Mentioning wanting a relationship, dating preferences is ALLOWED`;
+    __name(moderateContent, "moderateContent");
+    __name(shouldBlock, "shouldBlock");
+  }
+});
+
 // src/protocols/opendating/extension.ts
 function initOpenDatingExtension(db) {
   idempotencyStore = new D1IdempotencyStore(db);
@@ -4444,6 +4513,41 @@ async function sendResponse(envelope, senderPubkey, servicePubkey, env) {
     });
   }
 }
+async function screenProfileContent(envelope, senderPubkey, context) {
+  try {
+    const payload = envelope.payload;
+    const profile = payload?.profile;
+    if (!profile)
+      return;
+    const bio = typeof profile.bio === "string" ? profile.bio : "";
+    const name = typeof profile.display_name === "string" ? profile.display_name : "";
+    const text = [name, bio].filter(Boolean).join(" ");
+    if (text.length < 3)
+      return;
+    const env = context._env;
+    if (!env?.AI)
+      return;
+    const result = await moderateContent(env.AI, text, "profile_bio");
+    if (shouldBlock(result)) {
+      logger.warn("[moderation] Blocked profile content", {
+        senderPrefix: senderPubkey.slice(0, 8),
+        flags: result.flags,
+        confidence: result.confidence
+      });
+      throw new Error(`Profile content rejected: ${result.explanation}`);
+    }
+    if (result.flags.length > 0) {
+      logger.info("[moderation] Flagged profile (allowed through)", {
+        senderPrefix: senderPubkey.slice(0, 8),
+        flags: result.flags
+      });
+    }
+  } catch (err) {
+    if (err.message?.startsWith("Profile content rejected:"))
+      throw err;
+    logger.error("[moderation] screenProfileContent error");
+  }
+}
 var idempotencyStore, openDatingExtension;
 var init_extension = __esm({
   "src/protocols/opendating/extension.ts"() {
@@ -4451,15 +4555,18 @@ var init_extension = __esm({
     init_encryption();
     init_router();
     init_registry3();
+    init_envelope();
     init_constants();
     init_idempotency();
     init_gift_wrap();
     init_logger();
+    init_moderation();
     idempotencyStore = null;
     __name(initOpenDatingExtension, "initOpenDatingExtension");
     __name(isAddressedToService, "isAddressedToService");
     __name(decryptAndParse, "decryptAndParse");
     __name(sendResponse, "sendResponse");
+    __name(screenProfileContent, "screenProfileContent");
     openDatingExtension = {
       name: "opendating",
       canHandleEvent(event, _context) {
@@ -4477,6 +4584,23 @@ var init_extension = __esm({
           return { handled: false };
         }
         const { envelope, senderPubkey } = decrypted;
+        if (envelope.type === "profile.create" || envelope.type === "profile.update") {
+          try {
+            await screenProfileContent(envelope, senderPubkey, context);
+          } catch (modErr) {
+            const errMsg = modErr.message || "Content rejected by moderation";
+            const env2 = context._env;
+            if (env2) {
+              const errorEnvelope = createErrorEnvelope(
+                envelope.request_id,
+                "content_rejected",
+                errMsg
+              );
+              await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env2);
+            }
+            return { handled: true, storeNormally: false, message: errMsg };
+          }
+        }
         const transportCtx = {
           relayContext: context,
           authenticatedPubkey: context.authenticatedPubkey || "",
@@ -6423,6 +6547,144 @@ var init_server = __esm({
   }
 });
 
+// src/cloudflare/queue.ts
+async function processTask(message, db, ai) {
+  const { type, payload } = message;
+  try {
+    switch (type) {
+      case "report.created":
+        await processReportCreated(db, payload);
+        break;
+      case "match.notify":
+        await processMatchNotification(db, payload);
+        break;
+      case "member.deleted":
+        await processMemberDeleted(db, payload);
+        break;
+      case "profile.updated":
+        await processProfileUpdated(db, payload);
+        break;
+      default:
+        console.warn(`[queue] unknown task type: ${type}`);
+    }
+  } catch (err) {
+    console.error(`[queue] task ${type} failed:`, err);
+    throw err;
+  }
+}
+async function processReportCreated(db, payload) {
+  const { reportId } = payload;
+  if (!reportId)
+    return;
+  await db.prepare(
+    `UPDATE od_reports SET status = 'triaging' WHERE report_id = ? AND status = 'pending'`
+  ).bind(reportId).run();
+  console.log(`[queue] report ${reportId} queued for triage`);
+}
+async function processMatchNotification(db, payload) {
+  const { matchId, memberA, memberB } = payload;
+  if (!matchId)
+    return;
+  await db.prepare(
+    `INSERT OR IGNORE INTO od_match_notifications (match_id, member_id, notified_at)
+     VALUES (?, ?, ?), (?, ?, ?)`
+  ).bind(
+    matchId,
+    memberA,
+    Math.floor(Date.now() / 1e3),
+    matchId,
+    memberB,
+    Math.floor(Date.now() / 1e3)
+  ).run();
+  console.log(`[queue] match notification sent for ${matchId}`);
+}
+async function processMemberDeleted(db, payload) {
+  const { memberId } = payload;
+  if (!memberId)
+    return;
+  const now = Math.floor(Date.now() / 1e3);
+  const tables = [
+    "od_profiles",
+    "od_discovery_index",
+    "od_visibility_prefs",
+    "od_discovery_prefs",
+    "od_discovery_quotas",
+    "od_locations",
+    "od_seen_candidates",
+    "od_candidate_grants",
+    "od_intents",
+    "od_matches",
+    "od_match_notifications",
+    "od_blocks",
+    "od_unmatches",
+    "od_profile_media"
+  ];
+  for (const table of tables) {
+    try {
+      await db.prepare(`DELETE FROM ${table} WHERE member_id = ? OR viewer_id = ? OR candidate_id = ?`).bind(memberId, memberId, memberId).run();
+    } catch {
+    }
+  }
+  await db.prepare(
+    `UPDATE od_members SET status = 'deleted', updated_at = ? WHERE member_id = ?`
+  ).bind(now, memberId).run();
+  console.log(`[queue] member ${memberId} deletion cascaded`);
+}
+async function processProfileUpdated(db, payload) {
+  const { memberId } = payload;
+  if (!memberId)
+    return;
+  const now = Math.floor(Date.now() / 1e3);
+  await db.prepare(
+    `UPDATE od_discovery_index SET updated_at = ? WHERE member_id = ?`
+  ).bind(now, memberId).run();
+  console.log(`[queue] discovery index synced for member ${memberId}`);
+}
+var init_queue = __esm({
+  "src/cloudflare/queue.ts"() {
+    "use strict";
+    __name(processTask, "processTask");
+    __name(processReportCreated, "processReportCreated");
+    __name(processMatchNotification, "processMatchNotification");
+    __name(processMemberDeleted, "processMemberDeleted");
+    __name(processProfileUpdated, "processProfileUpdated");
+  }
+});
+
+// src/cloudflare/cache.ts
+function nip11Key() {
+  return "cache:nip11";
+}
+async function getCachedNip11(kv) {
+  if (!kv)
+    return null;
+  try {
+    return await kv.get(nip11Key());
+  } catch (err) {
+    console.error("[cache] nip11 get failed:", err);
+    return null;
+  }
+}
+async function setCachedNip11(kv, json2) {
+  if (!kv)
+    return;
+  try {
+    await kv.put(nip11Key(), json2, { expirationTtl: NIP11_CACHE_TTL });
+  } catch (err) {
+    console.error("[cache] nip11 set failed:", err);
+  }
+}
+var NIP11_CACHE_TTL;
+var init_cache = __esm({
+  "src/cloudflare/cache.ts"() {
+    "use strict";
+    NIP11_CACHE_TTL = 3600;
+    __name(nip11Key, "nip11Key");
+    __name(getCachedNip11, "getCachedNip11");
+    __name(setCachedNip11, "setCachedNip11");
+  }
+});
+
 // src/relay-worker.ts
 var relay_worker_exports = {};
 __export(relay_worker_exports, {
@@ -7788,7 +8050,20 @@ async function queryEvents(filters, bookmark, env) {
     return { events: [], bookmark: null };
   }
 }
-function handleRelayInfoRequest(request) {
+async function handleRelayInfoRequest(request, env) {
+  const cached = await getCachedNip11(env.RELAY_CACHE);
+  if (cached) {
+    return new Response(cached, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/nostr+json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Methods": "GET",
+        "Cache-Control": "public, max-age=300"
+      }
+    });
+  }
   const responseInfo = { ...relayInfo2 };
   if (PAY_TO_RELAY_ENABLED2) {
     const url = new URL(request.url);
@@ -7804,13 +8079,17 @@ function handleRelayInfoRequest(request) {
     }
   } catch (_) {
   }
-  return new Response(JSON.stringify(responseInfo), {
+  const body = JSON.stringify(responseInfo);
+  setCachedNip11(env.RELAY_CACHE, body).catch(() => {
+  });
+  return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": "application/nostr+json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type, Accept",
-      "Access-Control-Allow-Methods": "GET"
+      "Access-Control-Allow-Methods": "GET",
+      "Cache-Control": "public, max-age=300"
     }
   });
 }
@@ -8643,6 +8922,8 @@ var init_relay_worker = __esm({
     init_durable_object();
     init_opendating();
     init_server();
+    init_queue();
+    init_cache();
     odInitialized = false;
     __name(ensureODInit, "ensureODInit");
     ({
@@ -8722,7 +9003,7 @@ var init_relay_worker = __esm({
               return stub.fetch(new Request(newUrl, request));
             } else if (request.headers.get("Accept") === "application/nostr+json") {
               ensureODInit(env);
-              return handleRelayInfoRequest(request);
+              return handleRelayInfoRequest(request, env);
             } else {
               ctx.waitUntil(
                 initializeDatabase(env.RELAY_DATABASE).catch((e) => console.error("DB init error:", e))
@@ -8785,8 +9066,104 @@ var init_relay_worker = __esm({
         } catch (error2) {
           console.error("Scheduled maintenance failed:", error2);
         }
+      },
+      // Queue consumer — processes async background tasks (reports, notifications, etc.)
+      async queue(batch, env, ctx) {
+        for (const message of batch.messages) {
+          try {
+            await processTask(message.body, env.RELAY_DATABASE, env.AI);
+            message.ack();
+          } catch (err) {
+            console.error(`[queue] message ${message.id} failed, retrying:`, err);
+            message.retry({ delaySeconds: 30 });
+          }
+        }
       }
     };
+  }
+});
+
+// src/cloudflare/housekeeper.ts
+async function runHousekeeperTick(db) {
+  const now = Date.now();
+  if (now - lastMaintenanceAt < MAINTENANCE_INTERVAL_MS) {
+    return { grantsPruned: 0, idempotencyPruned: 0, quotasReset: 0, seenPurged: 0 };
+  }
+  lastMaintenanceAt = now;
+  const counts = { grantsPruned: 0, idempotencyPruned: 0, quotasReset: 0, seenPurged: 0 };
+  try {
+    counts.grantsPruned = await pruneExpiredGrants(db);
+    counts.idempotencyPruned = await pruneExpiredIdempotency(db);
+    counts.quotasReset = await resetDailyQuotas(db);
+    counts.seenPurged = await purgeStaleSeenCandidates(db);
+    if (counts.grantsPruned + counts.idempotencyPruned + counts.quotasReset + counts.seenPurged > 0) {
+      console.log(`[housekeeper] pruned grants=${counts.grantsPruned} idem=${counts.idempotencyPruned} quotas=${counts.quotasReset} seen=${counts.seenPurged}`);
+    }
+  } catch (err) {
+    console.error("[housekeeper] tick failed:", err);
+  }
+  return counts;
+}
+async function pruneExpiredGrants(db) {
+  try {
+    const now = Math.floor(Date.now() / 1e3);
+    const result = await db.prepare(
+      `DELETE FROM od_candidate_grants WHERE expires_at IS NOT NULL AND expires_at < ? LIMIT ?`
+    ).bind(now, MAINTENANCE_BATCH_SIZE).run();
+    return result.meta.changes;
+  } catch {
+    return 0;
+  }
+}
+async function pruneExpiredIdempotency(db) {
+  try {
+    const result = await db.prepare(
+      `DELETE FROM od_idempotency WHERE expires_at < ? LIMIT ?`
+    ).bind(Math.floor(Date.now() / 1e3), MAINTENANCE_BATCH_SIZE).run();
+    return result.meta.changes;
+  } catch {
+    return 0;
+  }
+}
+async function resetDailyQuotas(db) {
+  try {
+    const now = Math.floor(Date.now() / 1e3);
+    const result = await db.prepare(
+      `UPDATE od_discovery_quotas
+          SET daily_candidates_served = 0,
+              daily_likes_sent = 0,
+              daily_reset_at = ?,
+              updated_at = ?
+        WHERE daily_reset_at < ?`
+    ).bind(now + 86400, now, now).run();
+    return result.meta.changes;
+  } catch {
+    return 0;
+  }
+}
+async function purgeStaleSeenCandidates(db) {
+  try {
+    const cutoff = Math.floor(Date.now() / 1e3) - 7 * 86400;
+    const result = await db.prepare(
+      `DELETE FROM od_seen_candidates WHERE seen_at < ? LIMIT ?`
+    ).bind(cutoff, MAINTENANCE_BATCH_SIZE).run();
+    return result.meta.changes;
+  } catch {
+    return 0;
+  }
+}
+var MAINTENANCE_BATCH_SIZE, MAINTENANCE_INTERVAL_MS, lastMaintenanceAt;
+var init_housekeeper = __esm({
+  "src/cloudflare/housekeeper.ts"() {
+    "use strict";
+    MAINTENANCE_BATCH_SIZE = 200;
+    MAINTENANCE_INTERVAL_MS = 5 * 60 * 1e3;
+    lastMaintenanceAt = 0;
+    __name(runHousekeeperTick, "runHousekeeperTick");
+    __name(pruneExpiredGrants, "pruneExpiredGrants");
+    __name(pruneExpiredIdempotency, "pruneExpiredIdempotency");
+    __name(resetDailyQuotas, "resetDailyQuotas");
+    __name(purgeStaleSeenCandidates, "purgeStaleSeenCandidates");
   }
 });
 
@@ -8799,6 +9176,7 @@ var init_durable_object = __esm({
     init_config();
     init_relay_worker();
     init_registry();
+    init_housekeeper();
     _RelayWebSocket = class _RelayWebSocket {
       constructor(state, env) {
         this.processedEvents = /* @__PURE__ */ new Map();
@@ -8839,6 +9217,16 @@ var init_durable_object = __esm({
         const activeWebSockets = this.state.getWebSockets();
         const activeCount = activeWebSockets.length;
         console.log(`DO ${this.doName} - Active WebSockets: ${activeCount}, Idle time: ${idleTime}ms`);
+        if (this.env.RELAY_DATABASE) {
+          try {
+            const counts = await runHousekeeperTick(this.env.RELAY_DATABASE);
+            if (counts.grantsPruned + counts.idempotencyPruned + counts.quotasReset + counts.seenPurged > 0) {
+              console.log(`[DO:${this.doName}] housekeeper: ${JSON.stringify(counts)}`);
+            }
+          } catch (err) {
+            console.error(`[DO:${this.doName}] housekeeper error:`, err);
+          }
+        }
         if (activeCount === 0) {
           console.log(`Cleaning up DO ${this.doName} - no active connections`);
           await this.cleanup();

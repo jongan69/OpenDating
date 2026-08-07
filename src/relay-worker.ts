@@ -4,6 +4,8 @@ import * as config from './config';
 import { RelayWebSocket } from './durable-object';
 import { initOpenDating, getOpenDatingNip11Advertisement } from './protocols/opendating/index.js';
 import { handleBlossomRequest, isBlossomPath } from './protocols/blossom/server.js';
+import { processTask } from './cloudflare/queue.js';
+import { getCachedNip11, setCachedNip11, getCachedRateLimit, setCachedRateLimit } from './cloudflare/cache.js';
 
 // Lazy-init OpenDating once
 let odInitialized = false;
@@ -1743,7 +1745,22 @@ async function queryEvents(filters: NostrFilter[], bookmark: string, env: Env): 
   }
 }
 
-function handleRelayInfoRequest(request: Request): Response {
+async function handleRelayInfoRequest(request: Request, env: Env): Promise<Response> {
+  // Check KV cache first
+  const cached = await getCachedNip11(env.RELAY_CACHE);
+  if (cached) {
+    return new Response(cached, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/nostr+json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Methods": "GET",
+        "Cache-Control": "public, max-age=300",
+      }
+    });
+  }
+
   const responseInfo: Record<string, unknown> = { ...relayInfo };
 
   if (PAY_TO_RELAY_ENABLED) {
@@ -1764,13 +1781,19 @@ function handleRelayInfoRequest(request: Request): Response {
     // OpenDating not initialized — skip advertisement
   }
 
-  return new Response(JSON.stringify(responseInfo), {
+  const body = JSON.stringify(responseInfo);
+
+  // Cache in KV (fire-and-forget, don't block the response)
+  setCachedNip11(env.RELAY_CACHE, body).catch(() => {});
+
+  return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": "application/nostr+json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type, Accept",
       "Access-Control-Allow-Methods": "GET",
+      "Cache-Control": "public, max-age=300",
     }
   });
 }
@@ -2525,7 +2548,7 @@ export default {
           return stub.fetch(new Request(newUrl, request));
         } else if (request.headers.get("Accept") === "application/nostr+json") {
           ensureODInit(env);
-          return handleRelayInfoRequest(request);
+          return handleRelayInfoRequest(request, env);
         } else {
           // Initialize database in background
           ctx.waitUntil(
@@ -2604,6 +2627,19 @@ export default {
       console.log('Scheduled 24hr database maintenance completed successfully');
     } catch (error) {
       console.error('Scheduled maintenance failed:', error);
+    }
+  },
+
+  // Queue consumer — processes async background tasks (reports, notifications, etc.)
+  async queue(batch: MessageBatch<any>, env: Env, ctx: ExecutionContext): Promise<void> {
+    for (const message of batch.messages) {
+      try {
+        await processTask(message.body, env.RELAY_DATABASE, env.AI);
+        message.ack();
+      } catch (err) {
+        console.error(`[queue] message ${message.id} failed, retrying:`, err);
+        message.retry({ delaySeconds: 30 });
+      }
     }
   }
 };

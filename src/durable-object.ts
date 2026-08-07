@@ -13,6 +13,7 @@ import {
 } from './config';
 import { verifyEventSignature, hasPaidForRelay, processEvent, queryEvents } from './relay-worker';
 import { extensionRegistry } from './relay/services/registry.js';
+import { runHousekeeperTick } from './cloudflare/housekeeper.js';
 
 // Session attachment data structure (minimal - auth state stored in session)
 interface SessionAttachment {
@@ -121,6 +122,18 @@ export class RelayWebSocket implements DurableObject {
     const activeCount = activeWebSockets.length;
 
     console.log(`DO ${this.doName} - Active WebSockets: ${activeCount}, Idle time: ${idleTime}ms`);
+
+    // Run housekeeper maintenance tick (DB pruning, quota resets, etc.)
+    if (this.env.RELAY_DATABASE) {
+      try {
+        const counts = await runHousekeeperTick(this.env.RELAY_DATABASE);
+        if (counts.grantsPruned + counts.idempotencyPruned + counts.quotasReset + counts.seenPurged > 0) {
+          console.log(`[DO:${this.doName}] housekeeper: ${JSON.stringify(counts)}`);
+        }
+      } catch (err) {
+        console.error(`[DO:${this.doName}] housekeeper error:`, err);
+      }
+    }
 
     // If no active connections, clean up and don't reschedule
     if (activeCount === 0) {

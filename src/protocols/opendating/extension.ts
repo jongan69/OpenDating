@@ -20,6 +20,7 @@ import { OPENDATING_PROTOCOL, OPENDATING_VERSION } from './protocol/constants.js
 import { D1IdempotencyStore } from './storage/d1/idempotency.js';
 import { buildServiceResponseGiftWrap } from './crypto/gift-wrap.js';
 import { logger } from '../../shared/logger.js';
+import { moderateContent, shouldBlock } from '../../cloudflare/moderation.js';
 
 // ---------------------------------------------------------------------------
 // Extension state
@@ -181,6 +182,57 @@ async function sendResponse(
 }
 
 // ---------------------------------------------------------------------------
+// AI Content Moderation
+// ---------------------------------------------------------------------------
+
+/**
+ * Screen profile content through Workers AI before allowing create/update.
+ * Degrades open: if AI is unavailable, content passes through.
+ * Only blocks high-confidence violations to avoid false positives.
+ */
+async function screenProfileContent(
+  envelope: OpenDatingEnvelope,
+  senderPubkey: string,
+  context: RelayContext,
+): Promise<void> {
+  try {
+    const payload = envelope.payload;
+    const profile = payload?.profile as Record<string, unknown> | undefined;
+    if (!profile) return;
+
+    const bio = typeof profile.bio === 'string' ? profile.bio : '';
+    const name = typeof profile.display_name === 'string' ? profile.display_name : '';
+    const text = [name, bio].filter(Boolean).join(' ');
+
+    if (text.length < 3) return;
+
+    const env = (context as any)._env;
+    if (!env?.AI) return;
+
+    const result = await moderateContent(env.AI, text, 'profile_bio');
+
+    if (shouldBlock(result)) {
+      logger.warn('[moderation] Blocked profile content', {
+        senderPrefix: senderPubkey.slice(0, 8),
+        flags: result.flags,
+        confidence: result.confidence,
+      });
+      throw new Error(`Profile content rejected: ${result.explanation}`);
+    }
+
+    if (result.flags.length > 0) {
+      logger.info('[moderation] Flagged profile (allowed through)', {
+        senderPrefix: senderPubkey.slice(0, 8),
+        flags: result.flags,
+      });
+    }
+  } catch (err) {
+    if ((err as Error).message?.startsWith('Profile content rejected:')) throw err;
+    logger.error('[moderation] screenProfileContent error');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Extension implementation
 // ---------------------------------------------------------------------------
 
@@ -210,6 +262,26 @@ export const openDatingExtension: RelayExtension = {
     }
 
     const { envelope, senderPubkey } = decrypted;
+
+    // AI content moderation for profile operations
+    if (envelope.type === 'profile.create' || envelope.type === 'profile.update') {
+      try {
+        await screenProfileContent(envelope, senderPubkey, context);
+      } catch (modErr) {
+        // Moderation blocked this content — return error to client
+        const errMsg = (modErr as Error).message || 'Content rejected by moderation';
+        const env = (context as any)._env;
+        if (env) {
+          const errorEnvelope = createErrorEnvelope(
+            envelope.request_id,
+            'content_rejected',
+            errMsg,
+          );
+          await sendResponse(errorEnvelope, senderPubkey, servicePubkey, env);
+        }
+        return { handled: true, storeNormally: false, message: errMsg };
+      }
+    }
 
     // Build transport context
     const transportCtx = {

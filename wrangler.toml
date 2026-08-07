@@ -22,7 +22,29 @@ database_id = "1151d852-890b-4e31-8ee2-74ee3564e0c1"
 binding = "MEDIA_BUCKET"
 bucket_name = "opendating-media"
 
-# Cron trigger disabled (free plan limit reached)
+# Workers AI — content moderation (profile bios, report triage, image screening).
+# Free tier: 10K neurons/day. Degrades open if absent.
+[ai]
+binding = "AI"
+
+# Task queue — async background jobs (report processing, match notifications,
+# deletion cascades). Free tier: 1M operations/month.
+[[queues.producers]]
+binding = "TASK_QUEUE"
+queue = "opendating-tasks"
+
+# Queue consumer — same worker processes the queue via the queue() export.
+[[queues.consumers]]
+queue = "opendating-tasks"
+
+# KV — caching layer (NIP-11, rate limit state, hot profiles).
+# Free tier: 1GB storage. Degrades to D1-only reads if absent.
+[[kv_namespaces]]
+binding = "RELAY_CACHE"
+id = "24613f96f0fe4e89ad6893a9e23846f4"
+
+# Cron trigger disabled (free plan limit reached).
+# DO alarms handle scheduled maintenance instead — see src/cloudflare/housekeeper.ts.
 # Enable manually for paid plans:
 # [triggers]
 # crons = ["0 0 * * *"]

@@ -62,6 +62,12 @@ export interface Env {
    * rather than failing.
    */
   MEDIA_BUCKET?: R2Bucket;
+  /** Workers AI binding for content moderation (text + image classification). */
+  AI?: Ai;
+  /** Task queue for async background processing (reports, notifications, deletion cascades). */
+  TASK_QUEUE?: Queue<any>;
+  /** KV namespace for caching NIP-11, rate limit state, and hot profiles. */
+  RELAY_CACHE?: KVNamespace;
 }
 
 // Durable Object types
