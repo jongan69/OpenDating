@@ -82,7 +82,29 @@ Migration `0012_discovery_runtime.sql` adds what discovery needs at runtime:
 
 ---
 
-## 4. Deploy
+## 4. Create the media bucket
+
+Profile photos are served over Blossom (BUD-01/BUD-02) backed by R2 — the
+protocol is Nostr-native, the storage is yours, and there is no third-party
+media host in the path.
+
+```bash
+npx wrangler r2 bucket create opendating-media
+```
+
+The binding is already declared in `wrangler.toml`. If you skip this step the
+media routes return 503 and the app degrades to text-only profiles rather than
+failing, so it is safe to add later.
+
+Authorization is a signed kind-24242 event, so only the keyholder can upload
+or delete their own blobs — there is no server-issued token to leak.
+
+> **Privacy boundary:** a blob URL is a 256-bit content hash, unguessable but
+> not secret. Anyone holding the URL can fetch it, exactly as with any CDN.
+> Profile photos are shown to candidates by design; nothing private should
+> ever be stored here.
+
+## 5. Deploy
 
 ```bash
 npm run ci && npm run deploy
@@ -90,7 +112,7 @@ npm run ci && npm run deploy
 
 ---
 
-## 5. Verify
+## 6. Verify
 
 ```bash
 curl -H "Accept: application/nostr+json" \
@@ -119,7 +141,7 @@ The mobile client treats a missing role as "not available yet" and shows an
 
 ---
 
-## 6. Smoke test with two accounts
+## 7. Smoke test with two accounts
 
 Discovery only returns people who are mutually eligible, so a single account
 will always see an empty deck. Onboard **two** accounts with:
@@ -137,7 +159,6 @@ message arrives.
 
 | Gap | Impact | Notes |
 |---|---|---|
-| **No photo hosting** | Profiles are text-only | No `media` service exists. Local `file://` URIs are kept device-side and stripped before publish. Needs R2/Images or a Blossom/NIP-96 server. |
 | **No DB-backed service tests** | Regressions land silently | The suite covers crypto, protocol, and pure logic. No test ever constructs a service with a D1 handle, so no SQL in `src/protocols/opendating/services/` is exercised. Highest-value next test work. |
 | **Content moderation** | App Review Guideline 1.2 | Report and block exist. Still needed: content removal, a published abuse contact, and a 24-hour response commitment. |
 | **Cron disabled** | Grants and quotas never prune | `wrangler.toml` has the trigger commented out (free-plan limit). Grants expire logically but rows accumulate. |

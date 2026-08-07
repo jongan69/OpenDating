@@ -3,6 +3,7 @@ import { Env, NostrEvent, NostrFilter, QueryResult, NostrMessage, Nip05Response 
 import * as config from './config';
 import { RelayWebSocket } from './durable-object';
 import { initOpenDating, getOpenDatingNip11Advertisement } from './protocols/opendating/index.js';
+import { handleBlossomRequest, isBlossomPath } from './protocols/blossom/server.js';
 
 // Lazy-init OpenDating once
 let odInitialized = false;
@@ -2549,6 +2550,10 @@ export default {
         return handleNIP05Request(url);
       } else if (url.pathname === "/favicon.ico") {
         return await serveFavicon();
+      } else if (isBlossomPath(url.pathname)) {
+        // Blossom media (BUD-01/BUD-02) backed by R2. Checked after the fixed
+        // routes above so a blob hash can never shadow a relay endpoint.
+        return await handleBlossomRequest(request, env as any);
       } else {
         return new Response("Invalid request", { status: 400 });
       }

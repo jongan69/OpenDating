@@ -56,6 +56,12 @@ export interface QueryResult {
 export interface Env {
   RELAY_DATABASE: D1Database;
   RELAY_WEBSOCKET: DurableObjectNamespace;
+  /**
+   * R2 bucket backing the Blossom media endpoints. Optional: without it the
+   * media routes return 503 and the app falls back to text-only profiles
+   * rather than failing.
+   */
+  MEDIA_BUCKET?: R2Bucket;
 }
 
 // Durable Object types

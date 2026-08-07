@@ -1776,7 +1776,7 @@ function _normFnElement(Fn, key) {
     let bytes = ensureBytes("private key", key);
     try {
       num2 = Fn.fromBytes(bytes);
-    } catch (error) {
+    } catch (error2) {
       throw new Error(`invalid private key: expected ui8a of size ${expected}, got ${typeof key}`);
     }
   }
@@ -2260,7 +2260,7 @@ function ecdh(Point, ecdhOpts = {}) {
   function isValidSecretKey(secretKey) {
     try {
       return !!_normFnElement(Fn, secretKey);
-    } catch (error) {
+    } catch (error2) {
       return false;
     }
   }
@@ -2274,7 +2274,7 @@ function ecdh(Point, ecdhOpts = {}) {
       if (isCompressed === false && l !== publicKeyUncompressed)
         return false;
       return !!Point.fromBytes(publicKey);
-    } catch (error) {
+    } catch (error2) {
       return false;
     }
   }
@@ -2554,7 +2554,7 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
       if (!sig) {
         try {
           sig = Signature.fromBytes(ensureBytes("sig", sg), "compact");
-        } catch (error) {
+        } catch (error2) {
           return false;
         }
       }
@@ -2907,7 +2907,7 @@ function schnorrVerify(signature, message, publicKey) {
     if (R.is0() || !hasEven(y) || x !== r)
       return false;
     return true;
-  } catch (error) {
+  } catch (error2) {
     return false;
   }
 }
@@ -4082,8 +4082,8 @@ async function routeRequest(envelope, ctx, idempotencyCheck, idempotencyRecord) 
       ).catch((err) => console.error("Failed to record idempotency:", err));
     }
     return { success: true, envelope: result.response };
-  } catch (error) {
-    console.error(`Service error (${service.role}/${envelope.type}):`, error);
+  } catch (error2) {
+    console.error(`Service error (${service.role}/${envelope.type}):`, error2);
     return {
       success: false,
       envelope: createErrorEnvelope(
@@ -4170,8 +4170,8 @@ var init_idempotency = __esm({
          LIMIT 1`
           ).bind(servicePubkey, senderPubkey, requestId).first();
           return result !== null;
-        } catch (error) {
-          console.error("Idempotency check failed:", error);
+        } catch (error2) {
+          console.error("Idempotency check failed:", error2);
           return false;
         }
       }
@@ -4185,8 +4185,8 @@ var init_idempotency = __esm({
          (service_pubkey, sender_pubkey, request_id, request_type, created_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?)`
           ).bind(servicePubkey, senderPubkey, requestId, requestType, now, expiresAt).run();
-        } catch (error) {
-          console.error("Failed to record idempotency:", error);
+        } catch (error2) {
+          console.error("Failed to record idempotency:", error2);
         }
       }
       async pruneExpired() {
@@ -4201,8 +4201,8 @@ var init_idempotency = __esm({
             console.log(`Pruned ${deleted} expired idempotency records`);
           }
           return deleted;
-        } catch (error) {
-          console.error("Idempotency pruning failed:", error);
+        } catch (error2) {
+          console.error("Idempotency pruning failed:", error2);
           return 0;
         }
       }
@@ -4405,9 +4405,9 @@ async function decryptAndParse(event, servicePubkey) {
       senderPubkey: seal.pubkey
       // The actual sender (from the seal)
     };
-  } catch (error) {
+  } catch (error2) {
     logger.warn("Failed to decrypt/parse gift wrap", {
-      error: error.message
+      error: error2.message
     });
     return null;
   }
@@ -4437,9 +4437,9 @@ async function sendResponse(envelope, senderPubkey, servicePubkey, env) {
         recipient: senderPubkey.substring(0, 8)
       });
     }
-  } catch (error) {
+  } catch (error2) {
     logger.error("Failed to send OpenDating response", {
-      error: error.message,
+      error: error2.message,
       type: envelope.type
     });
   }
@@ -6125,6 +6125,304 @@ var init_opendating = __esm({
   }
 });
 
+// src/protocols/blossom/auth.ts
+function tagValue(event, name) {
+  return event.tags.find((t) => t[0] === name)?.[1];
+}
+function tagValues(event, name) {
+  return event.tags.filter((t) => t[0] === name).map((t) => t[1]);
+}
+function computeEventId(event) {
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content
+  ]);
+  return bytesToHex2(sha2562(new TextEncoder().encode(serialized)));
+}
+function parseAuthHeader(header) {
+  if (!header)
+    return null;
+  const match = /^Nostr\s+(.+)$/i.exec(header.trim());
+  if (!match)
+    return null;
+  try {
+    const json2 = atob(match[1]);
+    const parsed = JSON.parse(json2);
+    if (typeof parsed?.pubkey !== "string" || !Array.isArray(parsed?.tags))
+      return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+function verifyAuth(event, verb, now, blobHash) {
+  if (!event)
+    return { ok: false, error: "Missing Authorization header" };
+  if (event.kind !== BLOSSOM_AUTH_KIND) {
+    return { ok: false, error: `Authorization must be kind ${BLOSSOM_AUTH_KIND}` };
+  }
+  if (!/^[0-9a-f]{64}$/i.test(event.pubkey)) {
+    return { ok: false, error: "Malformed pubkey" };
+  }
+  const verbs = tagValues(event, "t");
+  if (!verbs.includes(verb)) {
+    return { ok: false, error: `Authorization is not valid for "${verb}"` };
+  }
+  const expiration = Number(tagValue(event, "expiration"));
+  if (!Number.isFinite(expiration)) {
+    return { ok: false, error: "Authorization must carry an expiration tag" };
+  }
+  if (expiration <= now) {
+    return { ok: false, error: "Authorization has expired" };
+  }
+  if (expiration - now > MAX_AUTH_LIFETIME_SEC) {
+    return { ok: false, error: "Authorization expiration is too far in the future" };
+  }
+  if (event.created_at > now + 300) {
+    return { ok: false, error: "Authorization is dated in the future" };
+  }
+  if (verb === "upload" || verb === "delete") {
+    const hashes = tagValues(event, "x").map((h) => h.toLowerCase());
+    if (hashes.length === 0) {
+      return { ok: false, error: "Authorization must carry an x tag with the blob hash" };
+    }
+    if (blobHash && !hashes.includes(blobHash.toLowerCase())) {
+      return { ok: false, error: "Authorization does not cover this blob" };
+    }
+  }
+  if (computeEventId(event) !== event.id?.toLowerCase()) {
+    return { ok: false, error: "Authorization id does not match its contents" };
+  }
+  try {
+    const valid = schnorr.verify(
+      hexToBytes2(event.sig),
+      hexToBytes2(event.id),
+      hexToBytes2(event.pubkey)
+    );
+    if (!valid)
+      return { ok: false, error: "Invalid signature" };
+  } catch {
+    return { ok: false, error: "Invalid signature" };
+  }
+  return { ok: true, pubkey: event.pubkey.toLowerCase() };
+}
+var BLOSSOM_AUTH_KIND, MAX_AUTH_LIFETIME_SEC;
+var init_auth = __esm({
+  "src/protocols/blossom/auth.ts"() {
+    "use strict";
+    init_secp256k1();
+    init_sha256();
+    init_encryption();
+    BLOSSOM_AUTH_KIND = 24242;
+    MAX_AUTH_LIFETIME_SEC = 10 * 60;
+    __name(tagValue, "tagValue");
+    __name(tagValues, "tagValues");
+    __name(computeEventId, "computeEventId");
+    __name(parseAuthHeader, "parseAuthHeader");
+    __name(verifyAuth, "verifyAuth");
+  }
+});
+
+// src/protocols/blossom/server.ts
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      ...extra
+    }
+  });
+}
+function error(message, status) {
+  return json({ message }, status, { "X-Reason": message });
+}
+function blobUrl(origin, hash, type) {
+  const ext = EXTENSIONS[type];
+  return ext ? `${origin}/${hash}.${ext}` : `${origin}/${hash}`;
+}
+function parseBlobPath(pathname) {
+  const match = /^\/([0-9a-f]{64})(?:\.[a-z0-9]+)?$/i.exec(pathname);
+  return match ? match[1].toLowerCase() : null;
+}
+function isBlossomPath(pathname) {
+  return pathname === "/upload" || pathname.startsWith("/list/") || parseBlobPath(pathname) !== null;
+}
+async function handleBlossomRequest(request, env) {
+  const url = new URL(request.url);
+  const bucket = env.MEDIA_BUCKET;
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Max-Age": "86400"
+      }
+    });
+  }
+  if (!bucket) {
+    return error("Media storage is not configured on this relay", 503);
+  }
+  if (url.pathname === "/upload" && request.method === "PUT") {
+    return handleUpload(request, bucket, url.origin);
+  }
+  if (url.pathname.startsWith("/list/") && request.method === "GET") {
+    return handleList(url, bucket);
+  }
+  const hash = parseBlobPath(url.pathname);
+  if (hash) {
+    if (request.method === "GET" || request.method === "HEAD") {
+      return handleGet(hash, bucket, request.method === "HEAD");
+    }
+    if (request.method === "DELETE") {
+      return handleDelete(request, hash, bucket);
+    }
+  }
+  return error("Not found", 404);
+}
+async function handleUpload(request, bucket, origin) {
+  const now = Math.floor(Date.now() / 1e3);
+  const auth = parseAuthHeader(request.headers.get("Authorization"));
+  const authResult = verifyAuth(auth, "upload", now);
+  if (!authResult.ok || !authResult.pubkey) {
+    return error(authResult.error ?? "Unauthorized", 401);
+  }
+  const declaredType = request.headers.get("Content-Type") ?? "";
+  const type = declaredType.split(";")[0].trim().toLowerCase();
+  if (!ALLOWED_TYPES.has(type)) {
+    return error(`Unsupported media type: ${type || "unknown"}`, 415);
+  }
+  const declaredLength = Number(request.headers.get("Content-Length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BLOB_BYTES) {
+    return error(`Blob exceeds ${MAX_BLOB_BYTES} bytes`, 413);
+  }
+  const body = new Uint8Array(await request.arrayBuffer());
+  if (body.byteLength === 0)
+    return error("Empty body", 400);
+  if (body.byteLength > MAX_BLOB_BYTES) {
+    return error(`Blob exceeds ${MAX_BLOB_BYTES} bytes`, 413);
+  }
+  const hash = bytesToHex2(sha2562(body));
+  const recheck = verifyAuth(auth, "upload", now, hash);
+  if (!recheck.ok) {
+    return error(recheck.error ?? "Authorization does not cover this blob", 401);
+  }
+  const existing = await bucket.head(hash);
+  if (!existing) {
+    await bucket.put(hash, body, {
+      httpMetadata: {
+        contentType: type,
+        // Content-addressed, so a blob at a given URL can never change.
+        cacheControl: "public, max-age=31536000, immutable"
+      },
+      customMetadata: {
+        uploader: authResult.pubkey,
+        uploaded: String(now)
+      }
+    });
+  }
+  const descriptor = {
+    url: blobUrl(origin, hash, type),
+    sha256: hash,
+    size: body.byteLength,
+    type,
+    uploaded: now
+  };
+  return json(descriptor, 201);
+}
+async function handleGet(hash, bucket, headOnly) {
+  const object = headOnly ? await bucket.head(hash) : await bucket.get(hash);
+  if (!object)
+    return error("Blob not found", 404);
+  const headers = new Headers({
+    "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+    "Content-Length": String(object.size),
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "Access-Control-Allow-Origin": "*",
+    ETag: object.httpEtag
+  });
+  if (headOnly)
+    return new Response(null, { status: 200, headers });
+  return new Response(object.body, { status: 200, headers });
+}
+async function handleList(url, bucket) {
+  const pubkey = url.pathname.slice("/list/".length).toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(pubkey))
+    return error("Malformed pubkey", 400);
+  const listed = await bucket.list({ limit: 1e3 });
+  const blobs = [];
+  for (const entry of listed.objects) {
+    const object = await bucket.head(entry.key);
+    if (object?.customMetadata?.uploader !== pubkey)
+      continue;
+    const type = object.httpMetadata?.contentType ?? "application/octet-stream";
+    blobs.push({
+      url: blobUrl(url.origin, object.key, type),
+      sha256: object.key,
+      size: object.size,
+      type,
+      uploaded: Number(object.customMetadata?.uploaded ?? 0)
+    });
+  }
+  return json(blobs);
+}
+async function handleDelete(request, hash, bucket) {
+  const now = Math.floor(Date.now() / 1e3);
+  const auth = parseAuthHeader(request.headers.get("Authorization"));
+  const authResult = verifyAuth(auth, "delete", now, hash);
+  if (!authResult.ok || !authResult.pubkey) {
+    return error(authResult.error ?? "Unauthorized", 401);
+  }
+  const object = await bucket.head(hash);
+  if (!object)
+    return error("Blob not found", 404);
+  if (object.customMetadata?.uploader !== authResult.pubkey) {
+    return error("Only the uploader may delete this blob", 403);
+  }
+  await bucket.delete(hash);
+  return json({ message: "Deleted" });
+}
+var MAX_BLOB_BYTES, ALLOWED_TYPES, EXTENSIONS;
+var init_server = __esm({
+  "src/protocols/blossom/server.ts"() {
+    "use strict";
+    init_encryption();
+    init_sha256();
+    init_auth();
+    MAX_BLOB_BYTES = 8 * 1024 * 1024;
+    ALLOWED_TYPES = /* @__PURE__ */ new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic"
+    ]);
+    EXTENSIONS = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+      "image/heic": "heic"
+    };
+    __name(json, "json");
+    __name(error, "error");
+    __name(blobUrl, "blobUrl");
+    __name(parseBlobPath, "parseBlobPath");
+    __name(isBlossomPath, "isBlossomPath");
+    __name(handleBlossomRequest, "handleBlossomRequest");
+    __name(handleUpload, "handleUpload");
+    __name(handleGet, "handleGet");
+    __name(handleList, "handleList");
+    __name(handleDelete, "handleDelete");
+  }
+});
+
 // src/relay-worker.ts
 var relay_worker_exports = {};
 __export(relay_worker_exports, {
@@ -6211,7 +6509,7 @@ async function initializeDatabase(db) {
       console.log("Database already initialized");
       return;
     }
-  } catch (error) {
+  } catch (error2) {
     console.log("Database not initialized, creating schema...");
   }
   const session = db.withSession("first-primary");
@@ -6385,9 +6683,9 @@ async function initializeDatabase(db) {
     await session.prepare("ANALYZE tags").run();
     await session.prepare("ANALYZE event_tags_cache_multi").run();
     console.log("Database initialization completed!");
-  } catch (error) {
-    console.error("Failed to initialize database:", error);
-    throw error;
+  } catch (error2) {
+    console.error("Failed to initialize database:", error2);
+    throw error2;
   }
 }
 async function verifyEventSignature(event) {
@@ -6401,8 +6699,8 @@ async function verifyEventSignature(event) {
     const messageHash = new Uint8Array(messageHashBuffer);
     const publicKeyBytes = hexToBytes3(event.pubkey);
     return schnorr.verify(signatureBytes, messageHash, publicKeyBytes);
-  } catch (error) {
-    console.error("Error verifying event signature:", error);
+  } catch (error2) {
+    console.error("Error verifying event signature:", error2);
     return false;
   }
 }
@@ -6446,8 +6744,8 @@ async function hasPaidForRelay(pubkey, env) {
       "SELECT pubkey FROM paid_pubkeys WHERE pubkey = ? LIMIT 1"
     ).bind(pubkey).first();
     return result !== null;
-  } catch (error) {
-    console.error(`Error checking paid status for ${pubkey}:`, error);
+  } catch (error2) {
+    console.error(`Error checking paid status for ${pubkey}:`, error2);
     return null;
   }
 }
@@ -6462,8 +6760,8 @@ async function savePaidPubkey(pubkey, env) {
         amount_sats = excluded.amount_sats
     `).bind(pubkey, Math.floor(Date.now() / 1e3), RELAY_ACCESS_PRICE_SATS2).run();
     return true;
-  } catch (error) {
-    console.error(`Error saving paid pubkey ${pubkey}:`, error);
+  } catch (error2) {
+    console.error(`Error saving paid pubkey ${pubkey}:`, error2);
     return false;
   }
 }
@@ -6508,16 +6806,16 @@ function fetchEventFromFallbackRelay(pubkey) {
           closeWebSocket(message[1]);
           resolve(null);
         }
-      } catch (error) {
-        console.error(`Error processing fallback relay event for pubkey ${pubkey}: ${error}`);
-        reject(error);
+      } catch (error2) {
+        console.error(`Error processing fallback relay event for pubkey ${pubkey}: ${error2}`);
+        reject(error2);
       }
     });
-    ws.addEventListener("error", (error) => {
-      console.error(`WebSocket error with fallback relay:`, error);
+    ws.addEventListener("error", (error2) => {
+      console.error(`WebSocket error with fallback relay:`, error2);
       ws.close();
       hasClosed = true;
-      reject(error);
+      reject(error2);
     });
     ws.addEventListener("close", () => {
       hasClosed = true;
@@ -6544,8 +6842,8 @@ async function fetchKind0EventForPubkey(pubkey, env) {
     if (fallbackEvent) {
       return fallbackEvent;
     }
-  } catch (error) {
-    console.error(`Error fetching kind 0 event for pubkey ${pubkey}: ${error}`);
+  } catch (error2) {
+    console.error(`Error fetching kind 0 event for pubkey ${pubkey}: ${error2}`);
   }
   return null;
 }
@@ -6564,8 +6862,8 @@ async function validateNIP05FromKind0(pubkey, env) {
     }
     const isValid = await validateNIP05(nip05Address, pubkey);
     return isValid;
-  } catch (error) {
-    console.error(`Error validating NIP-05 for pubkey ${pubkey}: ${error}`);
+  } catch (error2) {
+    console.error(`Error validating NIP-05 for pubkey ${pubkey}: ${error2}`);
     return false;
   }
 }
@@ -6596,8 +6894,8 @@ async function validateNIP05(nip05Address, pubkey) {
     }
     const nip05Pubkey = nip05Data.names[name];
     return nip05Pubkey === pubkey;
-  } catch (error) {
-    console.error(`Error validating NIP-05 address: ${error}`);
+  } catch (error2) {
+    console.error(`Error validating NIP-05 address: ${error2}`);
     return false;
   }
 }
@@ -6635,9 +6933,9 @@ async function processEvent(event, sessionId, env) {
       return { success: true, message: "Ephemeral event broadcast" };
     }
     return await saveEventToDatabase(event, env);
-  } catch (error) {
-    console.error(`Error processing event: ${error.message}`);
-    return { success: false, message: `error: ${error.message}` };
+  } catch (error2) {
+    console.error(`Error processing event: ${error2.message}`);
+    return { success: false, message: `error: ${error2.message}` };
   }
 }
 async function saveEventToDatabase(event, env) {
@@ -6803,10 +7101,10 @@ async function saveEventToDatabase(event, env) {
     }));
     console.log(`Event ${event.id} saved directly to database`);
     return { success: true, message: "Event saved successfully", bookmark: session.getBookmark() ?? void 0 };
-  } catch (error) {
-    console.error(`Error saving event to database: ${error.message}`);
+  } catch (error2) {
+    console.error(`Error saving event to database: ${error2.message}`);
     console.error(`Event details: ID=${event.id}, Kind=${event.kind}, Tags count=${event.tags.length}`);
-    return { success: false, message: `error: ${error.message}` };
+    return { success: false, message: `error: ${error2.message}` };
   }
 }
 async function processDeletionEvent(event, env) {
@@ -6842,8 +7140,8 @@ async function processDeletionEvent(event, env) {
         }
         idsToDelete.push(eventId);
       }
-    } catch (error) {
-      console.error("Error checking event ownership:", error);
+    } catch (error2) {
+      console.error("Error checking event ownership:", error2);
       errors.push("error checking event ownership");
     }
   }
@@ -6863,8 +7161,8 @@ async function processDeletionEvent(event, env) {
       }
       deletedCount = idsToDelete.length;
       console.log(`Batch deleted ${deletedCount} events from D1.`);
-    } catch (error) {
-      console.error("Error batch deleting events:", error);
+    } catch (error2) {
+      console.error("Error batch deleting events:", error2);
       errors.push("error batch deleting events");
     }
   }
@@ -7315,8 +7613,8 @@ async function queryDatabaseChunked(filter, bookmark, env) {
         for (const row of result.results) {
           allRows.set(row.id, row);
         }
-      } catch (error) {
-        console.error(`Error in chunk query: ${error}`);
+      } catch (error2) {
+        console.error(`Error in chunk query: ${error2}`);
       }
     }
   }, "processStringChunks");
@@ -7331,8 +7629,8 @@ async function queryDatabaseChunked(filter, bookmark, env) {
         for (const row of result.results) {
           allRows.set(row.id, row);
         }
-      } catch (error) {
-        console.error(`Error in chunk query: ${error}`);
+      } catch (error2) {
+        console.error(`Error in chunk query: ${error2}`);
       }
     }
   }, "processNumberChunks");
@@ -7346,9 +7644,9 @@ async function queryDatabaseChunked(filter, bookmark, env) {
     await processNumberChunks("kinds", filter.kinds);
   }
   for (const [tagKey, _] of Object.entries(needsChunking.tags)) {
-    const tagValues = filter[tagKey];
-    if (Array.isArray(tagValues) && tagValues.every((v) => typeof v === "string")) {
-      await processStringChunks(tagKey, tagValues);
+    const tagValues2 = filter[tagKey];
+    if (Array.isArray(tagValues2) && tagValues2.every((v) => typeof v === "string")) {
+      await processStringChunks(tagKey, tagValues2);
     }
   }
   if (!needsChunking.ids && !needsChunking.authors && !needsChunking.kinds && Object.keys(needsChunking.tags).length === 0) {
@@ -7358,8 +7656,8 @@ async function queryDatabaseChunked(filter, bookmark, env) {
       for (const row of result.results) {
         allRows.set(row.id, row);
       }
-    } catch (error) {
-      console.error(`Error in query: ${error}`);
+    } catch (error2) {
+      console.error(`Error in query: ${error2}`);
     }
   }
   const events = Array.from(allRows.values()).map((row) => ({
@@ -7470,9 +7768,9 @@ async function queryEvents(filters, bookmark, env) {
             };
             eventSet.set(event.id, event);
           }
-        } catch (error) {
-          console.error(`Batch query execution error: ${error.message}`);
-          throw error;
+        } catch (error2) {
+          console.error(`Batch query execution error: ${error2.message}`);
+          throw error2;
         }
       }
     }
@@ -7485,8 +7783,8 @@ async function queryEvents(filters, bookmark, env) {
     const newBookmark = session.getBookmark();
     console.log(`Found ${events.length} events. New bookmark: ${newBookmark}`);
     return { events, bookmark: newBookmark };
-  } catch (error) {
-    console.error(`Error querying events: ${error.message}`);
+  } catch (error2) {
+    console.error(`Error querying events: ${error2.message}`);
     return { events: [], bookmark: null };
   }
 }
@@ -7953,8 +8251,8 @@ async function handlePaymentNotification(request, env) {
         "Access-Control-Allow-Origin": "*"
       }
     });
-  } catch (error) {
-    console.error("Error processing payment notification:", error);
+  } catch (error2) {
+    console.error("Error processing payment notification:", error2);
     return new Response(JSON.stringify({ error: "Invalid request" }), {
       status: 400,
       headers: {
@@ -8278,8 +8576,8 @@ async function getOptimalDO(cf, env, url) {
       const stub2 = env.RELAY_WEBSOCKET.get(id2, { locationHint: endpoint.hint });
       console.log(`Connected to DO: ${endpoint.name} (hint: ${endpoint.hint})`);
       return { stub: stub2, doName: endpoint.name };
-    } catch (error) {
-      console.log(`Failed to connect to ${endpoint.name}: ${error}`);
+    } catch (error2) {
+      console.log(`Failed to connect to ${endpoint.name}: ${error2}`);
     }
   }
   const fallback = ALL_ENDPOINTS[1];
@@ -8296,8 +8594,8 @@ async function getDatabaseSizeBytes(session) {
       return sizeAfter;
     }
     return 0;
-  } catch (error) {
-    console.error("Error getting database size:", error);
+  } catch (error2) {
+    console.error("Error getting database size:", error2);
     return 0;
   }
 }
@@ -8344,6 +8642,7 @@ var init_relay_worker = __esm({
     init_config();
     init_durable_object();
     init_opendating();
+    init_server();
     odInitialized = false;
     __name(ensureODInit, "ensureODInit");
     ({
@@ -8443,11 +8742,13 @@ var init_relay_worker = __esm({
             return handleNIP05Request(url);
           } else if (url.pathname === "/favicon.ico") {
             return await serveFavicon();
+          } else if (isBlossomPath(url.pathname)) {
+            return await handleBlossomRequest(request, env);
           } else {
             return new Response("Invalid request", { status: 400 });
           }
-        } catch (error) {
-          console.error("Error in fetch handler:", error);
+        } catch (error2) {
+          console.error("Error in fetch handler:", error2);
           return new Response("Internal Server Error", { status: 500 });
         }
       },
@@ -8481,8 +8782,8 @@ var init_relay_worker = __esm({
           await session.prepare("ANALYZE content_hashes").run();
           console.log("ANALYZE completed - query planner statistics updated");
           console.log("Scheduled 24hr database maintenance completed successfully");
-        } catch (error) {
-          console.error("Scheduled maintenance failed:", error);
+        } catch (error2) {
+          console.error("Scheduled maintenance failed:", error2);
         }
       }
     };
@@ -8584,8 +8885,8 @@ var init_durable_object = __esm({
             await this.state.storage.delete(keysToDelete);
             console.log(`Cleaned up ${keysToDelete.length} orphaned subscription entries`);
           }
-        } catch (error) {
-          console.error("Error cleaning up orphaned subscriptions:", error);
+        } catch (error2) {
+          console.error("Error cleaning up orphaned subscriptions:", error2);
         }
       }
       // Schedule alarm if one doesn't exist
@@ -8674,8 +8975,8 @@ var init_durable_object = __esm({
               return result;
             }
           }
-        } catch (error) {
-          console.error("Error checking global cache:", error);
+        } catch (error2) {
+          console.error("Error checking global cache:", error2);
         }
         const cached = this.queryCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < this.QUERY_CACHE_TTL) {
@@ -8710,8 +9011,8 @@ var init_durable_object = __esm({
             });
             await globalCache.put(globalCacheKey, response);
             console.log("Stored query result in global cache");
-          } catch (error) {
-            console.error("Error storing in global cache:", error);
+          } catch (error2) {
+            console.error("Error storing in global cache:", error2);
           }
           return result;
         } finally {
@@ -8930,9 +9231,9 @@ var init_durable_object = __esm({
             challenge: session.challenge
           };
           ws.serializeAttachment(updatedAttachment);
-        } catch (error) {
-          console.error("Error handling message:", error);
-          if (error instanceof SyntaxError) {
+        } catch (error2) {
+          console.error("Error handling message:", error2);
+          if (error2 instanceof SyntaxError) {
             this.sendError(ws, "Invalid JSON format");
           } else {
             this.sendError(ws, "Failed to process message");
@@ -8952,10 +9253,10 @@ var init_durable_object = __esm({
           }
         }
       }
-      async webSocketError(ws, error) {
+      async webSocketError(ws, error2) {
         const attachment = ws.deserializeAttachment();
         if (attachment) {
-          console.error(`WebSocket error for session ${attachment.sessionId}:`, error);
+          console.error(`WebSocket error for session ${attachment.sessionId}:`, error2);
           this.sessions.delete(attachment.sessionId);
         }
       }
@@ -8979,9 +9280,9 @@ var init_durable_object = __esm({
             }
           }
           return new Response(JSON.stringify({ success: true }));
-        } catch (error) {
-          console.error("Error handling DO broadcast:", error);
-          return new Response(JSON.stringify({ success: false, error: error.message }), {
+        } catch (error2) {
+          console.error("Error handling DO broadcast:", error2);
+          return new Response(JSON.stringify({ success: false, error: error2.message }), {
             status: 500,
             headers: { "Content-Type": "application/json" }
           });
@@ -9010,8 +9311,8 @@ var init_durable_object = __esm({
             default:
               this.sendError(session.webSocket, `Unknown message type: ${type}`);
           }
-        } catch (error) {
-          console.error(`Error handling ${type} message:`, error);
+        } catch (error2) {
+          console.error(`Error handling ${type} message:`, error2);
           this.sendError(session.webSocket, `Failed to process ${type} message`);
         }
       }
@@ -9118,9 +9419,9 @@ var init_durable_object = __esm({
           } else {
             this.sendOK(session.webSocket, event.id, false, result.message);
           }
-        } catch (error) {
-          console.error("Error handling event:", error);
-          this.sendOK(session.webSocket, event?.id || "", false, `error: ${error.message}`);
+        } catch (error2) {
+          console.error("Error handling event:", error2);
+          this.sendOK(session.webSocket, event?.id || "", false, `error: ${error2.message}`);
         }
       }
       async handleReq(session, message) {
@@ -9193,8 +9494,8 @@ var init_durable_object = __esm({
             this.sendEvent(session.webSocket, subscriptionId, event);
           }
           this.sendEOSE(session.webSocket, subscriptionId);
-        } catch (error) {
-          console.error(`Error processing REQ for subscription ${subscriptionId}:`, error);
+        } catch (error2) {
+          console.error(`Error processing REQ for subscription ${subscriptionId}:`, error2);
           this.sendClosed(session.webSocket, subscriptionId, "error: could not connect to the database");
         }
       }
@@ -9279,9 +9580,9 @@ var init_durable_object = __esm({
             }
           }
           this.sendOK(session.webSocket, authEvent.id, true, "");
-        } catch (error) {
-          console.error("Error handling AUTH:", error);
-          this.sendOK(session.webSocket, authEvent?.id || "", false, `error: ${error.message}`);
+        } catch (error2) {
+          console.error("Error handling AUTH:", error2);
+          this.sendOK(session.webSocket, authEvent?.id || "", false, `error: ${error2.message}`);
         }
       }
       async broadcastEvent(event) {
@@ -9317,8 +9618,8 @@ var init_durable_object = __esm({
               try {
                 this.sendEvent(ws, subscriptionId, event);
                 broadcastCount++;
-              } catch (error) {
-                console.error(`Error broadcasting to subscription ${subscriptionId}:`, error);
+              } catch (error2) {
+                console.error(`Error broadcasting to subscription ${subscriptionId}:`, error2);
               }
             }
           }
@@ -9362,9 +9663,9 @@ var init_durable_object = __esm({
               sourceDoId: this.doId
             })
           }));
-        } catch (error) {
-          console.error(`Failed to broadcast to ${doName}:`, error);
-          throw error;
+        } catch (error2) {
+          console.error(`Failed to broadcast to ${doName}:`, error2);
+          throw error2;
         }
       }
       matchesFilters(event, filters) {
@@ -9403,8 +9704,8 @@ var init_durable_object = __esm({
         try {
           const authMessage = ["AUTH", challenge2];
           ws.send(JSON.stringify(authMessage));
-        } catch (error) {
-          console.error("Error sending AUTH:", error);
+        } catch (error2) {
+          console.error("Error sending AUTH:", error2);
         }
       }
       // NIP-42: Generate a cryptographically secure challenge string
@@ -9417,40 +9718,40 @@ var init_durable_object = __esm({
         try {
           const okMessage = ["OK", eventId, status, message || ""];
           ws.send(JSON.stringify(okMessage));
-        } catch (error) {
-          console.error("Error sending OK:", error);
+        } catch (error2) {
+          console.error("Error sending OK:", error2);
         }
       }
       sendError(ws, message) {
         try {
           const noticeMessage = ["NOTICE", message];
           ws.send(JSON.stringify(noticeMessage));
-        } catch (error) {
-          console.error("Error sending NOTICE:", error);
+        } catch (error2) {
+          console.error("Error sending NOTICE:", error2);
         }
       }
       sendEOSE(ws, subscriptionId) {
         try {
           const eoseMessage = ["EOSE", subscriptionId];
           ws.send(JSON.stringify(eoseMessage));
-        } catch (error) {
-          console.error("Error sending EOSE:", error);
+        } catch (error2) {
+          console.error("Error sending EOSE:", error2);
         }
       }
       sendClosed(ws, subscriptionId, message) {
         try {
           const closedMessage = ["CLOSED", subscriptionId, message];
           ws.send(JSON.stringify(closedMessage));
-        } catch (error) {
-          console.error("Error sending CLOSED:", error);
+        } catch (error2) {
+          console.error("Error sending CLOSED:", error2);
         }
       }
       sendEvent(ws, subscriptionId, event) {
         try {
           const eventMessage = ["EVENT", subscriptionId, event];
           ws.send(JSON.stringify(eventMessage));
-        } catch (error) {
-          console.error("Error sending EVENT:", error);
+        } catch (error2) {
+          console.error("Error sending EVENT:", error2);
         }
       }
     };

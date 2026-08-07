@@ -14,6 +14,14 @@ binding = "RELAY_DATABASE"
 database_name = "opendating-relay"
 database_id = "1151d852-890b-4e31-8ee2-74ee3564e0c1"
 
+# R2 bucket backing the Blossom media endpoints (profile photos).
+# Create it once with: npx wrangler r2 bucket create opendating-media
+# Optional — without the binding the media routes return 503 and the app
+# degrades to text-only profiles rather than failing.
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "opendating-media"
+
 # Cron trigger disabled (free plan limit reached)
 # Enable manually for paid plans:
 # [triggers]
