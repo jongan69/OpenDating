@@ -1,5 +1,5 @@
 /**
- * @opendating/protocol
+ * opendating-protocol
  *
  * OpenDating protocol — types, constants, validators, crypto helpers.
  * Zero Cloudflare/Worker/D1/Durable Object dependencies.

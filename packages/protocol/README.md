@@ -1,4 +1,4 @@
-# @opendating/protocol
+# opendating-protocol
 
 OpenDating protocol — types, constants, validators, crypto helpers.
 
@@ -7,7 +7,7 @@ OpenDating protocol — types, constants, validators, crypto helpers.
 ## Install
 
 ```bash
-npm install @opendating/protocol
+npm install opendating-protocol
 ```
 
 ## Usage
@@ -22,7 +22,7 @@ import {
   nip44Encrypt,
   nip44Decrypt,
   OD_ERROR_CODES,
-} from '@opendating/protocol';
+} from 'opendating-protocol';
 
 // Generate a user keypair
 const user = generateKeypair();
@@ -51,7 +51,7 @@ import {
   nip44Encrypt,
   nip44Decrypt,
   signEvent,
-} from '@opendating/protocol/crypto';
+} from 'opendating-protocol/crypto';
 ```
 
 ## Contents
