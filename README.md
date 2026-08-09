@@ -126,8 +126,12 @@ npm run deploy
 ## Protocol Package
 
 ```bash
-npm install opendating-protocol@0.1.1
+npm install opendating-protocol@0.1.0
 ```
+
+`0.1.0` is the current npm registry release. The `0.1.1` contract repair is
+implemented on this branch but must not be referenced by install instructions
+until the package has been published and its registry artifact verified.
 
 ```typescript
 import {

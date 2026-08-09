@@ -70,16 +70,6 @@ export class MatcherService implements OpenDatingService {
       return { response: createErrorEnvelope(request.request_id, 'invalid_candidate_grant',
         'This profile is no longer available.') };
     }
-    const grant = await session.prepare(
-      `SELECT grant_token FROM od_candidate_grants
-        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
-          AND (expires_at IS NULL OR expires_at > ?)`
-    ).bind(memberId, targetMemberId, candidateGrant, now).first();
-    if (!grant) {
-      return { response: createErrorEnvelope(request.request_id, 'invalid_candidate_grant',
-        'No valid grant found — this profile may no longer be available') };
-    }
-
     // Enforce daily like quota
     const likeQuota = await session.prepare(
       `SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?`
@@ -89,6 +79,18 @@ export class MatcherService implements OpenDatingService {
     if (now < likeResetAt && likesSent >= MAX_DAILY_LIKES) {
       return { response: createErrorEnvelope(request.request_id, 'rate_limited',
         'Daily like limit reached') };
+    }
+
+    // Atomically consume the exact, unexpired grant before any side effect.
+    // D1 serializes writes, so concurrent replays cannot both observe success.
+    const consumedGrant = await session.prepare(
+      `DELETE FROM od_candidate_grants
+        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
+          AND (expires_at IS NULL OR expires_at > ?)`
+    ).bind(memberId, targetMemberId, candidateGrant, now).run();
+    if ((consumedGrant.meta.changes ?? 0) !== 1) {
+      return { response: createErrorEnvelope(request.request_id, 'invalid_candidate_grant',
+        'No valid grant found — this profile may no longer be available') };
     }
 
     const iid = intentId(ctx.senderPubkey, targetPubkey, 'like');
@@ -109,11 +111,6 @@ export class MatcherService implements OpenDatingService {
          daily_reset_at = CASE WHEN daily_reset_at < ? THEN ? ELSE daily_reset_at END,
          updated_at = ?`
     ).bind(memberId, newResetAt, now, now, newResetAt, now, now).run();
-
-    // Consume the grant — one-time use
-    await session.prepare(
-      `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
-    ).bind(memberId, targetMemberId).run();
 
     // Check for reciprocal match
     const reciprocal = await session.prepare(

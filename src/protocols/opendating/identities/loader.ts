@@ -131,7 +131,7 @@ export function getServiceIdentitiesForCapabilities(): Array<{
 function getSupportedTypesForRole(role: string): string[] {
   switch (role) {
     case 'system': return ['system.ping', 'system.capabilities'];
-    case 'profile': return ['profile.create', 'profile.update', 'profile.get', 'profile.pause', 'profile.resume', 'profile.delete'];
+    case 'profile': return ['profile.create', 'profile.update', 'profile.get', 'profile.pause', 'profile.resume', 'profile.delete', 'visibility.update'];
     case 'discovery': return ['discovery.update_location', 'discovery.get_candidates', 'discovery.update_preferences'];
     case 'matcher': return ['intent.like', 'intent.revoke', 'match.list'];
     case 'dm_policy': return ['block.create', 'block.remove', 'block.list', 'unmatch.create'];

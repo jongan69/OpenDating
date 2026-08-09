@@ -14,6 +14,7 @@ import { initOpenDatingExtension } from '../../../src/protocols/opendating/exten
 import { grantToken, clampAge, publicProfile } from '../../../src/protocols/opendating/services/discovery/service.js';
 import { validateProfileContent } from '../../../src/protocols/opendating/services/profile/service.js';
 import { BlockService } from '../../../src/protocols/opendating/services/block/service.js';
+import { MatcherService } from '../../../src/protocols/opendating/services/matcher/service.js';
 import { createEnvelope } from '../../../src/protocols/opendating/protocol/envelope.js';
 import type { OpenDatingServiceContext } from '../../../src/protocols/opendating/services/interface.js';
 
@@ -162,6 +163,64 @@ describe('Discovery SQL (D1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Matcher SQL (D1)', () => {
+  const alicePubkey = 'a'.repeat(64);
+  const bobPubkey = 'b'.repeat(64);
+  const servicePubkey = 'c'.repeat(64);
+
+  function context(requestId: string): OpenDatingServiceContext {
+    return {
+      authenticatedPubkey: alicePubkey,
+      senderPubkey: alicePubkey,
+      servicePubkey,
+      protocolVersion: '0.1',
+      receivedAt: Math.floor(Date.now() / 1000),
+      requestId,
+    };
+  }
+
+  it('consumes a candidate grant exactly once before like side effects', async () => {
+    const service = new MatcherService(
+      'matcher',
+      servicePubkey,
+      db as unknown as D1Database,
+    );
+    const aliceId = deriveMemberId(alicePubkey);
+    const bobId = deriveMemberId(bobPubkey);
+    const grant = 'single-use-candidate-grant';
+
+    await db.prepare(
+      `INSERT INTO od_candidate_grants
+        (viewer_id, candidate_id, grant_token, grant_type, distance_bucket, granted_at, expires_at)
+       VALUES (?, ?, ?, 'discovery', 'nearby', ?, ?)`,
+    ).bind(aliceId, bobId, grant, 1, Math.floor(Date.now() / 1000) + 3_600).run();
+
+    const requests = ['like-one', 'like-two'].map((requestId) =>
+      service.handle(
+        createEnvelope('intent.like', requestId, {
+          target_pubkey: bobPubkey,
+          candidate_grant: grant,
+        }),
+        context(requestId),
+      ),
+    );
+    const results = await Promise.all(requests);
+
+    expect(results.map((result) => result.response.type).sort()).toEqual([
+      'intent.like.result',
+      'system.error',
+    ]);
+    expect(
+      db.prepare(
+        'SELECT COUNT(*) AS count FROM od_intents WHERE from_member_id = ? AND to_member_id = ?',
+      ).bind(aliceId, bobId).first<{ count: number }>()?.count,
+    ).toBe(1);
+    expect(
+      db.prepare(
+        'SELECT daily_likes_sent FROM od_discovery_quotas WHERE member_id = ?',
+      ).bind(aliceId).first<{ daily_likes_sent: number }>()?.daily_likes_sent,
+    ).toBe(1);
+  });
+
   it('grant verification rejects wrong token', async () => {
     await db.prepare(`INSERT INTO od_members (member_id, encrypted_pubkey, status, created_at, updated_at)
       VALUES ('alice', 'enc-alice-x-32-bytes-xxxxx', 'active', 1000, 1000)`).run();
@@ -330,6 +389,24 @@ describe('Block service (D1)', () => {
       ),
     ).resolves.toMatchObject({
       response: { type: 'block.remove.result' },
+    });
+  });
+
+  it('rejects malformed pubkeys before deriving a member ID', async () => {
+    const service = new BlockService(
+      'dm_policy',
+      servicePubkey,
+      db as unknown as D1Database,
+    );
+    const requestId = 'block-remove-malformed';
+    const result = await service.handle(
+      createEnvelope('block.remove', requestId, { target_pubkey: 'not-a-pubkey' }),
+      context(requestId),
+    );
+
+    expect(result.response).toMatchObject({
+      type: 'system.error',
+      payload: { code: 'invalid_envelope' },
     });
   });
 });
