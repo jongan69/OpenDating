@@ -1,5 +1,7 @@
 # OpenDating Protocol Core — Complete
 
+> **Historical baseline:** this document records an early protocol-core milestone, not current production readiness. Use `docs/opendating/BACKEND-HANDOFF.md`, `docs/opendating/ROADMAP.md`, and protected `main` CI for current status.
+
 > Date: 2026-08-06
 > TypeScript: 0 errors | Build: 308KB | Tests: 123 passed
 

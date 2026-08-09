@@ -22,7 +22,7 @@ Kind 1059 (NIP-59 gift wraps) receive special handling:
 
 - Queries are always PRIVATE_NO_CACHE
 - Auth identity used for rate limiting (not wrapper pubkey)
-- Recipient-only access enforcement planned
+- Recipient-only access is enforced for gift-wrap queries
 - Never enters shared/global cache
 
 ## Future Protocol Privacy
