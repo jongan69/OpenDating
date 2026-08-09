@@ -109,13 +109,14 @@ The private key signs responses and decrypts incoming requests.
 | Role | Purpose | Status |
 |------|---------|--------|
 | `system` | Protocol-level operations | ✅ V0.1 |
-| `profile` | User profiles | Planned |
-| `discovery` | Candidate discovery | Planned |
-| `matcher` | Like/match logic | Planned |
-| `dm_policy` | Messaging policy | Planned |
-| `moderation` | Reports and blocks | Planned |
+| `profile` | User profiles | ✅ V0.1 baseline |
+| `discovery` | Candidate discovery | ✅ V0.1 baseline |
+| `matcher` | Like/match logic | ✅ V0.1 baseline |
+| `dm_policy` | Messaging policy | ✅ V0.1 baseline |
+| `moderation` | Reports and enforcement | ✅ V0.1 baseline; operator console pending |
 | `verification` | Identity verification | Planned |
-| `media` | Image/media handling | Planned |
+| `media` | Image/media handling | ✅ Hosted media baseline; revocable references pending |
+| `deletion` | Account deletion and vanish | ✅ V0.1.1 |
 
 ## 7. Request Lifecycle
 

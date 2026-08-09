@@ -11,57 +11,61 @@
 
 **Status**: COMPLETE (PROTOCOL-CORE-COMPLETE.md)
 
-## Phase 2: Membership + Profile (Next)
+> This file tracks protocol implementation, not production readiness. The current backend is a tested beta baseline and still requires the security, trust-and-safety, legal, reliability, and marketplace gates documented in the mobile repository's `docs/RELEASE-STATUS.md`.
 
-- [ ] User membership model
-- [ ] Dating profile schema (kind 30078)
-- [ ] Profile CRUD service
-- [ ] Profile visibility settings
-- [ ] Profile validation
+## Phase 2: Membership + Profile ✅ baseline
 
-## Phase 3: Location + Discovery
+- [x] User membership model
+- [x] Dating profile schema
+- [x] Profile CRUD service
+- [x] Profile visibility settings
+- [x] Profile validation
 
-- [ ] Location schema (geohash)
-- [ ] Location update service
-- [ ] Candidate discovery query
-- [ ] Discovery preferences
-- [ ] Distance-based filtering
+## Phase 3: Location + Discovery ✅ baseline
 
-## Phase 4: Private Likes + Matching
+- [x] Location schema (geohash)
+- [x] Location update service
+- [x] Candidate discovery query
+- [x] Discovery preferences
+- [x] Distance-based filtering
 
-- [ ] Like intent schema
-- [ ] Like service
-- [ ] Mutual match detection
-- [ ] Match notification
-- [ ] Match state management
+## Phase 4: Private Likes + Matching ✅ baseline
 
-## Phase 5: Match-Only Messaging (NIP-17)
+- [x] Like intent schema
+- [x] Like service
+- [x] Mutual match detection
+- [x] Match notification event
+- [x] Match state management
 
-- [ ] Match-gated DM policy
-- [ ] NIP-17 sealed direct messages
-- [ ] DM policy service
-- [ ] Message history
+## Phase 5: Match-Only Messaging (NIP-17) ⚠️ transport baseline
 
-## Phase 6: Block + Unmatch
+- [x] Match-gated DM policy
+- [x] NIP-17 sealed direct messages
+- [x] DM policy service
+- [ ] Durable 90-day delivery history and client cursor synchronization
 
-- [ ] Block schema
-- [ ] Unmatch schema
-- [ ] Block/unmatch service
-- [ ] Enforcement in discovery and messaging
+## Phase 6: Block + Unmatch ✅ backend baseline
 
-## Phase 7: Reporting + Moderation
+- [x] Block schema
+- [x] Unmatch schema
+- [x] Block/unmatch service, including idempotent removal
+- [x] Server enforcement in discovery and messaging
+- [ ] Global encrypted client persistence and inbound pre-render enforcement
 
-- [ ] Report schema
-- [ ] Moderation service
-- [ ] Report queue
-- [ ] Admin actions
+## Phase 7: Reporting + Moderation ⚠️ operations incomplete
 
-## Phase 8: Deletion / Vanish
+- [x] Report schema
+- [x] Moderation service baseline
+- [x] Report queue baseline
+- [x] Admin action protocol
+- [ ] Production console, appeals, audit access, vendor moderation, and staffed SLAs
 
-- [ ] Account deletion (NIP-62)
-- [ ] Profile vanish
-- [ ] Message vanish
-- [ ] Data retention compliance
+## Phase 8: Deletion / Vanish ⚠️ 0.1.1 contract fixed
+
+- [x] Account deletion service and dedicated advertised role
+- [x] Profile/discovery relationship cascade and vanish tombstone
+- [ ] Delivery-event and object-storage cascade verification
+- [ ] Legal retention policy and 24-hour receipt/SLA
 
 ## Phase 9: Verification
 

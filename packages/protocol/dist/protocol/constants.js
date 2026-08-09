@@ -21,7 +21,7 @@ export const OD_KIND_GIFT_WRAP = 1059;
 export const OD_KIND_AUTH = 22242;
 export const ALL_SERVICE_ROLES = [
     'system', 'profile', 'discovery', 'matcher',
-    'dm_policy', 'moderation', 'verification', 'media',
+    'dm_policy', 'moderation', 'verification', 'media', 'deletion',
 ];
 // ---------------------------------------------------------------------------
 // Message types

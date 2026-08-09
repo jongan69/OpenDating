@@ -79,6 +79,12 @@ describe('loadServiceIdentitiesFromEnv', () => {
     expect(LOADABLE_SERVICE_ROLES).not.toContain('verification' as never);
     expect(LOADABLE_SERVICE_ROLES).not.toContain('media' as never);
   });
+
+  it('loads the dedicated deletion identity', () => {
+    const signers = loadServiceIdentitiesFromEnv(envWithRoles(['deletion']));
+    expect(signers).toHaveLength(1);
+    expect(signers[0].role).toBe('deletion');
+  });
 });
 
 describe('initMembershipKeys', () => {

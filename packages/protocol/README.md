@@ -2,6 +2,8 @@
 
 OpenDating protocol — types, constants, validators, crypto helpers.
 
+Current package release: `0.1.1`. Protocol wire version remains experimental `0.1`.
+
 **Zero Cloudflare/Worker/D1/Durable Object dependencies.**
 
 ## Install
@@ -22,6 +24,7 @@ import {
   nip44Encrypt,
   nip44Decrypt,
   OD_ERROR_CODES,
+  getRequestRoute,
 } from 'opendating-protocol';
 
 // Generate a user keypair
@@ -60,6 +63,7 @@ import {
 - `version.ts` — Version compatibility + negotiation
 - `envelope.ts` — Envelope construction, validation, freshness
 - `message-types.ts` — Message type registry with payload validators
+- `routing.ts` — Canonical request role and expected-result registry
 - `errors.ts` — Standard error codes + messages
 - `capabilities.ts` — Capability reporting + NIP-11 advertisement
 - `validation.ts` — Runtime request validation

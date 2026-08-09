@@ -114,7 +114,7 @@ npm install
 npm run build
 
 # Run tests
-npm test                         # Full suite (82 tests)
+npm test                         # Full suite (245 tests at 0.1.1 branch cut)
 npm run opendating:test:e2e      # Protocol conformance tests
 
 # Deploy (requires Cloudflare account + wrangler config)
@@ -126,13 +126,13 @@ npm run deploy
 ## Protocol Package
 
 ```bash
-npm install opendating-protocol@0.1.0
+npm install opendating-protocol@0.1.1
 ```
 
 ```typescript
 import {
   createEnvelope, buildGiftWrap, nip44Encrypt, nip44Decrypt,
-  generateKeypair, validateEnvelope, OPENDATING_PROTOCOL,
+  generateKeypair, validateEnvelope, getRequestRoute, OPENDATING_PROTOCOL,
   type OpenDatingEnvelope, type GiftWrapResult,
 } from 'opendating-protocol';
 ```

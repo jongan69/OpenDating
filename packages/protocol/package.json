@@ -1,6 +1,6 @@
 {
   "name": "opendating-protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenDating protocol — types, constants, validators, crypto helpers. Zero Cloudflare/Worker/D1 dependencies.",
   "type": "module",
   "main": "./dist/index.js",

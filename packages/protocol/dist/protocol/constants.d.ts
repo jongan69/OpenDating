@@ -18,9 +18,9 @@ export declare const OD_KIND_GIFT_WRAP = 1059;
 export declare const OD_KIND_AUTH = 22242;
 /**
  * OpenDating service roles.
- * Only "system" is active in V0.1. Other roles are type-safe placeholders.
+ * A relay advertises only the roles it actually operates.
  */
-export type OpenDatingServiceRole = 'system' | 'profile' | 'discovery' | 'matcher' | 'dm_policy' | 'moderation' | 'verification' | 'media';
+export type OpenDatingServiceRole = 'system' | 'profile' | 'discovery' | 'matcher' | 'dm_policy' | 'moderation' | 'verification' | 'media' | 'deletion';
 export declare const ALL_SERVICE_ROLES: readonly OpenDatingServiceRole[];
 /** Known OpenDating message types (system service only for V0.1) */
 export declare const OD_MESSAGE_TYPES: {
