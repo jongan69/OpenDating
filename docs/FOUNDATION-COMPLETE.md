@@ -1,5 +1,7 @@
 # Foundation Phase — Complete
 
+> **Historical baseline:** this August 6 snapshot records completion of an early relay-foundation milestone. Counts, deployment claims, and production implications are not current. Use `docs/opendating/BACKEND-HANDOFF.md` and protected `main` CI for the present state.
+
 > Date: 2026-08-06
 
 ## Architecture Implemented

@@ -1,5 +1,7 @@
 # OpenDating Backend v0.1 — Release
 
+> **Historical snapshot:** deployment states and test counts below were recorded on August 6, 2026 and are not proof of the current live Worker or production readiness. The canonical package is `opendating-protocol`; registry `0.1.0` remains current while source `0.1.1` awaits publication. Use `BACKEND-HANDOFF.md` for current status.
+
 > **Date**: 2026-08-06
 > **Release Tag**: `opendating-v0.1.0`
 > **Protocol Version**: `0.1` (experimental)

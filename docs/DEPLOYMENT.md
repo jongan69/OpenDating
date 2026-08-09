@@ -1,19 +1,21 @@
 # Deployment Guide
 
+> **Production status:** repository CI proves the source builds; it does not prove the configured endpoint runs the same commit. Production deployment remains gated until the live Worker SHA, migrations, bindings, secret names, rollback, and restore evidence are recorded. GitHub `staging` and reviewer-gated `production` environments exist, but deployment workflows and isolated Cloudflare staging resources still need to consume them.
+
 ## Profiles
 
 ### Local Development
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
 npm run db:migrate:local
 npm run dev
 ```
 
-### Free Production
+### Development and limited testing
 
-Target: Cloudflare free tier (5GB D1, 10ms CPU per request)
+Cloudflare quotas and product limits change over time. Check the current official limits before sizing or enabling a market; do not treat an old limit copied into this repository as capacity evidence.
 
 Configuration:
 - `RELAY_INFRA_PROFILE=free`
@@ -21,9 +23,9 @@ Configuration:
 - Conservative rate limits
 - Pay-to-relay disabled
 
-### Paid Production
+### Production
 
-Target: Cloudflare Workers Paid plan
+Production requires a paid capacity plan validated by load tests, storage projections, alerting, backup/restore drills, and vendor/legal signoff. The current repository does not contain that evidence.
 
 Configuration:
 - Higher CPU limits in wrangler.toml
@@ -33,10 +35,10 @@ Configuration:
 
 ## Deployment Steps
 
-### 1. Create D1 Database
+### 1. Provision an isolated environment
 
 ```bash
-wrangler d1 create nostr-relay
+wrangler d1 create opendating-relay-<environment>
 ```
 
 Update `wrangler.toml` with the database ID.
@@ -47,20 +49,28 @@ Update `wrangler.toml` with the database ID.
 npm run db:migrate:remote
 ```
 
-### 3. Set Secrets
+### 3. Set every required secret
 
 ```bash
-wrangler secret put RELAY_PRIVATE_KEY
+wrangler secret put OD_INDEX_KEY_V1
+wrangler secret put OD_DATA_KEY_V1
+# Repeat for each OD_<ROLE>_SERVICE_PRIVKEY in docs/SECRETS.md.
 ```
 
-### 4. Deploy
+### 4. Validate without deploying
 
 ```bash
 npm run build
-npm run deploy
+npm run ci
+npm audit --audit-level=low
+npx wrangler deploy --dry-run
 ```
 
-### 5. Verify
+### 5. Deploy through the approved environment
+
+Production deployment must run from protected `main`, require the GitHub `production` environment approval, record the exact source SHA and migration state, and use environment-specific Wrangler configuration. Direct workstation deployment is not a production handoff procedure.
+
+### 6. Verify
 
 ```bash
 curl https://your-relay.example.com -H "Accept: application/nostr+json"
@@ -68,30 +78,7 @@ curl https://your-relay.example.com -H "Accept: application/nostr+json"
 
 ## Wrangler Configuration
 
-```toml
-name = "your-relay"
-compatibility_date = "2025-01-04"
-main = "worker.js"
-
-[[durable_objects.bindings]]
-name = "RELAY_WEBSOCKET"
-class_name = "RelayWebSocket"
-
-[[d1_databases]]
-binding = "RELAY_DATABASE"
-database_name = "nostr-relay"
-database_id = "your-database-id"
-
-[triggers]
-crons = ["0 0 * * *"]
-
-[limits]
-cpu_ms = 30000  # 30s for free tier, 300000 for paid
-
-[[migrations]]
-tag = "v4"
-new_sqlite_classes = ["RelayWebSocket"]
-```
+`wrangler.toml` is the current first-party configuration and binding inventory. Create explicit environment-specific configurations before staging deployment; never reuse production database, bucket, queue, KV, service keys, or encryption/index keys in development or staging.
 
 ## Post-Deployment
 
@@ -100,4 +87,7 @@ new_sqlite_classes = ["RelayWebSocket"]
 3. Test EVENT publish + REQ
 4. Test NIP-42 auth
 5. Monitor Cloudflare analytics
-6. Check D1 storage growth
+6. Verify OpenDating capabilities and every advertised service identity
+7. Verify Queue, AI, media, cache, deletion, and moderation health explicitly
+8. Record D1/R2/KV growth and queue age
+9. Exercise rollback and restore procedures before public beta

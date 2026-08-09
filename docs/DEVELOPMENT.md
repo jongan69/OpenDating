@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22
 - npm
 - Cloudflare account (for deployment, not required for local dev)
 
 ## Quick Start
 
 ```bash
-npm install
+npm ci
 npm run dev          # Start local Worker
 npm test             # Run all tests
 npm run typecheck    # TypeScript check
@@ -63,9 +63,10 @@ docs/                 Documentation
 
 ## Environment Setup
 
-1. Copy `.env.example` to `.env`
-2. Configure `wrangler.toml` with your D1 database
-3. Run `npm run db:migrate:local` to initialize the database
+1. Copy `.env.example` to `.env` for non-secret configuration.
+2. Put local-only secrets in gitignored `.dev.vars`; never reuse production keys.
+3. Run `npm run db:migrate:local` to initialize the local database.
+4. Run `npm run ci` before opening a pull request.
 
 ## Testing
 
@@ -94,5 +95,5 @@ npm run test:watch
 
 1. Add tests first
 2. Implement in the appropriate module
-3. Verify build + typecheck + tests
+3. Verify typecheck, lint, build, tests, and the dependency audit
 4. Update documentation if needed
