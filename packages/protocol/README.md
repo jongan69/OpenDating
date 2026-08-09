@@ -2,7 +2,9 @@
 
 OpenDating protocol — types, constants, validators, crypto helpers.
 
-Current package release: `0.1.1`. Protocol wire version remains experimental `0.1`.
+Current source version: `0.1.1`. The npm registry release remains `0.1.0` until
+the 0.1.1 artifact is published and verified. Protocol wire version remains
+experimental `0.1`.
 
 **Zero Cloudflare/Worker/D1/Durable Object dependencies.**
 

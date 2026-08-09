@@ -4711,7 +4711,7 @@ function getSupportedTypesForRole(role) {
     case "system":
       return ["system.ping", "system.capabilities"];
     case "profile":
-      return ["profile.create", "profile.update", "profile.get", "profile.pause", "profile.resume", "profile.delete"];
+      return ["profile.create", "profile.update", "profile.get", "profile.pause", "profile.resume", "profile.delete", "visibility.update"];
     case "discovery":
       return ["discovery.update_location", "discovery.get_candidates", "discovery.update_preferences"];
     case "matcher":
@@ -5940,18 +5940,6 @@ var init_service4 = __esm({
             "This profile is no longer available."
           ) };
         }
-        const grant = await session.prepare(
-          `SELECT grant_token FROM od_candidate_grants
-        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
-          AND (expires_at IS NULL OR expires_at > ?)`
-        ).bind(memberId, targetMemberId, candidateGrant, now).first();
-        if (!grant) {
-          return { response: createErrorEnvelope(
-            request.request_id,
-            "invalid_candidate_grant",
-            "No valid grant found \u2014 this profile may no longer be available"
-          ) };
-        }
         const likeQuota = await session.prepare(
           `SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?`
         ).bind(memberId).first();
@@ -5962,6 +5950,18 @@ var init_service4 = __esm({
             request.request_id,
             "rate_limited",
             "Daily like limit reached"
+          ) };
+        }
+        const consumedGrant = await session.prepare(
+          `DELETE FROM od_candidate_grants
+        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
+          AND (expires_at IS NULL OR expires_at > ?)`
+        ).bind(memberId, targetMemberId, candidateGrant, now).run();
+        if ((consumedGrant.meta.changes ?? 0) !== 1) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_candidate_grant",
+            "No valid grant found \u2014 this profile may no longer be available"
           ) };
         }
         const iid = intentId(ctx.senderPubkey, targetPubkey, "like");
@@ -5978,9 +5978,6 @@ var init_service4 = __esm({
          daily_reset_at = CASE WHEN daily_reset_at < ? THEN ? ELSE daily_reset_at END,
          updated_at = ?`
         ).bind(memberId, newResetAt, now, now, newResetAt, now, now).run();
-        await session.prepare(
-          `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
-        ).bind(memberId, targetMemberId).run();
         const reciprocal = await session.prepare(
           `SELECT id FROM od_intents
        WHERE from_member_id = ? AND to_member_id = ? AND intent_type = 'like' AND state = 'active'`
@@ -6084,12 +6081,12 @@ var init_service5 = __esm({
       async removeBlock(memberId, request) {
         const payload = request.payload;
         const targetPubkey = payload.target_pubkey;
-        if (typeof targetPubkey !== "string" || targetPubkey.length === 0) {
+        if (typeof targetPubkey !== "string" || !/^[0-9a-f]{64}$/i.test(targetPubkey)) {
           return {
             response: createErrorEnvelope(
               request.request_id,
               "invalid_envelope",
-              "Missing target_pubkey"
+              "Invalid target_pubkey"
             )
           };
         }

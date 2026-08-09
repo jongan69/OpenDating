@@ -40,12 +40,12 @@ export class BlockService implements OpenDatingService {
   private async removeBlock(memberId: string, request: OpenDatingEnvelope): Promise<ServiceResult> {
     const payload = request.payload as Record<string, unknown>;
     const targetPubkey = payload.target_pubkey;
-    if (typeof targetPubkey !== 'string' || targetPubkey.length === 0) {
+    if (typeof targetPubkey !== 'string' || !/^[0-9a-f]{64}$/i.test(targetPubkey)) {
       return {
         response: createErrorEnvelope(
           request.request_id,
           'invalid_envelope',
-          'Missing target_pubkey',
+          'Invalid target_pubkey',
         ),
       };
     }

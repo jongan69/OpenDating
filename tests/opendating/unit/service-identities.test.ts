@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import {
+  getServiceIdentitiesForCapabilities,
   LOADABLE_SERVICE_ROLES,
   loadServiceIdentitiesFromEnv,
   secretNameForRole,
@@ -84,6 +85,15 @@ describe('loadServiceIdentitiesFromEnv', () => {
     const signers = loadServiceIdentitiesFromEnv(envWithRoles(['deletion']));
     expect(signers).toHaveLength(1);
     expect(signers[0].role).toBe('deletion');
+  });
+
+  it('advertises visibility updates on the profile identity', () => {
+    loadServiceIdentitiesFromEnv(envWithRoles(['profile']));
+    const profile = getServiceIdentitiesForCapabilities().find(
+      (identity) => identity.role === 'profile',
+    );
+
+    expect(profile?.supportedTypes).toContain('visibility.update');
   });
 });
 
