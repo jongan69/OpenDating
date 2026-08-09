@@ -21,7 +21,7 @@ export class BlockService implements OpenDatingService {
   }
 
   supports(type: string): boolean {
-    return ['block.create', 'block.list', 'unmatch.create'].includes(type);
+    return ['block.create', 'block.remove', 'block.list', 'unmatch.create'].includes(type);
   }
 
   async handle(request: OpenDatingEnvelope, ctx: OpenDatingServiceContext): Promise<ServiceResult> {
@@ -29,11 +29,42 @@ export class BlockService implements OpenDatingService {
 
     switch (request.type) {
       case 'block.create': return this.createBlock(member.memberId, request, ctx);
+      case 'block.remove': return this.removeBlock(member.memberId, request);
       case 'block.list': return this.listBlocks(member.memberId, request);
       case 'unmatch.create': return this.createUnmatch(member.memberId, request, ctx);
       default:
         throw new Error(`Block service does not support: ${request.type}`);
     }
+  }
+
+  private async removeBlock(memberId: string, request: OpenDatingEnvelope): Promise<ServiceResult> {
+    const payload = request.payload as Record<string, unknown>;
+    const targetPubkey = payload.target_pubkey;
+    if (typeof targetPubkey !== 'string' || targetPubkey.length === 0) {
+      return {
+        response: createErrorEnvelope(
+          request.request_id,
+          'invalid_envelope',
+          'Missing target_pubkey',
+        ),
+      };
+    }
+
+    const targetMemberId = this.membership.getMemberId(targetPubkey);
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.withSession('first-primary').prepare(
+      `DELETE FROM od_blocks
+       WHERE blocker_member_id = ? AND blocked_member_id = ?`,
+    ).bind(memberId, targetMemberId).run();
+
+    // Removing a block never recreates a match, candidate grant, or intent.
+    // Those relationships can only be established again through their normal
+    // explicit user flows.
+    return {
+      response: createEnvelope('block.remove.result', request.request_id, {
+        removed_at: now,
+      }),
+    };
   }
 
   private async createBlock(memberId: string, request: OpenDatingEnvelope, ctx: OpenDatingServiceContext): Promise<ServiceResult> {

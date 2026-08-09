@@ -134,8 +134,9 @@ function getSupportedTypesForRole(role: string): string[] {
     case 'profile': return ['profile.create', 'profile.update', 'profile.get', 'profile.pause', 'profile.resume', 'profile.delete'];
     case 'discovery': return ['discovery.update_location', 'discovery.get_candidates', 'discovery.update_preferences'];
     case 'matcher': return ['intent.like', 'intent.revoke', 'match.list'];
-    case 'dm_policy': return ['block.create', 'block.list', 'unmatch.create'];
+    case 'dm_policy': return ['block.create', 'block.remove', 'block.list', 'unmatch.create'];
     case 'moderation': return ['report.create', 'moderation.action'];
+    case 'deletion': return ['account.delete'];
     default: return [];
   }
 }

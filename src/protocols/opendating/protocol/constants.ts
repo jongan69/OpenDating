@@ -33,7 +33,7 @@ export const OD_KIND_AUTH = 22242;
 
 /**
  * OpenDating service roles.
- * Only "system" is active in V0.1. Other roles are type-safe placeholders.
+ * A relay advertises only the roles it actually operates.
  */
 export type OpenDatingServiceRole =
   | 'system'
@@ -43,11 +43,12 @@ export type OpenDatingServiceRole =
   | 'dm_policy'
   | 'moderation'
   | 'verification'
-  | 'media';
+  | 'media'
+  | 'deletion';
 
 export const ALL_SERVICE_ROLES: readonly OpenDatingServiceRole[] = [
   'system', 'profile', 'discovery', 'matcher',
-  'dm_policy', 'moderation', 'verification', 'media',
+  'dm_policy', 'moderation', 'verification', 'media', 'deletion',
 ] as const;
 
 // ---------------------------------------------------------------------------

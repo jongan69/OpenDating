@@ -13,6 +13,9 @@ import { initMembershipKeys, resetMembershipKeys, deriveMemberId } from '../../.
 import { initOpenDatingExtension } from '../../../src/protocols/opendating/extension.js';
 import { grantToken, clampAge, publicProfile } from '../../../src/protocols/opendating/services/discovery/service.js';
 import { validateProfileContent } from '../../../src/protocols/opendating/services/profile/service.js';
+import { BlockService } from '../../../src/protocols/opendating/services/block/service.js';
+import { createEnvelope } from '../../../src/protocols/opendating/protocol/envelope.js';
+import type { OpenDatingServiceContext } from '../../../src/protocols/opendating/services/interface.js';
 
 let db: D1Adapter;
 
@@ -261,5 +264,72 @@ describe('Matcher SQL (D1)', () => {
     quota = db.prepare(`SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = 'alice'`).first() as any;
     expect(quota.daily_likes_sent).toBe(1);
     expect(quota.daily_reset_at).toBe(newReset);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Safety policy — block lifecycle
+// ---------------------------------------------------------------------------
+
+describe('Block service (D1)', () => {
+  const alicePubkey = 'a'.repeat(64);
+  const bobPubkey = 'b'.repeat(64);
+  const servicePubkey = 'c'.repeat(64);
+
+  function context(requestId: string): OpenDatingServiceContext {
+    return {
+      authenticatedPubkey: alicePubkey,
+      senderPubkey: alicePubkey,
+      servicePubkey,
+      protocolVersion: '0.1',
+      receivedAt: Math.floor(Date.now() / 1000),
+      requestId,
+    };
+  }
+
+  it('supports idempotent block removal without restoring relationships', async () => {
+    const service = new BlockService(
+      'dm_policy',
+      servicePubkey,
+      db as unknown as D1Database,
+    );
+    expect(service.supports('block.remove')).toBe(true);
+
+    const createRequestId = 'block-create-request';
+    await service.handle(
+      createEnvelope('block.create', createRequestId, { target_pubkey: bobPubkey }),
+      context(createRequestId),
+    );
+
+    const aliceId = deriveMemberId(alicePubkey);
+    const bobId = deriveMemberId(bobPubkey);
+    expect(
+      db.prepare(
+        `SELECT 1 FROM od_blocks
+         WHERE blocker_member_id = ? AND blocked_member_id = ?`,
+      ).bind(aliceId, bobId).first(),
+    ).not.toBeNull();
+
+    const removeRequestId = 'block-remove-request';
+    const result = await service.handle(
+      createEnvelope('block.remove', removeRequestId, { target_pubkey: bobPubkey }),
+      context(removeRequestId),
+    );
+    expect(result.response.type).toBe('block.remove.result');
+    expect(
+      db.prepare(
+        `SELECT 1 FROM od_blocks
+         WHERE blocker_member_id = ? AND blocked_member_id = ?`,
+      ).bind(aliceId, bobId).first(),
+    ).toBeNull();
+
+    await expect(
+      service.handle(
+        createEnvelope('block.remove', 'block-remove-again', { target_pubkey: bobPubkey }),
+        context('block-remove-again'),
+      ),
+    ).resolves.toMatchObject({
+      response: { type: 'block.remove.result' },
+    });
   });
 });

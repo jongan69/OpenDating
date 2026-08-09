@@ -8,11 +8,16 @@ import {
   OPENDATING_PROTOCOL,
   OPENDATING_VERSION,
   SUPPORTED_VERSIONS,
+  ALL_SERVICE_ROLES,
 } from '../../../src/protocols/opendating/protocol/constants.js';
 import { isSupportedVersion, isOpenDatingProtocol, negotiateVersion } from '../../../src/protocols/opendating/protocol/version.js';
 import { createEnvelope, validateEnvelope, checkRequestFreshness } from '../../../src/protocols/opendating/protocol/envelope.js';
 import { validateODRequest } from '../../../src/protocols/opendating/protocol/validation.js';
 import { OD_ERROR_CODES } from '../../../src/protocols/opendating/protocol/errors.js';
+import {
+  getRequestRoute,
+  REQUEST_ROUTES,
+} from '../../../src/protocols/opendating/protocol/routing.js';
 
 describe('protocol constants', () => {
   it('should use canonical protocol identifier', () => {
@@ -25,6 +30,34 @@ describe('protocol constants', () => {
 
   it('should support only 0.1', () => {
     expect(SUPPORTED_VERSIONS).toEqual(['0.1']);
+  });
+
+  it('declares every service role advertised by the reference relay', () => {
+    expect(ALL_SERVICE_ROLES).toContain('deletion');
+  });
+});
+
+describe('request routing', () => {
+  it('routes account deletion only to the deletion service', () => {
+    expect(getRequestRoute('account.delete')).toEqual({
+      role: 'deletion',
+      resultType: 'account.delete.result',
+    });
+  });
+
+  it('routes block removal and unmatch to the policy service', () => {
+    expect(getRequestRoute('block.remove')?.role).toBe('dm_policy');
+    expect(getRequestRoute('unmatch.create')?.role).toBe('dm_policy');
+  });
+
+  it('gives every registered request an existing validator', async () => {
+    const { MESSAGE_VALIDATORS } = await import(
+      '../../../src/protocols/opendating/protocol/message-types.js'
+    );
+    for (const [requestType, route] of Object.entries(REQUEST_ROUTES)) {
+      expect(MESSAGE_VALIDATORS).toHaveProperty(requestType);
+      expect(MESSAGE_VALIDATORS).toHaveProperty(route.resultType);
+    }
   });
 });
 

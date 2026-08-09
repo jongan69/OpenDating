@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -23,8 +26,14 @@ jobs:
 
       - run: npm ci
 
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Type check
         run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build
@@ -36,6 +45,26 @@ jobs:
       - name: Tests
         run: npm test
 
+      - name: Install protocol package dependencies
+        working-directory: packages/protocol
+        run: npm ci
+
+      - name: Build and pack protocol package
+        working-directory: packages/protocol
+        run: |
+          npm run build
+          npm pack --dry-run
+
+      - name: Generate SBOM
+        run: npm sbom --sbom-format cyclonedx > sbom.cdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-sbom-cyclonedx
+          path: sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Verify build output
         run: |
           if [ ! -f worker.js ]; then
@@ -43,3 +72,17 @@ jobs:
             exit 1
           fi
           echo "Build output size: $(wc -c < worker.js) bytes"
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+      - if: github.event_name != 'pull_request'
+        run: echo "Dependency review applies to pull requests."

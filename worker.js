@@ -1300,37 +1300,37 @@ function Field(ORDER, bitLenOrOpts, isLE2 = false, opts = {}) {
     ZERO: _0n2,
     ONE: _1n2,
     allowedLengths,
-    create: (num2) => mod(num2, ORDER),
-    isValid: (num2) => {
+    create: /* @__PURE__ */ __name((num2) => mod(num2, ORDER), "create"),
+    isValid: /* @__PURE__ */ __name((num2) => {
       if (typeof num2 !== "bigint")
         throw new Error("invalid field element: expected bigint, got " + typeof num2);
       return _0n2 <= num2 && num2 < ORDER;
-    },
-    is0: (num2) => num2 === _0n2,
+    }, "isValid"),
+    is0: /* @__PURE__ */ __name((num2) => num2 === _0n2, "is0"),
     // is valid and invertible
-    isValidNot0: (num2) => !f.is0(num2) && f.isValid(num2),
-    isOdd: (num2) => (num2 & _1n2) === _1n2,
-    neg: (num2) => mod(-num2, ORDER),
-    eql: (lhs, rhs) => lhs === rhs,
-    sqr: (num2) => mod(num2 * num2, ORDER),
-    add: (lhs, rhs) => mod(lhs + rhs, ORDER),
-    sub: (lhs, rhs) => mod(lhs - rhs, ORDER),
-    mul: (lhs, rhs) => mod(lhs * rhs, ORDER),
-    pow: (num2, power) => FpPow(f, num2, power),
-    div: (lhs, rhs) => mod(lhs * invert(rhs, ORDER), ORDER),
+    isValidNot0: /* @__PURE__ */ __name((num2) => !f.is0(num2) && f.isValid(num2), "isValidNot0"),
+    isOdd: /* @__PURE__ */ __name((num2) => (num2 & _1n2) === _1n2, "isOdd"),
+    neg: /* @__PURE__ */ __name((num2) => mod(-num2, ORDER), "neg"),
+    eql: /* @__PURE__ */ __name((lhs, rhs) => lhs === rhs, "eql"),
+    sqr: /* @__PURE__ */ __name((num2) => mod(num2 * num2, ORDER), "sqr"),
+    add: /* @__PURE__ */ __name((lhs, rhs) => mod(lhs + rhs, ORDER), "add"),
+    sub: /* @__PURE__ */ __name((lhs, rhs) => mod(lhs - rhs, ORDER), "sub"),
+    mul: /* @__PURE__ */ __name((lhs, rhs) => mod(lhs * rhs, ORDER), "mul"),
+    pow: /* @__PURE__ */ __name((num2, power) => FpPow(f, num2, power), "pow"),
+    div: /* @__PURE__ */ __name((lhs, rhs) => mod(lhs * invert(rhs, ORDER), ORDER), "div"),
     // Same as above, but doesn't normalize
-    sqrN: (num2) => num2 * num2,
-    addN: (lhs, rhs) => lhs + rhs,
-    subN: (lhs, rhs) => lhs - rhs,
-    mulN: (lhs, rhs) => lhs * rhs,
-    inv: (num2) => invert(num2, ORDER),
+    sqrN: /* @__PURE__ */ __name((num2) => num2 * num2, "sqrN"),
+    addN: /* @__PURE__ */ __name((lhs, rhs) => lhs + rhs, "addN"),
+    subN: /* @__PURE__ */ __name((lhs, rhs) => lhs - rhs, "subN"),
+    mulN: /* @__PURE__ */ __name((lhs, rhs) => lhs * rhs, "mulN"),
+    inv: /* @__PURE__ */ __name((num2) => invert(num2, ORDER), "inv"),
     sqrt: _sqrt || ((n) => {
       if (!sqrtP)
         sqrtP = FpSqrt(ORDER);
       return sqrtP(f, n);
     }),
-    toBytes: (num2) => isLE2 ? numberToBytesLE(num2, BYTES) : numberToBytesBE(num2, BYTES),
-    fromBytes: (bytes, skipValidation = true) => {
+    toBytes: /* @__PURE__ */ __name((num2) => isLE2 ? numberToBytesLE(num2, BYTES) : numberToBytesBE(num2, BYTES), "toBytes"),
+    fromBytes: /* @__PURE__ */ __name((bytes, skipValidation = true) => {
       if (allowedLengths) {
         if (!allowedLengths.includes(bytes.length) || bytes.length > BYTES) {
           throw new Error("Field.fromBytes: expected " + allowedLengths + " bytes, got " + bytes.length);
@@ -1349,12 +1349,12 @@ function Field(ORDER, bitLenOrOpts, isLE2 = false, opts = {}) {
           throw new Error("invalid field element: outside of range 0..ORDER");
       }
       return scalar;
-    },
+    }, "fromBytes"),
     // TODO: we don't need it here, move out to separate fn
-    invertBatch: (lst) => FpInvertBatch(f, lst),
+    invertBatch: /* @__PURE__ */ __name((lst) => FpInvertBatch(f, lst), "invertBatch"),
     // We can't move this out because Fp6, Fp12 implement it
     // and it's unclear what to return in there.
-    cmov: (a, b, c) => c ? b : a
+    cmov: /* @__PURE__ */ __name((a, b, c) => c ? b : a, "cmov")
   });
   return Object.freeze(f);
 }
@@ -2321,7 +2321,7 @@ function ecdh(Point, ecdhOpts = {}) {
     // TODO: remove
     isValidPrivateKey: isValidSecretKey,
     randomPrivateKey: randomSecretKey,
-    normPrivateKeyToScalar: (key) => _normFnElement(Fn, key),
+    normPrivateKeyToScalar: /* @__PURE__ */ __name((key) => _normFnElement(Fn, key), "normPrivateKeyToScalar"),
     precompute(windowSize = 8, point = Point.BASE) {
       return point.precompute(windowSize, false);
     }
@@ -2689,7 +2689,7 @@ var init_weierstrass = __esm({
       Err: DERErr,
       // Basic building block is TLV (Tag-Length-Value)
       _tlv: {
-        encode: (tag, data) => {
+        encode: /* @__PURE__ */ __name((tag, data) => {
           const { Err: E } = DER;
           if (tag < 0 || tag > 256)
             throw new E("tlv.encode: wrong tag");
@@ -2702,7 +2702,7 @@ var init_weierstrass = __esm({
           const lenLen = dataLen > 127 ? numberToHexUnpadded(len.length / 2 | 128) : "";
           const t = numberToHexUnpadded(tag);
           return t + lenLen + len + data;
-        },
+        }, "encode"),
         // v - value, l - left bytes (unparsed)
         decode(tag, data) {
           const { Err: E } = DER;
@@ -3592,8 +3592,7 @@ function signEvent(event, privateKeyHex) {
   return { id, sig };
 }
 function constantTimeEqual(a, b) {
-  if (a.length !== b.length)
-    return false;
+  if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a[i] ^ b[i];
@@ -3604,8 +3603,7 @@ function bytesToHex2(bytes) {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 function hexToBytes2(hex) {
-  if (hex.length % 2 !== 0)
-    throw new Error("Invalid hex string");
+  if (hex.length % 2 !== 0) throw new Error("Invalid hex string");
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
@@ -3681,8 +3679,7 @@ function isValidPingPayload(p) {
   return typeof p === "object" && p !== null && Object.keys(p).length === 0;
 }
 function isValidPongPayload(p) {
-  if (typeof p !== "object" || p === null)
-    return false;
+  if (typeof p !== "object" || p === null) return false;
   const o = p;
   return typeof o.server_time === "number" && typeof o.protocol_version === "string";
 }
@@ -3690,8 +3687,7 @@ function isValidCapabilitiesPayload(p) {
   return typeof p === "object" && p !== null && Object.keys(p).length === 0;
 }
 function isValidCapabilitiesResultPayload(p) {
-  if (typeof p !== "object" || p === null)
-    return false;
+  if (typeof p !== "object" || p === null) return false;
   const o = p;
   return Array.isArray(o.versions) && Array.isArray(o.services) && Array.isArray(o.features);
 }
@@ -3715,63 +3711,63 @@ var init_message_types = __esm({
       "system.pong": isValidPongPayload,
       "system.capabilities": isValidCapabilitiesPayload,
       "system.capabilities.result": isValidCapabilitiesResultPayload,
-      "system.error": (p) => typeof p === "object" && p !== null && typeof p.code === "string",
+      "system.error": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null && typeof p.code === "string", "system.error"),
       // Profile
-      "profile.create": (p) => typeof p === "object" && p !== null,
-      "profile.create.result": (p) => typeof p === "object" && p !== null,
-      "profile.update": (p) => typeof p === "object" && p !== null,
-      "profile.update.result": (p) => typeof p === "object" && p !== null,
-      "profile.get": (p) => typeof p === "object" && p !== null,
-      "profile.get.result": (p) => typeof p === "object" && p !== null,
-      "profile.pause": (p) => typeof p === "object" && p !== null,
-      "profile.pause.result": (p) => typeof p === "object" && p !== null,
-      "profile.resume": (p) => typeof p === "object" && p !== null,
-      "profile.resume.result": (p) => typeof p === "object" && p !== null,
-      "profile.delete": (p) => typeof p === "object" && p !== null,
-      "profile.delete.result": (p) => typeof p === "object" && p !== null,
+      "profile.create": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.create"),
+      "profile.create.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.create.result"),
+      "profile.update": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.update"),
+      "profile.update.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.update.result"),
+      "profile.get": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.get"),
+      "profile.get.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.get.result"),
+      "profile.pause": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.pause"),
+      "profile.pause.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.pause.result"),
+      "profile.resume": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.resume"),
+      "profile.resume.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.resume.result"),
+      "profile.delete": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.delete"),
+      "profile.delete.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "profile.delete.result"),
       // Discovery
-      "discovery.update_location": (p) => typeof p === "object" && p !== null,
-      "discovery.update_location.result": (p) => typeof p === "object" && p !== null,
-      "discovery.get_candidates": (p) => typeof p === "object" && p !== null,
-      "discovery.get_candidates.result": (p) => typeof p === "object" && p !== null,
-      "discovery.update_preferences": (p) => typeof p === "object" && p !== null,
-      "discovery.update_preferences.result": (p) => typeof p === "object" && p !== null,
+      "discovery.update_location": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.update_location"),
+      "discovery.update_location.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.update_location.result"),
+      "discovery.get_candidates": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.get_candidates"),
+      "discovery.get_candidates.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.get_candidates.result"),
+      "discovery.update_preferences": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.update_preferences"),
+      "discovery.update_preferences.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "discovery.update_preferences.result"),
       // Intents + Matches
-      "intent.like": (p) => typeof p === "object" && p !== null,
-      "intent.like.result": (p) => typeof p === "object" && p !== null,
-      "intent.revoke": (p) => typeof p === "object" && p !== null,
-      "intent.revoke.result": (p) => typeof p === "object" && p !== null,
-      "match.list": (p) => typeof p === "object" && p !== null,
-      "match.list.result": (p) => typeof p === "object" && p !== null,
+      "intent.like": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "intent.like"),
+      "intent.like.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "intent.like.result"),
+      "intent.revoke": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "intent.revoke"),
+      "intent.revoke.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "intent.revoke.result"),
+      "match.list": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "match.list"),
+      "match.list.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "match.list.result"),
       // Blocks
-      "block.create": (p) => typeof p === "object" && p !== null,
-      "block.create.result": (p) => typeof p === "object" && p !== null,
-      "block.list": (p) => typeof p === "object" && p !== null,
-      "block.list.result": (p) => typeof p === "object" && p !== null,
-      "unmatch.create": (p) => typeof p === "object" && p !== null,
-      "unmatch.create.result": (p) => typeof p === "object" && p !== null,
+      "block.create": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.create"),
+      "block.create.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.create.result"),
+      "block.list": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.list"),
+      "block.list.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.list.result"),
+      "unmatch.create": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "unmatch.create"),
+      "unmatch.create.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "unmatch.create.result"),
       // Reports + Moderation
-      "report.create": (p) => typeof p === "object" && p !== null,
-      "report.create.result": (p) => typeof p === "object" && p !== null,
-      "moderation.action": (p) => typeof p === "object" && p !== null,
-      "moderation.action.result": (p) => typeof p === "object" && p !== null,
+      "report.create": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "report.create"),
+      "report.create.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "report.create.result"),
+      "moderation.action": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "moderation.action"),
+      "moderation.action.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "moderation.action.result"),
       // Visibility
-      "visibility.update": (p) => typeof p === "object" && p !== null,
-      "visibility.update.result": (p) => typeof p === "object" && p !== null,
+      "visibility.update": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "visibility.update"),
+      "visibility.update.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "visibility.update.result"),
       // Block remove
-      "block.remove": (p) => typeof p === "object" && p !== null,
-      "block.remove.result": (p) => typeof p === "object" && p !== null,
+      "block.remove": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.remove"),
+      "block.remove.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "block.remove.result"),
       // Report received ack
-      "report.received": (p) => typeof p === "object" && p !== null,
+      "report.received": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "report.received"),
       // Verification
-      "verification.list": (p) => typeof p === "object" && p !== null,
-      "verification.list.result": (p) => typeof p === "object" && p !== null,
+      "verification.list": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "verification.list"),
+      "verification.list.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "verification.list.result"),
       // Account delete
-      "account.delete": (p) => typeof p === "object" && p !== null,
-      "account.delete.result": (p) => typeof p === "object" && p !== null,
+      "account.delete": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "account.delete"),
+      "account.delete.result": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "account.delete.result"),
       // Service-level
-      "service.ack": (p) => typeof p === "object" && p !== null,
-      "service.error": (p) => typeof p === "object" && p !== null && typeof p.code === "string"
+      "service.ack": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null, "service.ack"),
+      "service.error": /* @__PURE__ */ __name((p) => typeof p === "object" && p !== null && typeof p.code === "string", "service.error")
     };
     __name(isKnownMessageType, "isKnownMessageType");
     __name(getPayloadValidator, "getPayloadValidator");
@@ -4302,13 +4298,10 @@ function formatLog(entry) {
     `[${entry.timestamp}]`,
     `[${entry.level.toUpperCase()}]`
   ];
-  if (entry.sessionId)
-    parts.push(`[sess:${entry.sessionId.substring(0, 8)}]`);
-  if (entry.pubkey)
-    parts.push(`[pk:${entry.pubkey.substring(0, 8)}]`);
+  if (entry.sessionId) parts.push(`[sess:${entry.sessionId.substring(0, 8)}]`);
+  if (entry.pubkey) parts.push(`[pk:${entry.pubkey.substring(0, 8)}]`);
   parts.push(entry.message);
-  if (entry.data)
-    parts.push(JSON.stringify(entry.data));
+  if (entry.data) parts.push(JSON.stringify(entry.data));
   return parts.join(" ");
 }
 function log(level, message, context) {
@@ -4342,11 +4335,11 @@ var init_logger = __esm({
     __name(formatLog, "formatLog");
     __name(log, "log");
     logger = {
-      debug: (msg, ctx) => log("debug", msg, ctx),
-      info: (msg, ctx) => log("info", msg, ctx),
-      warn: (msg, ctx) => log("warn", msg, ctx),
-      error: (msg, ctx) => log("error", msg, ctx),
-      security: (msg, ctx) => log("security", msg, ctx)
+      debug: /* @__PURE__ */ __name((msg, ctx) => log("debug", msg, ctx), "debug"),
+      info: /* @__PURE__ */ __name((msg, ctx) => log("info", msg, ctx), "info"),
+      warn: /* @__PURE__ */ __name((msg, ctx) => log("warn", msg, ctx), "warn"),
+      error: /* @__PURE__ */ __name((msg, ctx) => log("error", msg, ctx), "error"),
+      security: /* @__PURE__ */ __name((msg, ctx) => log("security", msg, ctx), "security")
     };
   }
 });
@@ -4424,8 +4417,7 @@ function initOpenDatingExtension(db) {
   idempotencyStore = new D1IdempotencyStore(db);
 }
 function isAddressedToService(event) {
-  if (event.kind !== 1059)
-    return null;
+  if (event.kind !== 1059) return null;
   const pTags = event.tags.filter((t) => t[0] === "p").map((t) => t[1]);
   for (const pTag of pTags) {
     if (serviceIdentityRegistry.isServicePubkey(pTag)) {
@@ -4518,16 +4510,13 @@ async function screenProfileContent(envelope, senderPubkey, context) {
   try {
     const payload = envelope.payload;
     const profile = payload?.profile;
-    if (!profile)
-      return;
+    if (!profile) return;
     const bio = typeof profile.bio === "string" ? profile.bio : "";
     const name = typeof profile.display_name === "string" ? profile.display_name : "";
     const text = [name, bio].filter(Boolean).join(" ");
-    if (text.length < 3)
-      return;
+    if (text.length < 3) return;
     const env = context._env;
-    if (!env?.AI)
-      return;
+    if (!env?.AI) return;
     const result = await moderateContent(env.AI, text, "profile_bio");
     if (shouldBlock(result)) {
       logger.warn("[moderation] Blocked profile content", {
@@ -4544,8 +4533,7 @@ async function screenProfileContent(envelope, senderPubkey, context) {
       });
     }
   } catch (err) {
-    if (err.message?.startsWith("Profile content rejected:"))
-      throw err;
+    if (err.message?.startsWith("Profile content rejected:")) throw err;
     logger.error("[moderation] screenProfileContent error");
   }
 }
@@ -4729,9 +4717,11 @@ function getSupportedTypesForRole(role) {
     case "matcher":
       return ["intent.like", "intent.revoke", "match.list"];
     case "dm_policy":
-      return ["block.create", "block.list", "unmatch.create"];
+      return ["block.create", "block.remove", "block.list", "unmatch.create"];
     case "moderation":
       return ["report.create", "moderation.action"];
+    case "deletion":
+      return ["account.delete"];
     default:
       return [];
   }
@@ -4851,18 +4841,12 @@ var init_service = __esm({
 // src/protocols/opendating/storage/d1/membership.ts
 function profileCompleteness(content) {
   let score = 0;
-  if (content.display_name && String(content.display_name).trim())
-    score += 25;
-  if (typeof content.age === "number")
-    score += 15;
-  if (content.gender)
-    score += 10;
-  if (content.bio && String(content.bio).trim().length >= 20)
-    score += 20;
-  if (Array.isArray(content.photos) && content.photos.length > 0)
-    score += 20;
-  if (Array.isArray(content.interests) && content.interests.length >= 3)
-    score += 10;
+  if (content.display_name && String(content.display_name).trim()) score += 25;
+  if (typeof content.age === "number") score += 15;
+  if (content.gender) score += 10;
+  if (content.bio && String(content.bio).trim().length >= 20) score += 20;
+  if (Array.isArray(content.photos) && content.photos.length > 0) score += 20;
+  if (Array.isArray(content.interests) && content.interests.length >= 3) score += 10;
   return Math.min(score, 100);
 }
 function initMembershipKeys(env) {
@@ -4964,8 +4948,7 @@ var init_membership = __esm({
         this.dataKey = null;
       }
       async ensureDataKey() {
-        if (!this.dataKey)
-          this.dataKey = await getDataKey();
+        if (!this.dataKey) this.dataKey = await getDataKey();
         return this.dataKey;
       }
       getMemberId(pubkey) {
@@ -4980,8 +4963,7 @@ var init_membership = __esm({
         const row = await session.prepare(
           "SELECT * FROM od_members WHERE member_id = ?"
         ).bind(memberId).first();
-        if (!row)
-          return null;
+        if (!row) return null;
         const dk = await this.ensureDataKey();
         const pubkeyDecrypted = await decryptString(row.encrypted_pubkey, dk);
         return {
@@ -5032,10 +5014,8 @@ var init_membership = __esm({
       async ensureMember(pubkey) {
         const existing = await this.getMember(pubkey);
         if (existing) {
-          if (existing.status === "deleted")
-            throw new Error("Member has been deleted");
-          if (existing.status === "banned")
-            throw new Error("Member is banned");
+          if (existing.status === "deleted") throw new Error("Member has been deleted");
+          if (existing.status === "banned") throw new Error("Member is banned");
           return existing;
         }
         return this.createMember(pubkey);
@@ -5088,8 +5068,7 @@ var init_membership = __esm({
         const row = await session.prepare(
           "SELECT * FROM od_profiles WHERE member_id = ?"
         ).bind(memberId).first();
-        if (!row)
-          return null;
+        if (!row) return null;
         return {
           memberId: row.member_id,
           profileVersion: row.profile_version,
@@ -5161,8 +5140,7 @@ var init_membership = __esm({
         const row = await session.prepare(
           `SELECT encrypted_pubkey FROM od_members WHERE member_id = ? AND status = 'active'`
         ).bind(memberId).first();
-        if (typeof row?.encrypted_pubkey !== "string")
-          return null;
+        if (typeof row?.encrypted_pubkey !== "string") return null;
         try {
           const dk = await this.ensureDataKey();
           return await decryptString(row.encrypted_pubkey, dk);
@@ -5184,8 +5162,7 @@ var init_membership = __esm({
           "SELECT encrypted_profile_payload FROM od_profiles WHERE member_id = ?"
         ).bind(memberId).first();
         const blob = row?.encrypted_profile_payload;
-        if (typeof blob !== "string" || blob.length === 0)
-          return null;
+        if (typeof blob !== "string" || blob.length === 0) return null;
         try {
           const dk = await this.ensureDataKey();
           return JSON.parse(await decryptString(blob, dk));
@@ -5201,8 +5178,7 @@ var init_membership = __esm({
        */
       async getPubkeysByMemberIds(memberIds) {
         const result = /* @__PURE__ */ new Map();
-        if (memberIds.length === 0)
-          return result;
+        if (memberIds.length === 0) return result;
         const placeholders = memberIds.map(() => "?").join(",");
         const session = this.db.withSession("first-unconstrained");
         const rows = await session.prepare(
@@ -5226,8 +5202,7 @@ var init_membership = __esm({
        */
       async getProfileContentsByMemberIds(memberIds) {
         const result = /* @__PURE__ */ new Map();
-        if (memberIds.length === 0)
-          return result;
+        if (memberIds.length === 0) return result;
         const placeholders = memberIds.map(() => "?").join(",");
         const session = this.db.withSession("first-unconstrained");
         const rows = await session.prepare(
@@ -5237,8 +5212,7 @@ var init_membership = __esm({
         const dk = await this.ensureDataKey();
         for (const row of rows.results ?? []) {
           const blob = row.encrypted_profile_payload;
-          if (typeof blob !== "string" || blob.length === 0)
-            continue;
+          if (typeof blob !== "string" || blob.length === 0) continue;
           try {
             result.set(row.member_id, JSON.parse(await decryptString(blob, dk)));
           } catch {
@@ -5264,8 +5238,7 @@ var init_membership = __esm({
          FROM od_members m LEFT JOIN od_profiles p ON p.member_id = m.member_id
         WHERE m.member_id = ?`
         ).bind(memberId).first();
-        if (!row)
-          return;
+        if (!row) return;
         const visible = row.status === "active" && row.visibility_state === "discoverable" ? 1 : 0;
         await session.prepare(
           `INSERT INTO od_discovery_index
@@ -5317,18 +5290,14 @@ function validateProfileContent(profile) {
   }
   const p = profile;
   const name = typeof p.display_name === "string" ? p.display_name.trim() : "";
-  if (name.length === 0)
-    return "display_name is required";
-  if (name.length > 80)
-    return "display_name must be 80 characters or fewer";
+  if (name.length === 0) return "display_name is required";
+  if (name.length > 80) return "display_name must be 80 characters or fewer";
   if (p.age !== void 0) {
     if (typeof p.age !== "number" || !Number.isInteger(p.age)) {
       return "age must be a whole number";
     }
-    if (p.age < MIN_AGE)
-      return `age must be at least ${MIN_AGE}`;
-    if (p.age > MAX_AGE)
-      return `age must be ${MAX_AGE} or under`;
+    if (p.age < MIN_AGE) return `age must be at least ${MIN_AGE}`;
+    if (p.age > MAX_AGE) return `age must be ${MAX_AGE} or under`;
   }
   if (p.bio !== void 0 && typeof p.bio === "string" && p.bio.length > MAX_BIO_LENGTH) {
     return `bio must be ${MAX_BIO_LENGTH} characters or fewer`;
@@ -5429,8 +5398,7 @@ var init_service2 = __esm({
       }
       async handleGet(request, ctx) {
         const member = await this.membership.getMember(ctx.senderPubkey);
-        if (!member)
-          return { response: createErrorEnvelope(request.request_id, "unauthorized", "No membership") };
+        if (!member) return { response: createErrorEnvelope(request.request_id, "unauthorized", "No membership") };
         const profile = await this.membership.getProfile(ctx.senderPubkey);
         const content = await this.membership.getProfileContent(ctx.senderPubkey);
         return { response: createEnvelope("profile.get.result", request.request_id, {
@@ -5477,13 +5445,11 @@ function encodeBase64url(input) {
 }
 function decodeBase64url(input) {
   let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  while (base64.length % 4)
-    base64 += "=";
+  while (base64.length % 4) base64 += "=";
   return atob(base64);
 }
 function clampAge(value, fallback) {
-  if (typeof value !== "number" || !Number.isFinite(value))
-    return fallback;
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.min(Math.max(Math.round(value), 18), 120);
 }
 function grantToken(viewerId, candidateId, now) {
@@ -5701,8 +5667,7 @@ var init_service3 = __esm({
         const row = await session.prepare(
           `SELECT geo_cell_p5, geo_cell_p4, geo_cell_p3 FROM od_discovery_index WHERE member_id = ?`
         ).bind(memberId).first();
-        if (!row || !row.geo_cell_p3)
-          return null;
+        if (!row || !row.geo_cell_p3) return null;
         const prefRow = await session.prepare(
           `SELECT age_min, age_max, max_distance_km, genders, intent
          FROM od_discovery_prefs WHERE member_id = ?`
@@ -5711,8 +5676,7 @@ var init_service3 = __esm({
         if (typeof prefRow?.genders === "string") {
           try {
             const parsed = JSON.parse(prefRow.genders);
-            if (Array.isArray(parsed) && parsed.length > 0)
-              genders = parsed;
+            if (Array.isArray(parsed) && parsed.length > 0) genders = parsed;
           } catch {
           }
         }
@@ -5762,17 +5726,13 @@ var init_service3 = __esm({
         const session = this.db.withSession("first-unconstrained");
         const maxPrecision = viewer.prefs.maxDistanceKm <= 10 ? 5 : viewer.prefs.maxDistanceKm <= 50 ? 4 : 3;
         for (const tier of GEO_TIERS) {
-          if (collected.length >= want)
-            break;
-          if (tier.precision < maxPrecision)
-            break;
+          if (collected.length >= want) break;
+          if (tier.precision < maxPrecision) break;
           const cell = viewer.cells[tier.column];
-          if (!cell)
-            continue;
+          if (!cell) continue;
           const genderFilter = viewer.prefs.genders ? ` AND di.gender_category IN (${viewer.prefs.genders.map(() => "?").join(",")})` : "";
           const binds = [cell, viewer.prefs.ageMin, viewer.prefs.ageMax];
-          if (viewer.prefs.genders)
-            binds.push(...viewer.prefs.genders);
+          if (viewer.prefs.genders) binds.push(...viewer.prefs.genders);
           binds.push(
             memberId,
             // di.member_id != ?
@@ -5812,8 +5772,7 @@ var init_service3 = __esm({
           LIMIT ?`
           ).bind(...binds).all();
           for (const raw of rows.results ?? []) {
-            if (excluded.has(raw.member_id))
-              continue;
+            if (excluded.has(raw.member_id)) continue;
             excluded.add(raw.member_id);
             collected.push({
               candidate_id: raw.member_id,
@@ -5821,8 +5780,7 @@ var init_service3 = __esm({
               distance_bucket: tier.bucket,
               granted_at: now
             });
-            if (collected.length >= want)
-              break;
+            if (collected.length >= want) break;
           }
         }
         if (collected.length > 0) {
@@ -5861,8 +5819,7 @@ var init_service3 = __esm({
        * Batch-hydrates in 2 D1 queries regardless of page size (was 2N).
        */
       async hydrate(grants) {
-        if (grants.length === 0)
-          return [];
+        if (grants.length === 0) return [];
         const memberIds = [...new Set(grants.map((g) => g.candidate_id))];
         const [pubkeyMap, profileMap] = await Promise.all([
           this.membership.getPubkeysByMemberIds(memberIds),
@@ -5871,11 +5828,9 @@ var init_service3 = __esm({
         const out = [];
         for (const grant of grants) {
           const pubkey = pubkeyMap.get(grant.candidate_id);
-          if (!pubkey)
-            continue;
+          if (!pubkey) continue;
           const content = profileMap.get(grant.candidate_id);
-          if (!content)
-            continue;
+          if (!content) continue;
           out.push({
             pubkey,
             profile: publicProfile(content),
@@ -5893,8 +5848,7 @@ var init_service3 = __esm({
         const row = await session.prepare(
           "SELECT daily_candidates_served, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?"
         ).bind(memberId).first();
-        if (!row)
-          return { exhausted: false, servedToday: 0, resetAt: now + DAY_SEC };
+        if (!row) return { exhausted: false, servedToday: 0, resetAt: now + DAY_SEC };
         const resetAt = row.daily_reset_at ?? 0;
         if (now > resetAt) {
           return { exhausted: false, servedToday: 0, resetAt: now + DAY_SEC };
@@ -5979,19 +5933,24 @@ var init_service4 = __esm({
         const candidateGrant = payload.candidate_grant;
         const now = Math.floor(Date.now() / 1e3);
         const session = this.db.withSession("first-primary");
-        if (candidateGrant) {
-          const grant = await session.prepare(
-            `SELECT grant_token FROM od_candidate_grants
-          WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
-            AND (expires_at IS NULL OR expires_at > ?)`
-          ).bind(memberId, targetMemberId, candidateGrant, now).first();
-          if (!grant) {
-            return { response: createErrorEnvelope(
-              request.request_id,
-              "invalid_candidate_grant",
-              "No valid grant found \u2014 this profile may no longer be available"
-            ) };
-          }
+        if (!candidateGrant) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_candidate_grant",
+            "This profile is no longer available."
+          ) };
+        }
+        const grant = await session.prepare(
+          `SELECT grant_token FROM od_candidate_grants
+        WHERE viewer_id = ? AND candidate_id = ? AND grant_token = ?
+          AND (expires_at IS NULL OR expires_at > ?)`
+        ).bind(memberId, targetMemberId, candidateGrant, now).first();
+        if (!grant) {
+          return { response: createErrorEnvelope(
+            request.request_id,
+            "invalid_candidate_grant",
+            "No valid grant found \u2014 this profile may no longer be available"
+          ) };
         }
         const likeQuota = await session.prepare(
           `SELECT daily_likes_sent, daily_reset_at FROM od_discovery_quotas WHERE member_id = ?`
@@ -6019,11 +5978,9 @@ var init_service4 = __esm({
          daily_reset_at = CASE WHEN daily_reset_at < ? THEN ? ELSE daily_reset_at END,
          updated_at = ?`
         ).bind(memberId, newResetAt, now, now, newResetAt, now, now).run();
-        if (candidateGrant) {
-          await session.prepare(
-            `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
-          ).bind(memberId, targetMemberId).run();
-        }
+        await session.prepare(
+          `DELETE FROM od_candidate_grants WHERE viewer_id = ? AND candidate_id = ?`
+        ).bind(memberId, targetMemberId).run();
         const reciprocal = await session.prepare(
           `SELECT id FROM od_intents
        WHERE from_member_id = ? AND to_member_id = ? AND intent_type = 'like' AND state = 'active'`
@@ -6107,13 +6064,15 @@ var init_service5 = __esm({
         this.membership = new D1MembershipStore(db);
       }
       supports(type) {
-        return ["block.create", "block.list", "unmatch.create"].includes(type);
+        return ["block.create", "block.remove", "block.list", "unmatch.create"].includes(type);
       }
       async handle(request, ctx) {
         const member = await this.membership.ensureMember(ctx.senderPubkey);
         switch (request.type) {
           case "block.create":
             return this.createBlock(member.memberId, request, ctx);
+          case "block.remove":
+            return this.removeBlock(member.memberId, request);
           case "block.list":
             return this.listBlocks(member.memberId, request);
           case "unmatch.create":
@@ -6121,6 +6080,30 @@ var init_service5 = __esm({
           default:
             throw new Error(`Block service does not support: ${request.type}`);
         }
+      }
+      async removeBlock(memberId, request) {
+        const payload = request.payload;
+        const targetPubkey = payload.target_pubkey;
+        if (typeof targetPubkey !== "string" || targetPubkey.length === 0) {
+          return {
+            response: createErrorEnvelope(
+              request.request_id,
+              "invalid_envelope",
+              "Missing target_pubkey"
+            )
+          };
+        }
+        const targetMemberId = this.membership.getMemberId(targetPubkey);
+        const now = Math.floor(Date.now() / 1e3);
+        await this.db.withSession("first-primary").prepare(
+          `DELETE FROM od_blocks
+       WHERE blocker_member_id = ? AND blocked_member_id = ?`
+        ).bind(memberId, targetMemberId).run();
+        return {
+          response: createEnvelope("block.remove.result", request.request_id, {
+            removed_at: now
+          })
+        };
       }
       async createBlock(memberId, request, ctx) {
         const payload = request.payload;
@@ -6351,8 +6334,7 @@ var init_service7 = __esm({
 
 // src/protocols/opendating/index.ts
 function initOpenDating(env, db) {
-  if (initialized)
-    return;
+  if (initialized) return;
   console.log("[OpenDating] Initializing protocol core...");
   try {
     initMembershipKeys(env || {});
@@ -6367,13 +6349,13 @@ function initOpenDating(env, db) {
     return;
   }
   const factories = {
-    system: (pk) => odServiceRegistry.register(new SystemService("system", pk)),
-    profile: (pk) => odServiceRegistry.register(new ProfileService("profile", pk, db)),
-    discovery: (pk) => odServiceRegistry.register(new DiscoveryService("discovery", pk, db)),
-    matcher: (pk) => odServiceRegistry.register(new MatcherService("matcher", pk, db)),
-    dm_policy: (pk) => odServiceRegistry.register(new BlockService("dm_policy", pk, db)),
-    moderation: (pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db)),
-    deletion: (pk) => odServiceRegistry.register(new DeletionService("deletion", pk, db))
+    system: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new SystemService("system", pk)), "system"),
+    profile: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new ProfileService("profile", pk, db)), "profile"),
+    discovery: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new DiscoveryService("discovery", pk, db)), "discovery"),
+    matcher: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new MatcherService("matcher", pk, db)), "matcher"),
+    dm_policy: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new BlockService("dm_policy", pk, db)), "dm_policy"),
+    moderation: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new ModerationService("moderation", pk, db)), "moderation"),
+    deletion: /* @__PURE__ */ __name((pk) => odServiceRegistry.register(new DeletionService("deletion", pk, db)), "deletion")
   };
   for (const signer of signers) {
     const factory = factories[signer.role];
@@ -6436,24 +6418,20 @@ function computeEventId(event) {
   return bytesToHex2(sha2562(new TextEncoder().encode(serialized)));
 }
 function parseAuthHeader(header) {
-  if (!header)
-    return null;
+  if (!header) return null;
   const match = /^Nostr\s+(.+)$/i.exec(header.trim());
-  if (!match)
-    return null;
+  if (!match) return null;
   try {
     const json2 = atob(match[1]);
     const parsed = JSON.parse(json2);
-    if (typeof parsed?.pubkey !== "string" || !Array.isArray(parsed?.tags))
-      return null;
+    if (typeof parsed?.pubkey !== "string" || !Array.isArray(parsed?.tags)) return null;
     return parsed;
   } catch {
     return null;
   }
 }
 function verifyAuth(event, verb, now, blobHash) {
-  if (!event)
-    return { ok: false, error: "Missing Authorization header" };
+  if (!event) return { ok: false, error: "Missing Authorization header" };
   if (event.kind !== BLOSSOM_AUTH_KIND) {
     return { ok: false, error: `Authorization must be kind ${BLOSSOM_AUTH_KIND}` };
   }
@@ -6495,8 +6473,7 @@ function verifyAuth(event, verb, now, blobHash) {
       hexToBytes2(event.id),
       hexToBytes2(event.pubkey)
     );
-    if (!valid)
-      return { ok: false, error: "Invalid signature" };
+    if (!valid) return { ok: false, error: "Invalid signature" };
   } catch {
     return { ok: false, error: "Invalid signature" };
   }
@@ -6595,8 +6572,7 @@ async function handleUpload(request, bucket, origin) {
     return error(`Blob exceeds ${MAX_BLOB_BYTES} bytes`, 413);
   }
   const body = new Uint8Array(await request.arrayBuffer());
-  if (body.byteLength === 0)
-    return error("Empty body", 400);
+  if (body.byteLength === 0) return error("Empty body", 400);
   if (body.byteLength > MAX_BLOB_BYTES) {
     return error(`Blob exceeds ${MAX_BLOB_BYTES} bytes`, 413);
   }
@@ -6630,8 +6606,7 @@ async function handleUpload(request, bucket, origin) {
 }
 async function handleGet(hash, bucket, headOnly) {
   const object = headOnly ? await bucket.head(hash) : await bucket.get(hash);
-  if (!object)
-    return error("Blob not found", 404);
+  if (!object) return error("Blob not found", 404);
   const headers = new Headers({
     "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
     "Content-Length": String(object.size),
@@ -6639,20 +6614,17 @@ async function handleGet(hash, bucket, headOnly) {
     "Access-Control-Allow-Origin": "*",
     ETag: object.httpEtag
   });
-  if (headOnly)
-    return new Response(null, { status: 200, headers });
+  if (headOnly) return new Response(null, { status: 200, headers });
   return new Response(object.body, { status: 200, headers });
 }
 async function handleList(url, bucket) {
   const pubkey = url.pathname.slice("/list/".length).toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(pubkey))
-    return error("Malformed pubkey", 400);
+  if (!/^[0-9a-f]{64}$/.test(pubkey)) return error("Malformed pubkey", 400);
   const listed = await bucket.list({ limit: 1e3 });
   const blobs = [];
   for (const entry of listed.objects) {
     const object = await bucket.head(entry.key);
-    if (object?.customMetadata?.uploader !== pubkey)
-      continue;
+    if (object?.customMetadata?.uploader !== pubkey) continue;
     const type = object.httpMetadata?.contentType ?? "application/octet-stream";
     blobs.push({
       url: blobUrl(url.origin, object.key, type),
@@ -6672,8 +6644,7 @@ async function handleDelete(request, hash, bucket) {
     return error(authResult.error ?? "Unauthorized", 401);
   }
   const object = await bucket.head(hash);
-  if (!object)
-    return error("Blob not found", 404);
+  if (!object) return error("Blob not found", 404);
   if (object.customMetadata?.uploader !== authResult.pubkey) {
     return error("Only the uploader may delete this blob", 403);
   }
@@ -6742,8 +6713,7 @@ async function processTask(message, db, ai) {
 }
 async function processReportCreated(db, payload) {
   const { reportId } = payload;
-  if (!reportId)
-    return;
+  if (!reportId) return;
   await db.prepare(
     `UPDATE od_reports SET status = 'triaging' WHERE report_id = ? AND status = 'pending'`
   ).bind(reportId).run();
@@ -6751,8 +6721,7 @@ async function processReportCreated(db, payload) {
 }
 async function processMatchNotification(db, payload) {
   const { matchId, memberA, memberB } = payload;
-  if (!matchId)
-    return;
+  if (!matchId) return;
   await db.prepare(
     `INSERT OR IGNORE INTO od_match_notifications (match_id, member_id, notified_at)
      VALUES (?, ?, ?), (?, ?, ?)`
@@ -6768,8 +6737,7 @@ async function processMatchNotification(db, payload) {
 }
 async function processMemberDeleted(db, payload) {
   const { memberId } = payload;
-  if (!memberId)
-    return;
+  if (!memberId) return;
   const now = Math.floor(Date.now() / 1e3);
   const tables = [
     "od_profiles",
@@ -6800,8 +6768,7 @@ async function processMemberDeleted(db, payload) {
 }
 async function processProfileUpdated(db, payload) {
   const { memberId } = payload;
-  if (!memberId)
-    return;
+  if (!memberId) return;
   const now = Math.floor(Date.now() / 1e3);
   await db.prepare(
     `UPDATE od_discovery_index SET updated_at = ? WHERE member_id = ?`
@@ -6824,8 +6791,7 @@ function nip11Key() {
   return "cache:nip11";
 }
 async function getCachedNip11(kv) {
-  if (!kv)
-    return null;
+  if (!kv) return null;
   try {
     return await kv.get(nip11Key());
   } catch (err) {
@@ -6834,8 +6800,7 @@ async function getCachedNip11(kv) {
   }
 }
 async function setCachedNip11(kv, json2) {
-  if (!kv)
-    return;
+  if (!kv) return;
   try {
     await kv.put(nip11Key(), json2, { expirationTtl: NIP11_CACHE_TTL });
   } catch (err) {
@@ -7035,8 +7000,7 @@ async function initializeDatabase(db) {
         try {
           await session.prepare(`ALTER TABLE events ADD COLUMN ${col} TEXT`).run();
         } catch (e) {
-          if (!e.message?.includes("duplicate column"))
-            throw e;
+          if (!e.message?.includes("duplicate column")) throw e;
         }
       }
       await session.prepare(`
@@ -7063,8 +7027,7 @@ async function initializeDatabase(db) {
         try {
           await session.prepare(`ALTER TABLE events ADD COLUMN ${col} TEXT`).run();
         } catch (e) {
-          if (!e.message?.includes("duplicate column"))
-            throw e;
+          if (!e.message?.includes("duplicate column")) throw e;
         }
       }
       await session.prepare(`
@@ -7145,8 +7108,7 @@ function serializeEventForSigning(event) {
   ]);
 }
 function hexToBytes3(hexString) {
-  if (hexString.length % 2 !== 0)
-    throw new Error("Invalid hex string");
+  if (hexString.length % 2 !== 0) throw new Error("Invalid hex string");
   const bytes = new Uint8Array(hexString.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
@@ -7166,8 +7128,7 @@ function shouldCheckForDuplicates(kind) {
   return enableAntiSpam2 && antiSpamKinds2.has(kind);
 }
 async function hasPaidForRelay(pubkey, env) {
-  if (!PAY_TO_RELAY_ENABLED2)
-    return true;
+  if (!PAY_TO_RELAY_ENABLED2) return true;
   try {
     const session = env.RELAY_DATABASE.withSession("first-unconstrained");
     const result = await session.prepare(
@@ -7444,24 +7405,15 @@ async function saveEventToDatabase(event, env) {
           name: tag[0],
           value: tag[1] || ""
         });
-        if (tag[0] === "p" && !tagP)
-          tagP = tag[1];
-        if (tag[0] === "e" && !tagE)
-          tagE = tag[1];
-        if (tag[0] === "a" && !tagA)
-          tagA = tag[1];
-        if (tag[0] === "t" && !tagT)
-          tagT = tag[1];
-        if (tag[0] === "d" && !tagD)
-          tagD = tag[1];
-        if (tag[0] === "r" && !tagR)
-          tagR = tag[1];
-        if (tag[0] === "L" && !tagL)
-          tagL = tag[1];
-        if (tag[0] === "s" && !tagS)
-          tagS = tag[1];
-        if (tag[0] === "u" && !tagU)
-          tagU = tag[1];
+        if (tag[0] === "p" && !tagP) tagP = tag[1];
+        if (tag[0] === "e" && !tagE) tagE = tag[1];
+        if (tag[0] === "a" && !tagA) tagA = tag[1];
+        if (tag[0] === "t" && !tagT) tagT = tag[1];
+        if (tag[0] === "d" && !tagD) tagD = tag[1];
+        if (tag[0] === "r" && !tagR) tagR = tag[1];
+        if (tag[0] === "L" && !tagL) tagL = tag[1];
+        if (tag[0] === "s" && !tagS) tagS = tag[1];
+        if (tag[0] === "u" && !tagU) tagU = tag[1];
       }
     }
     const eTags = tagInserts.filter((t) => t.name === "e").map((t) => t.value);
@@ -8133,8 +8085,7 @@ async function queryEvents(filters, bookmark, env) {
       console.log(`Filter has arrays >${CHUNK_SIZE} items, using chunked query...`);
       const chunkedResult = await queryDatabaseChunked(filter, bookmark, env);
       for (const event of chunkedResult.events) {
-        if (totalEventsRead >= GLOBAL_MAX_EVENTS)
-          break;
+        if (totalEventsRead >= GLOBAL_MAX_EVENTS) break;
         eventSet.set(event.id, event);
         totalEventsRead++;
       }
@@ -8177,8 +8128,7 @@ async function queryEvents(filters, bookmark, env) {
             }
             if (result.success && result.results) {
               for (const row of result.results) {
-                if (totalEventsRead >= GLOBAL_MAX_EVENTS)
-                  break;
+                if (totalEventsRead >= GLOBAL_MAX_EVENTS) break;
                 allRows.push(row);
                 totalEventsRead++;
               }
@@ -10161,8 +10111,7 @@ var init_durable_object = __esm({
         const activeWebSockets = this.state.getWebSockets();
         for (const ws of activeWebSockets) {
           const attachment = ws.deserializeAttachment();
-          if (!attachment)
-            continue;
+          if (!attachment) continue;
           let session = this.sessions.get(attachment.sessionId);
           if (!session) {
             const subscriptions = await this.loadSubscriptions(attachment.sessionId);
@@ -10198,8 +10147,7 @@ var init_durable_object = __esm({
       async broadcastToOtherDOs(event) {
         const broadcasts = [];
         for (const endpoint of _RelayWebSocket.ALLOWED_ENDPOINTS) {
-          if (endpoint === this.doName)
-            continue;
+          if (endpoint === this.doName) continue;
           broadcasts.push(this.sendToSpecificDO(endpoint, event));
         }
         const results = await Promise.allSettled(
@@ -10376,20 +10324,10 @@ export {
   (*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
 
 @noble/curves/esm/utils.js:
-  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
 @noble/curves/esm/abstract/modular.js:
-  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
 @noble/curves/esm/abstract/curve.js:
-  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
 @noble/curves/esm/abstract/weierstrass.js:
-  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
 @noble/curves/esm/_shortw_utils.js:
-  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
 @noble/curves/esm/secp256k1.js:
   (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
 
