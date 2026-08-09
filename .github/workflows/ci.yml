@@ -60,7 +60,7 @@ jobs:
       - name: Generate SBOM
         run: npm sbom --sbom-format cyclonedx > sbom.cdx.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend-sbom-cyclonedx
           path: sbom.cdx.json
@@ -86,7 +86,7 @@ jobs:
         with:
           persist-credentials: false
       - if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
       - if: github.event_name != 'pull_request'
