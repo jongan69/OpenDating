@@ -175,14 +175,35 @@ export class MatcherService implements OpenDatingService {
        ORDER BY created_at DESC LIMIT 50`
     ).bind(memberId, memberId).all();
 
+    const rows = (matches.results ?? []) as unknown as Array<{
+      match_id: string;
+      member_a: string;
+      member_b: string;
+      state: string;
+      created_at: number;
+    }>;
+    const otherMemberIds = rows.map((row) =>
+      row.member_a === memberId ? row.member_b : row.member_a
+    );
+    const [pubkeys, profiles] = await Promise.all([
+      this.membership.getPubkeysByMemberIds(otherMemberIds),
+      this.membership.getProfileContentsByMemberIds(otherMemberIds),
+    ]);
+
     return {
       response: createEnvelope('match.list.result', request.request_id, {
-        matches: matches.results.map((r: any) => ({
-          match_id: r.match_id,
-          other_member: r.member_a === memberId ? r.member_b : r.member_a,
-          state: r.state,
-          created_at: r.created_at,
-        })),
+        matches: rows.flatMap((row) => {
+          const otherMemberId = row.member_a === memberId ? row.member_b : row.member_a;
+          const pubkey = pubkeys.get(otherMemberId);
+          if (!pubkey) return [];
+          return [{
+            match_id: row.match_id,
+            pubkey,
+            profile: profiles.get(otherMemberId),
+            state: row.state,
+            created_at: row.created_at,
+          }];
+        }),
       }),
     };
   }

@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { createTestDb, D1Adapter } from '../../harness/d1-adapter.js';
-import { initMembershipKeys, resetMembershipKeys, deriveMemberId } from '../../../src/protocols/opendating/storage/d1/membership.js';
+import { D1MembershipStore, initMembershipKeys, resetMembershipKeys, deriveMemberId } from '../../../src/protocols/opendating/storage/d1/membership.js';
 import { initOpenDatingExtension } from '../../../src/protocols/opendating/extension.js';
 import { grantToken, clampAge, publicProfile } from '../../../src/protocols/opendating/services/discovery/service.js';
 import { validateProfileContent } from '../../../src/protocols/opendating/services/profile/service.js';
@@ -177,6 +177,42 @@ describe('Matcher SQL (D1)', () => {
       requestId,
     };
   }
+
+  it('returns the other member public key and profile in match lists', async () => {
+    const membership = new D1MembershipStore(db as unknown as D1Database);
+    const alice = await membership.ensureMember(alicePubkey);
+    const bob = await membership.ensureMember(bobPubkey);
+    await membership.updateProfileContent(bobPubkey, {
+      display_name: 'Bob',
+      age: 31,
+      gender: 'man',
+      relationship_intent: 'long_term',
+    });
+    await db.prepare(
+      `INSERT INTO od_matches (match_id, member_a, member_b, state, created_at, updated_at)
+       VALUES ('match-1', ?, ?, 'active', 1000, 1000)`,
+    ).bind(alice.memberId, bob.memberId).run();
+
+    const service = new MatcherService(
+      'matcher',
+      servicePubkey,
+      db as unknown as D1Database,
+    );
+    const requestId = 'match-list-contract';
+    const result = await service.handle(
+      createEnvelope('match.list', requestId, {}),
+      context(requestId),
+    );
+
+    expect(result.response.payload).toMatchObject({
+      matches: [{
+        match_id: 'match-1',
+        pubkey: bobPubkey,
+        profile: { display_name: 'Bob', age: 31 },
+        created_at: 1000,
+      }],
+    });
+  });
 
   it('consumes a candidate grant exactly once before like side effects', async () => {
     const service = new MatcherService(
@@ -389,6 +425,29 @@ describe('Block service (D1)', () => {
       ),
     ).resolves.toMatchObject({
       response: { type: 'block.remove.result' },
+    });
+  });
+
+  it('returns actionable public keys from the block list', async () => {
+    const membership = new D1MembershipStore(db as unknown as D1Database);
+    await membership.ensureMember(bobPubkey);
+    const service = new BlockService(
+      'dm_policy',
+      servicePubkey,
+      db as unknown as D1Database,
+    );
+
+    await service.handle(
+      createEnvelope('block.create', 'block-create-list', { target_pubkey: bobPubkey }),
+      context('block-create-list'),
+    );
+    const result = await service.handle(
+      createEnvelope('block.list', 'block-list-contract', {}),
+      context('block-list-contract'),
+    );
+
+    expect(result.response.payload).toMatchObject({
+      blocks: [{ target_pubkey: bobPubkey }],
     });
   });
 

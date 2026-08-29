@@ -241,12 +241,11 @@ const env = createEnvelope('intent.revoke', crypto.randomUUID(), {
 
 ## 9. Matches
 
-When both parties like each other, the matcher sends `match.created` notifications
-to each party via NIP-59 gift wraps.
+When both parties like each other, the match appears in each member's match list.
 
 ```typescript
 const env = createEnvelope('match.list', crypto.randomUUID(), {});
-// Response contains match_id, other_member, state, created_at
+// Response contains match_id, pubkey, profile, state, created_at
 ```
 
 Match IDs are deterministic from the two pubkeys.
@@ -279,6 +278,7 @@ const env = createEnvelope('block.create', crypto.randomUUID(), {
 
 // List blocks
 const env = createEnvelope('block.list', crypto.randomUUID(), {});
+// Response contains blocks: [{ target_pubkey, created_at }]
 
 // Remove block
 const env = createEnvelope('block.remove', crypto.randomUUID(), {
