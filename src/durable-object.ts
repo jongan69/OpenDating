@@ -15,6 +15,7 @@ import { verifyEventSignature, hasPaidForRelay, processEvent, queryEvents } from
 import { extensionRegistry } from './relay/services/registry.js';
 import { initOpenDating } from './protocols/opendating/index.js';
 import { runHousekeeperTick } from './cloudflare/housekeeper.js';
+import { checkDirectMessagePolicy } from './protocols/opendating/services/dm-policy.js';
 
 // Session attachment data structure (minimal - auth state stored in session)
 interface SessionAttachment {
@@ -926,6 +927,30 @@ export class RelayWebSocket implements DurableObject {
 
         if (extResult.handled && extResult.storeNormally === false) {
           this.sendOK(session.webSocket, event.id, true, extResult.message || "");
+          return;
+        }
+      }
+
+      if (event.kind === 1059) {
+        const recipientPubkey = event.tags.find((tag) => tag[0] === 'p')?.[1];
+        try {
+          const decision = await checkDirectMessagePolicy(
+            this.env.RELAY_DATABASE,
+            relayCtx.authenticatedPubkey || '',
+            recipientPubkey,
+          );
+          if (decision !== 'allowed') {
+            const reason =
+              decision === 'blocked'
+                ? 'blocked: od:blocked'
+                : decision === 'not-matched'
+                  ? 'restricted: od:not-matched'
+                  : 'invalid: gift wrap recipient required';
+            this.sendOK(session.webSocket, event.id, false, reason);
+            return;
+          }
+        } catch {
+          this.sendOK(session.webSocket, event.id, false, 'blocked: dm policy unavailable');
           return;
         }
       }

@@ -14,6 +14,7 @@ import { initOpenDatingExtension } from '../../../src/protocols/opendating/exten
 import { grantToken, clampAge, publicProfile } from '../../../src/protocols/opendating/services/discovery/service.js';
 import { validateProfileContent } from '../../../src/protocols/opendating/services/profile/service.js';
 import { BlockService } from '../../../src/protocols/opendating/services/block/service.js';
+import { checkDirectMessagePolicy } from '../../../src/protocols/opendating/services/dm-policy.js';
 import { MatcherService } from '../../../src/protocols/opendating/services/matcher/service.js';
 import { createEnvelope } from '../../../src/protocols/opendating/protocol/envelope.js';
 import type { OpenDatingServiceContext } from '../../../src/protocols/opendating/services/interface.js';
@@ -467,5 +468,41 @@ describe('Block service (D1)', () => {
       type: 'system.error',
       payload: { code: 'invalid_envelope' },
     });
+  });
+});
+
+describe('Direct-message policy (D1)', () => {
+  const alicePubkey = 'a'.repeat(64);
+  const bobPubkey = 'b'.repeat(64);
+
+  it('allows only active, unblocked matches and self archive copies', async () => {
+    const membership = new D1MembershipStore(db as unknown as D1Database);
+    await membership.ensureMember(alicePubkey);
+    await membership.ensureMember(bobPubkey);
+    const aliceId = deriveMemberId(alicePubkey);
+    const bobId = deriveMemberId(bobPubkey);
+
+    await expect(
+      checkDirectMessagePolicy(db as unknown as D1Database, alicePubkey, bobPubkey)
+    ).resolves.toBe('not-matched');
+
+    await db.prepare(
+      `INSERT INTO od_matches (match_id, member_a, member_b, state, created_at, updated_at)
+       VALUES ('dm-match', ?, ?, 'active', 1000, 1000)`
+    ).bind(aliceId, bobId).run();
+    await expect(
+      checkDirectMessagePolicy(db as unknown as D1Database, alicePubkey, bobPubkey)
+    ).resolves.toBe('allowed');
+
+    await db.prepare(
+      `INSERT INTO od_blocks (blocker_member_id, blocked_member_id, created_at)
+       VALUES (?, ?, 1001)`
+    ).bind(bobId, aliceId).run();
+    await expect(
+      checkDirectMessagePolicy(db as unknown as D1Database, alicePubkey, bobPubkey)
+    ).resolves.toBe('blocked');
+    await expect(
+      checkDirectMessagePolicy(db as unknown as D1Database, alicePubkey, alicePubkey)
+    ).resolves.toBe('allowed');
   });
 });
