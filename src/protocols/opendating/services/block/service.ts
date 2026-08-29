@@ -9,6 +9,13 @@ import type { OpenDatingEnvelope } from '../../protocol/envelope.js';
 import { createEnvelope, createErrorEnvelope } from '../../protocol/envelope.js';
 import { D1MembershipStore } from '../../storage/d1/membership.js';
 
+function readTargetPubkey(request: OpenDatingEnvelope): string | null {
+  const target = request.payload.target_pubkey;
+  return typeof target === 'string' && /^[0-9a-f]{64}$/i.test(target)
+    ? target.toLowerCase()
+    : null;
+}
+
 export class BlockService implements OpenDatingService {
   private membership: D1MembershipStore;
 
@@ -38,9 +45,8 @@ export class BlockService implements OpenDatingService {
   }
 
   private async removeBlock(memberId: string, request: OpenDatingEnvelope): Promise<ServiceResult> {
-    const payload = request.payload as Record<string, unknown>;
-    const targetPubkey = payload.target_pubkey;
-    if (typeof targetPubkey !== 'string' || !/^[0-9a-f]{64}$/i.test(targetPubkey)) {
+    const targetPubkey = readTargetPubkey(request);
+    if (!targetPubkey) {
       return {
         response: createErrorEnvelope(
           request.request_id,
@@ -68,8 +74,16 @@ export class BlockService implements OpenDatingService {
   }
 
   private async createBlock(memberId: string, request: OpenDatingEnvelope, ctx: OpenDatingServiceContext): Promise<ServiceResult> {
-    const payload = request.payload as Record<string, any>;
-    const targetPubkey = payload.target_pubkey as string;
+    const targetPubkey = readTargetPubkey(request);
+    if (!targetPubkey || targetPubkey === ctx.senderPubkey) {
+      return {
+        response: createErrorEnvelope(
+          request.request_id,
+          'invalid_envelope',
+          'Invalid target_pubkey',
+        ),
+      };
+    }
     const targetMemberId = this.membership.getMemberId(targetPubkey);
     const now = Math.floor(Date.now() / 1000);
     const session = this.db.withSession('first-primary');
@@ -107,19 +121,37 @@ export class BlockService implements OpenDatingService {
       `SELECT blocked_member_id, created_at FROM od_blocks WHERE blocker_member_id = ? ORDER BY created_at DESC`
     ).bind(memberId).all();
 
+    const rows = (blocks.results ?? []) as unknown as Array<{
+      blocked_member_id: string;
+      created_at: number;
+    }>;
+    const pubkeys = await this.membership.getPubkeysByMemberIds(
+      rows.map((row) => row.blocked_member_id),
+    );
+
     return {
       response: createEnvelope('block.list.result', request.request_id, {
-        blocked: blocks.results.map((r: any) => ({
-          member_id: r.blocked_member_id,
-          created_at: r.created_at,
-        })),
+        blocks: rows.flatMap((row) => {
+          const targetPubkey = pubkeys.get(row.blocked_member_id);
+          return targetPubkey
+            ? [{ target_pubkey: targetPubkey, created_at: row.created_at }]
+            : [];
+        }),
       }),
     };
   }
 
   private async createUnmatch(memberId: string, request: OpenDatingEnvelope, ctx: OpenDatingServiceContext): Promise<ServiceResult> {
-    const payload = request.payload as Record<string, any>;
-    const targetPubkey = payload.target_pubkey as string;
+    const targetPubkey = readTargetPubkey(request);
+    if (!targetPubkey || targetPubkey === ctx.senderPubkey) {
+      return {
+        response: createErrorEnvelope(
+          request.request_id,
+          'invalid_envelope',
+          'Invalid target_pubkey',
+        ),
+      };
+    }
     const targetMemberId = this.membership.getMemberId(targetPubkey);
     const now = Math.floor(Date.now() / 1000);
     const session = this.db.withSession('first-primary');
